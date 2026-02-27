@@ -2,24 +2,30 @@ class DailyData {
   final String date;
   final double? waveHeightMax;
   final double? wavePeriodMax;
+  final double? waveDirectionDominant;
   final double? swellPeriodMax;
   final double? swellDirectionDominant;
   final double? windSpeedMax;
   final double? windGustsMax;
   final double? tempMax;
   final double? tempMin;
+  final String? sunrise;
+  final String? sunset;
   final int? weatherCode;
 
   const DailyData({
     required this.date,
     this.waveHeightMax,
     this.wavePeriodMax,
+    this.waveDirectionDominant,
     this.swellPeriodMax,
     this.swellDirectionDominant,
     this.windSpeedMax,
     this.windGustsMax,
     this.tempMax,
     this.tempMin,
+    this.sunrise,
+    this.sunset,
     this.weatherCode,
   });
 
@@ -27,6 +33,8 @@ class DailyData {
         date: json['date'] as String,
         waveHeightMax: (json['waveHeightMax'] as num?)?.toDouble(),
         wavePeriodMax: (json['wavePeriodMax'] as num?)?.toDouble(),
+        waveDirectionDominant:
+            (json['waveDirectionDominant'] as num?)?.toDouble(),
         swellPeriodMax: (json['swellPeriodMax'] as num?)?.toDouble(),
         swellDirectionDominant:
             (json['swellDirectionDominant'] as num?)?.toDouble(),
@@ -34,6 +42,8 @@ class DailyData {
         windGustsMax: (json['windGustsMax'] as num?)?.toDouble(),
         tempMax: (json['tempMax'] as num?)?.toDouble(),
         tempMin: (json['tempMin'] as num?)?.toDouble(),
+        sunrise: json['sunrise'] as String?,
+        sunset: json['sunset'] as String?,
         weatherCode: json['weatherCode'] as int?,
       );
 
@@ -41,6 +51,8 @@ class DailyData {
         'date': date,
         if (waveHeightMax != null) 'waveHeightMax': waveHeightMax,
         if (wavePeriodMax != null) 'wavePeriodMax': wavePeriodMax,
+        if (waveDirectionDominant != null)
+          'waveDirectionDominant': waveDirectionDominant,
         if (swellPeriodMax != null) 'swellPeriodMax': swellPeriodMax,
         if (swellDirectionDominant != null)
           'swellDirectionDominant': swellDirectionDominant,
@@ -48,6 +60,8 @@ class DailyData {
         if (windGustsMax != null) 'windGustsMax': windGustsMax,
         if (tempMax != null) 'tempMax': tempMax,
         if (tempMin != null) 'tempMin': tempMin,
+        if (sunrise != null) 'sunrise': sunrise,
+        if (sunset != null) 'sunset': sunset,
         if (weatherCode != null) 'weatherCode': weatherCode,
       };
 }

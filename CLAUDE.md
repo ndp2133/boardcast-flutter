@@ -29,12 +29,13 @@ lib/
   models/       — Data classes with fromJson/toJson (Location, HourlyData, Session, etc.)
   logic/        — Pure functions (scoring, boards, surfiq, moon, units, time, locations)
   theme/        — Design tokens (colors, spacing, typography from PWA variables.css)
-  services/     — API, Supabase, Hive (Phase 1+)
+  services/     — API fetch/normalize/merge, Supabase client, Hive cache, conditions repository
   state/        — Riverpod providers (Phase 2+)
   views/        — Screen widgets (Phase 3+)
   components/   — Reusable widgets (Phase 3+)
 test/
   logic/        — Unit tests for all pure functions
+  services/     — API normalization, merge, serialization round-trip tests
   models/       — Model serialization tests
 ```
 
@@ -61,6 +62,13 @@ Same as PWA:
 - Logic functions are pure (no side effects, testable in isolation)
 - 11 surf locations across NY/NJ, CA, FL
 
+## Services Architecture
+
+- **api_service.dart** — fetch + normalize for Open-Meteo Marine, Open-Meteo Weather, NOAA Tides. `mergeConditions()` joins all three by time key and filters daily entries with null waveHeightMax.
+- **cache_service.dart** — Hive-backed per-location conditions cache. Cached data always returns with `isStale: true`.
+- **conditions_repository.dart** — Orchestrates API fetch + cache. Memory cache first, Hive fallback, offline-first pattern matching the PWA.
+- **supabase_service.dart** — Client init. Same project/anon key as PWA.
+
 ## Current Status
 
-Phase 0 complete: scaffolding, models, logic, theme tokens, 122 passing tests.
+Phase 1 complete: API service, Hive caching, offline fallback, 140 passing tests.

@@ -1,5 +1,6 @@
 /// Barrel file for all models
 export 'board.dart';
+export 'current_conditions.dart';
 export 'daily_data.dart';
 export 'hourly_data.dart';
 export 'location.dart';
