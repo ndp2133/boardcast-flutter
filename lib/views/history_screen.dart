@@ -13,6 +13,7 @@ import '../state/theme_provider.dart';
 import '../components/preferences_editor.dart';
 import '../components/board_modal.dart';
 import '../components/star_rating.dart';
+import '../components/surf_wrapped.dart';
 
 class HistoryScreen extends ConsumerWidget {
   const HistoryScreen({super.key});
@@ -78,6 +79,32 @@ class HistoryScreen extends ConsumerWidget {
 
           // Stats
           _buildStatsGrid(completed, isDark, textColor, subColor),
+
+          // Share Surf Wrapped button
+          if (completed.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.s3),
+            Center(
+              child: TextButton.icon(
+                onPressed: () {
+                  final isDarkNow =
+                      Theme.of(context).brightness == Brightness.dark;
+                  generateAndShareWrapped(
+                    sessions: sessions,
+                    boards: boards,
+                    isDark: isDarkNow,
+                  );
+                },
+                icon: Icon(Icons.share, size: 16, color: AppColors.accent),
+                label: Text(
+                  'Share Surf Wrapped',
+                  style: TextStyle(
+                    fontSize: AppTypography.textSm,
+                    color: AppColors.accent,
+                  ),
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: AppSpacing.s5),
 
           // Session history

@@ -1,4 +1,4 @@
-/// Dashboard screen — score ring, metric cards, best time, forecast summary
+/// Dashboard screen — score ring, metric cards, best time, forecast summary, AI coach
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,12 +13,15 @@ import '../logic/forecast_summary.dart';
 import '../state/conditions_provider.dart';
 import '../state/location_provider.dart';
 import '../state/preferences_provider.dart';
+import '../state/ai_provider.dart';
 import '../components/score_ring.dart';
 import '../components/metric_card.dart';
 import '../components/wind_compass.dart';
 import '../components/best_time_card.dart';
 import '../components/stale_badge.dart';
 import '../components/location_picker.dart';
+import '../components/surf_coach_card.dart';
+import '../components/share_card.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -83,12 +86,38 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
         ),
         centerTitle: true,
+        actions: [
+          // Share button
+          if (conditionsAsync.hasValue)
+            IconButton(
+              icon: Icon(
+                Icons.share,
+                size: 20,
+                color: isDark
+                    ? AppColorsDark.textSecondary
+                    : AppColors.textSecondary,
+              ),
+              onPressed: () => _onShare(conditionsAsync.value!, location, prefs, isDark),
+            ),
+        ],
       ),
       body: conditionsAsync.when(
         loading: () => _buildSkeleton(isDark),
         error: (err, _) => _buildError(err, isDark),
         data: (data) => _buildDashboard(data, location, prefs, dataAge, isDark),
       ),
+    );
+  }
+
+  void _onShare(MergedConditions data, Location location, UserPrefs prefs, bool isDark) {
+    final bestWindow = findBestWindow(data.hourly, prefs, location);
+    generateAndShareCard(
+      current: data.current,
+      location: location,
+      isDark: isDark,
+      prefs: prefs,
+      bestWindow: bestWindow,
+      hourlyData: data.hourly,
     );
   }
 
@@ -143,8 +172,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final tideSubLabel =
         '$tideLabel${waterTempText.isNotEmpty ? ' · $waterTempText water' : ''}';
 
-    // Forecast summary
-    final summary = generateForecastSummary(todayHours, prefs, location);
+    // Forecast summary (rule-based)
+    final ruleBasedSummary = generateForecastSummary(todayHours, prefs, location);
+
+    // Trigger LLM summary fetch in background
+    final llmState = ref.watch(llmSummaryProvider);
+    if (ruleBasedSummary.isNotEmpty && llmState.status == AiStatus.idle) {
+      // Schedule after frame to avoid build-time provider mutation
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(llmSummaryProvider.notifier).fetch(
+          ruleBasedSummary: ruleBasedSummary,
+          locationId: location.id,
+        );
+      });
+    }
 
     // Metric dot colors
     final waveDot = _prefDotColor(
@@ -160,7 +201,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     return RefreshIndicator(
       color: AppColors.accent,
-      onRefresh: () async => ref.invalidate(conditionsProvider),
+      onRefresh: () async {
+        ref.read(llmSummaryProvider.notifier).reset();
+        ref.invalidate(conditionsProvider);
+      },
       child: ListView(
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
         children: [
@@ -181,21 +225,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           Center(child: ScoreRing(score: score)),
           const SizedBox(height: AppSpacing.s3),
 
-          // Forecast summary
-          if (summary.isNotEmpty)
+          // Forecast summary with LLM crossfade
+          if (ruleBasedSummary.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.s4),
-              child: Text(
-                summary,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: AppTypography.textSm,
-                  color: isDark
-                      ? AppColorsDark.textSecondary
-                      : AppColors.textSecondary,
-                  height: 1.4,
-                ),
-              ),
+              child: _buildSummaryWithCrossfade(
+                ruleBasedSummary, llmState, isDark),
             ),
 
           // Metric cards — 3 column grid
@@ -210,7 +245,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       '${windDir != null ? degreesToCardinal(current.waveDirection ?? 0) : '--'} ${current.wavePeriod != null ? '${current.wavePeriod!.round()}s' : ''}',
                   dotColor: waveDot,
                   idealRange: prefs.minWaveHeight != null
-                      ? 'Ideal: ${formatWaveHeight(prefs.minWaveHeight)}–${formatWaveHeight(prefs.maxWaveHeight)} ft'
+                      ? 'Ideal: ${formatWaveHeight(prefs.minWaveHeight)}\u2013${formatWaveHeight(prefs.maxWaveHeight)} ft'
                       : null,
                   sparklineData: waveSparkline,
                   explainer:
@@ -223,7 +258,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   name: 'Wind',
                   value: formatWindSpeed(current.windSpeed),
                   unit: 'mph',
-                  subLabel: '$windDirLabel · $windQuality',
+                  subLabel: '$windDirLabel \u00b7 $windQuality',
                   dotColor: windDot,
                   idealRange: prefs.maxWindSpeed != null
                       ? 'Ideal: < ${formatWindSpeed(prefs.maxWindSpeed)} mph'
@@ -259,10 +294,53 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
           // Best time card
           BestTimeCard(window: bestWindow),
+          const SizedBox(height: AppSpacing.s4),
+
+          // AI Surf Coach card
+          const SurfCoachCard(),
 
           const SizedBox(height: AppSpacing.s8),
         ],
       ),
+    );
+  }
+
+  /// Crossfade between rule-based and LLM summary text.
+  Widget _buildSummaryWithCrossfade(
+      String ruleBasedSummary, AiState llmState, bool isDark) {
+    final showLlm = llmState.status == AiStatus.loaded && llmState.text != null;
+    final displayText = showLlm ? llmState.text! : ruleBasedSummary;
+
+    return Column(
+      children: [
+        AnimatedSwitcher(
+          duration: AppDurations.slow,
+          child: Text(
+            displayText,
+            key: ValueKey(displayText),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: AppTypography.textSm,
+              color: isDark
+                  ? AppColorsDark.textSecondary
+                  : AppColors.textSecondary,
+              height: 1.4,
+            ),
+          ),
+        ),
+        if (showLlm)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              '\u2726 AI-generated',
+              style: TextStyle(
+                fontSize: 10,
+                color: AppColors.accent.withValues(alpha: 0.6),
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
+      ],
     );
   }
 

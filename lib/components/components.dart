@@ -1,5 +1,8 @@
 /// Barrel file for all components
 export 'best_time_card.dart';
+export 'share_card.dart';
+export 'surf_coach_card.dart';
+export 'surf_wrapped.dart';
 export 'board_modal.dart';
 export 'completion_modal.dart';
 export 'daily_card.dart';

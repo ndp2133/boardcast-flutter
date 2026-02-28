@@ -1,4 +1,5 @@
 /// Barrel file for all state providers
+export 'ai_provider.dart';
 export 'auth_provider.dart';
 export 'boards_provider.dart';
 export 'conditions_provider.dart';
