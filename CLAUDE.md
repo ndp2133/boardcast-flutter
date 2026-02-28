@@ -27,12 +27,12 @@ Feature-first structure. Pure business logic is separated from UI in `lib/logic/
 ```
 lib/
   models/       — Data classes with fromJson/toJson (Location, HourlyData, Session, etc.)
-  logic/        — Pure functions (scoring, boards, surfiq, moon, units, time, locations)
+  logic/        — Pure functions (scoring, boards, surfiq, moon, units, time, locations, ai_formatters)
   theme/        — Design tokens (colors, spacing, typography from PWA variables.css)
-  services/     — API fetch/normalize/merge, Supabase client, Hive cache, conditions repository
-  state/        — Riverpod providers (Phase 2+)
-  views/        — Screen widgets (Phase 3+)
-  components/   — Reusable widgets (Phase 3+)
+  services/     — API fetch/normalize/merge, Supabase client, Hive cache, conditions repository, AI service
+  state/        — Riverpod providers (auth, conditions, prefs, sessions, boards, location, theme, AI)
+  views/        — Screen widgets (dashboard, forecast, tracking, history, onboarding, shell)
+  components/   — Reusable widgets (score ring, metrics, charts, surf coach, share cards, etc.)
 test/
   logic/        — Unit tests for all pure functions
   services/     — API normalization, merge, serialization round-trip tests
@@ -70,6 +70,7 @@ Same as PWA:
 - **supabase_service.dart** — Client init. Same project/anon key as PWA.
 - **auth_service.dart** — Supabase auth (email/password, Google OAuth, state stream).
 - **store_service.dart** — Write-through persistence: Hive first (instant), Supabase async push. CRUD for prefs, sessions, boards, settings. Sync + guest migration.
+- **ai_service.dart** — Thin wrapper around `supabase.functions.invoke()` for 3 Edge Functions: `surf-coach` (tips), `surf-query` (NL Q&A), `forecast-summary` (LLM summary). Callers handle errors.
 
 ## State Management (Riverpod)
 
@@ -82,6 +83,7 @@ All in `lib/state/`:
 - `location_provider` — selected location ID + derived Location object
 - `theme_provider` — ThemeMode (dark/light/system)
 - `store_provider` — StoreService singleton
+- `ai_provider` — AI feature state: SurfTipNotifier (user-initiated tips), SurfQueryNotifier (NL Q&A), LlmSummaryNotifier (auto-fires on conditions load, guards location change races)
 
 **Important:** `Session` name collides with Supabase's gotrue `Session`. Use `show SupabaseClient` import in store_service.dart.
 
@@ -89,11 +91,11 @@ All in `lib/state/`:
 
 ### Views (`lib/views/`)
 - **shell_screen.dart** — Bottom nav with 4 tabs (Dashboard, Forecast, Track, History). Uses `IndexedStack` to preserve state.
-- **dashboard_screen.dart** — Full dashboard: score ring, 3 metric cards, best time card, forecast summary, stale badge. ConsumerStatefulWidget with 15-min auto-refresh timer. Pull-to-refresh. Skeleton loading + error states.
+- **dashboard_screen.dart** — Full dashboard: score ring, 3 metric cards, best time card, forecast summary with LLM crossfade, AI surf coach card, share button in AppBar. ConsumerStatefulWidget with 15-min auto-refresh timer. Pull-to-refresh. Skeleton loading + error states.
 - **onboarding_screen.dart** — 3-step PageView wizard: skill level cards → preference sliders/chips → confirmation summary. Populates defaults from `skillDefaults` map. "Continue as Guest" skips with intermediate defaults.
 - **forecast_screen.dart** — Full forecast: Syncfusion dual-axis chart (wave + wind), tide chart with high/low annotations, daily cards with day selection, weekly best windows. Day card tap updates charts.
 - **tracking_screen.dart** — Session planning: 7-day date chips, hourly grid (6AM-8PM) with condition dots and score labels, multi-hour selection, save session. Upcoming planned sessions with Complete/Cancel actions.
-- **history_screen.dart** — Profile/settings: account section (guest/signed-in), dark mode toggle, preferences summary with edit button, board quiver CRUD, Surf IQ card with progress bar + insight, stats grid (sessions, avg rating, best, accuracy), completed session history list with condition badges, tags, and star ratings.
+- **history_screen.dart** — Profile/settings: account section (guest/signed-in), dark mode toggle, preferences summary with edit button, board quiver CRUD, Surf IQ card with progress bar + insight, stats grid (sessions, avg rating, best, accuracy), "Share Surf Wrapped" button, completed session history list with condition badges, tags, and star ratings.
 
 ### Components (`lib/components/`)
 - **score_ring.dart** — Animated arc (CustomPainter) with 0-100 score + condition label. 900ms ease-out animation.
@@ -110,6 +112,22 @@ All in `lib/state/`:
 - **star_rating.dart** — Interactive star rating widget with configurable max rating and size. Used in completion modal and history session rows.
 - **completion_modal.dart** — DraggableScrollableSheet for completing sessions: star rating, forecast accuracy calibration (worse/about right/better), board picker, tags, notes, Surf IQ nudge display.
 - **board_modal.dart** — Bottom sheet for adding/editing boards: board type grid (6 types from boardTypes), optional name field.
+- **surf_coach_card.dart** — AI Surf Coach card: "Get Surf Tip" button (becomes "New Tip"), NL query input with "Ask" button, loading/loaded/error states. Reads conditions + prefs via providers.
+- **share_card.dart** — Off-screen canvas rendering (PictureRecorder + Canvas, not CustomPainter) for 1080x1350 PNG share images. Two modes: best window (hero time range, condition badge, 2x2 metric grid) and current conditions fallback (hero wave height, condition badge, metric grid). Dark/light theme colors. Writes to temp file via path_provider, shares via Share.shareXFiles().
+- **surf_wrapped.dart** — Same canvas approach for monthly/all-time session summary: total sessions/hours, avg rating, favorite spot, longest streak, condition distribution bar (epic/good/fair/poor segments with legend), go-to board, wave footer decorations.
+
+## AI Features (Phase 7)
+
+Three Supabase Edge Functions (source in Supabase dashboard, not this repo):
+- **surf-coach** — Claude Sonnet for personalized coaching tips based on current conditions + user prefs
+- **surf-query** — Claude Haiku for natural language Q&A with full forecast context (current + daily + top windows)
+- **forecast-summary** — Claude for LLM-enhanced forecast summary (crossfades from rule-based on dashboard)
+
+Flutter-side architecture:
+- `lib/logic/ai_formatters.dart` — Pure functions to format conditions/daily/windows into compact AI payloads. Converts metric→imperial, builds prefs map.
+- `lib/services/ai_service.dart` — Thin async wrapper around `supabase.functions.invoke()`.
+- `lib/state/ai_provider.dart` — Three Riverpod Notifiers (not FutureProvider, since tips/queries are user-initiated).
+  - `LlmSummaryNotifier` auto-fires when conditions resolve, guards against location change race conditions.
 
 ## Theming
 
@@ -120,4 +138,4 @@ All in `lib/state/`:
 
 ## Current Status
 
-Phase 6 complete: tracking + history views, session planning, completion modal, board quiver, Surf IQ card, stats. All 4 tabs wired. 160 passing tests.
+Phase 7 complete: AI surf coach, LLM forecast summary crossfade, share cards (conditions report + Surf Wrapped). All 4 tabs wired. 171 passing tests.
