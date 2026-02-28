@@ -5,7 +5,11 @@ import 'services/supabase_service.dart';
 import 'services/cache_service.dart';
 import 'services/store_service.dart';
 import 'services/auth_service.dart';
+import 'state/conditions_provider.dart';
+import 'state/store_provider.dart';
+import 'state/auth_provider.dart';
 import 'theme/tokens.dart';
+import 'views/shell_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,19 +52,14 @@ Future<void> main() async {
     ProviderScope(
       overrides: [
         // Provide pre-initialized singletons
-        _cacheServiceProvider.overrideWithValue(cacheService),
-        _storeServiceProvider.overrideWithValue(storeService),
-        _authServiceProvider.overrideWithValue(authService),
+        cacheServiceProvider.overrideWithValue(cacheService),
+        storeServiceProvider.overrideWithValue(storeService),
+        authServiceProvider.overrideWithValue(authService),
       ],
       child: const BoardcastApp(),
     ),
   );
 }
-
-// Override targets (unused directly — just for ProviderScope wiring)
-final _cacheServiceProvider = Provider<CacheService>((_) => throw UnimplementedError());
-final _storeServiceProvider = Provider<StoreService>((_) => throw UnimplementedError());
-final _authServiceProvider = Provider<AuthService>((_) => throw UnimplementedError());
 
 class BoardcastApp extends StatelessWidget {
   const BoardcastApp({super.key});
@@ -72,9 +71,7 @@ class BoardcastApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: AppColors.accent),
       ),
-      home: const Scaffold(
-        body: Center(child: Text('Boardcast — Phase 2 complete')),
-      ),
+      home: const ShellScreen(),
     );
   }
 }

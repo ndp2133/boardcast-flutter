@@ -85,6 +85,20 @@ All in `lib/state/`:
 
 **Important:** `Session` name collides with Supabase's gotrue `Session`. Use `show SupabaseClient` import in store_service.dart.
 
+## Views & Components (Phase 3+)
+
+### Views (`lib/views/`)
+- **shell_screen.dart** — Bottom nav with 4 tabs (Dashboard, Forecast, Track, History). Uses `IndexedStack` to preserve state.
+- **dashboard_screen.dart** — Full dashboard: score ring, 3 metric cards, best time card, forecast summary, stale badge. ConsumerStatefulWidget with 15-min auto-refresh timer. Pull-to-refresh. Skeleton loading + error states.
+
+### Components (`lib/components/`)
+- **score_ring.dart** — Animated arc (CustomPainter) with 0-100 score + condition label. 900ms ease-out animation.
+- **metric_card.dart** — Expandable card with dot, value, sub-label, sparkline (CustomPainter), ideal range, explainer text. Uses AnimatedSize.
+- **wind_compass.dart** — CustomPainter showing wind arrow + beach-facing arc + cardinal labels. Colors: green=offshore, red=onshore, orange=cross.
+- **best_time_card.dart** — Best surf window: day, time range, condition badge, wave height, duration.
+- **stale_badge.dart** — Shows data age with refresh button. Hidden when data is fresh (<15 min).
+- **location_picker.dart** — Modal bottom sheet grouped by region (NY/NJ, CA, FL). Updates selectedLocationIdProvider.
+
 ## Current Status
 
-Phase 2 complete: auth, write-through persistence, Riverpod providers, 160 passing tests.
+Phase 3 complete: app shell + dashboard with live data display. 160 passing tests, 55 Dart files.
