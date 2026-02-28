@@ -141,4 +141,4 @@ Flutter-side architecture:
 
 ## Current Status
 
-Phase 7 complete: AI surf coach, LLM forecast summary crossfade, share cards (conditions report + Surf Wrapped). All 4 tabs wired. 171 passing tests.
+Phase 7 complete + chart fixes. 171 passing tests. 93% feature parity with PWA (6 gaps in BACKLOG.md). Xcode installed, ready for iOS builds. Next: App Store sprint with sticky features (home screen widget, push notifications, geolocation). See BACKLOG.md for full plan.
