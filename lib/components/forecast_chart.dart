@@ -64,6 +64,35 @@ class ForecastChart extends StatelessWidget {
     final tickColor =
         isDark ? AppColorsDark.textTertiary : AppColors.textTertiary;
 
+    // Build plot bands for best window + now line
+    final plotBands = <PlotBand>[];
+
+    if (bestWindow != null &&
+        bestWindow.startIndex < waveData.length &&
+        bestWindow.endIndex < waveData.length) {
+      plotBands.add(PlotBand(
+        start: bestWindow.startIndex,
+        end: bestWindow.endIndex,
+        color: AppColors.accent.withValues(alpha: 0.10),
+        borderColor: AppColors.accent.withValues(alpha: 0.5),
+        borderWidth: 1,
+      ));
+    }
+
+    if (isToday &&
+        currentHourIndex != null &&
+        currentHourIndex! < waveData.length) {
+      plotBands.add(PlotBand(
+        start: currentHourIndex!,
+        end: currentHourIndex!,
+        borderColor: isDark
+            ? Colors.white.withValues(alpha: 0.4)
+            : Colors.black.withValues(alpha: 0.3),
+        borderWidth: 1.5,
+        dashArray: const [4, 4],
+      ));
+    }
+
     return SizedBox(
       height: 210,
       child: SfCartesianChart(
@@ -78,6 +107,7 @@ class ForecastChart extends StatelessWidget {
           ),
           labelPlacement: LabelPlacement.onTicks,
           interval: 3,
+          plotBands: plotBands,
         ),
         primaryYAxis: NumericAxis(
           minimum: 0,
@@ -124,7 +154,6 @@ class ForecastChart extends StatelessWidget {
             width: 6,
           ),
         ),
-        annotations: _buildAnnotations(bestWindow, isDark, waveData),
         series: [
           // Wave height — area series with gradient
           SplineAreaSeries<_ChartPoint, String>(
@@ -162,50 +191,6 @@ class ForecastChart extends StatelessWidget {
     );
   }
 
-  List<CartesianChartAnnotation> _buildAnnotations(
-    BestWindowIndices? bestWindow,
-    bool isDark,
-    List<_ChartPoint> waveData,
-  ) {
-    final annotations = <CartesianChartAnnotation>[];
-
-    // "Now" vertical line
-    if (isToday &&
-        currentHourIndex != null &&
-        currentHourIndex! < waveData.length) {
-      annotations.add(CartesianChartAnnotation(
-        widget: Container(width: 1.5, color: Colors.transparent),
-        coordinateUnit: CoordinateUnit.point,
-        x: waveData[currentHourIndex!].label,
-        y: 0,
-      ));
-    }
-
-    // Best window highlight
-    if (bestWindow != null &&
-        bestWindow.startIndex < waveData.length &&
-        bestWindow.endIndex < waveData.length) {
-      annotations.add(CartesianChartAnnotation(
-        widget: Container(
-          decoration: BoxDecoration(
-            color: AppColors.accent.withValues(alpha: 0.10),
-            border: Border.symmetric(
-              vertical: BorderSide(
-                color: AppColors.accent.withValues(alpha: 0.5),
-                width: 1,
-              ),
-            ),
-          ),
-        ),
-        coordinateUnit: CoordinateUnit.point,
-        region: AnnotationRegion.plotArea,
-        x: waveData[bestWindow.startIndex].label,
-        y: 0,
-      ));
-    }
-
-    return annotations;
-  }
 }
 
 class _ChartPoint {
