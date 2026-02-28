@@ -8,13 +8,16 @@ Flutter port of the Boardcast PWA surf conditions tracker. Native iOS + Android 
 # Run tests
 flutter test
 
-# Run app on connected device/emulator
-flutter run
+# Run app on Chrome (no Xcode needed)
+flutter run -d chrome
+
+# Run app on macOS desktop (requires Xcode CLI: xcode-select --install)
+flutter run -d macos
 
 # Build release APK
 flutter build apk --release
 
-# Build iOS
+# Build iOS (requires Xcode)
 flutter build ios --release
 ```
 
