@@ -8,8 +8,10 @@ import 'services/auth_service.dart';
 import 'state/conditions_provider.dart';
 import 'state/store_provider.dart';
 import 'state/auth_provider.dart';
-import 'theme/tokens.dart';
+import 'state/theme_provider.dart';
+import 'theme/app_theme.dart';
 import 'views/shell_screen.dart';
+import 'views/onboarding_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -61,17 +63,47 @@ Future<void> main() async {
   );
 }
 
-class BoardcastApp extends StatelessWidget {
+class BoardcastApp extends ConsumerWidget {
   const BoardcastApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
+
     return MaterialApp(
       title: 'Boardcast',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.accent),
-      ),
-      home: const ShellScreen(),
+      theme: buildLightTheme(),
+      darkTheme: buildDarkTheme(),
+      themeMode: themeMode,
+      home: const _OnboardingGate(),
+    );
+  }
+}
+
+class _OnboardingGate extends ConsumerStatefulWidget {
+  const _OnboardingGate();
+
+  @override
+  ConsumerState<_OnboardingGate> createState() => _OnboardingGateState();
+}
+
+class _OnboardingGateState extends ConsumerState<_OnboardingGate> {
+  bool? _onboarded;
+
+  @override
+  void initState() {
+    super.initState();
+    final store = ref.read(storeServiceProvider);
+    _onboarded = store.isOnboarded;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_onboarded == true) {
+      return const ShellScreen();
+    }
+    return OnboardingScreen(
+      onComplete: () => setState(() => _onboarded = true),
     );
   }
 }

@@ -90,6 +90,7 @@ All in `lib/state/`:
 ### Views (`lib/views/`)
 - **shell_screen.dart** — Bottom nav with 4 tabs (Dashboard, Forecast, Track, History). Uses `IndexedStack` to preserve state.
 - **dashboard_screen.dart** — Full dashboard: score ring, 3 metric cards, best time card, forecast summary, stale badge. ConsumerStatefulWidget with 15-min auto-refresh timer. Pull-to-refresh. Skeleton loading + error states.
+- **onboarding_screen.dart** — 3-step PageView wizard: skill level cards → preference sliders/chips → confirmation summary. Populates defaults from `skillDefaults` map. "Continue as Guest" skips with intermediate defaults.
 
 ### Components (`lib/components/`)
 - **score_ring.dart** — Animated arc (CustomPainter) with 0-100 score + condition label. 900ms ease-out animation.
@@ -98,7 +99,15 @@ All in `lib/state/`:
 - **best_time_card.dart** — Best surf window: day, time range, condition badge, wave height, duration.
 - **stale_badge.dart** — Shows data age with refresh button. Hidden when data is fresh (<15 min).
 - **location_picker.dart** — Modal bottom sheet grouped by region (NY/NJ, CA, FL). Updates selectedLocationIdProvider.
+- **preferences_editor.dart** — Bottom sheet with wave range sliders, wind speed slider, wind dir + tide chips. Save/Cancel buttons. Real-time label updates.
+
+## Theming
+
+- **`lib/theme/app_theme.dart`** — Full `ThemeData` for light + dark. Covers AppBar, BottomNav, Card, Chip, Slider, ElevatedButton, OutlinedButton, TextButton, Divider, TextTheme.
+- **`lib/theme/tokens.dart`** — Raw design tokens (colors, spacing, radii, typography, shadows, durations).
+- Theme mode persisted via `themeModeProvider` → `StoreService` → Hive. Supports dark/light/system.
+- Onboarding gate in `main.dart`: shows onboarding if `!store.isOnboarded`, then transitions to shell.
 
 ## Current Status
 
-Phase 3 complete: app shell + dashboard with live data display. 160 passing tests, 55 Dart files.
+Phase 4 complete: onboarding, preferences editor, full theming. 160 passing tests.
