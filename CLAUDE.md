@@ -92,6 +92,8 @@ All in `lib/state/`:
 - **dashboard_screen.dart** — Full dashboard: score ring, 3 metric cards, best time card, forecast summary, stale badge. ConsumerStatefulWidget with 15-min auto-refresh timer. Pull-to-refresh. Skeleton loading + error states.
 - **onboarding_screen.dart** — 3-step PageView wizard: skill level cards → preference sliders/chips → confirmation summary. Populates defaults from `skillDefaults` map. "Continue as Guest" skips with intermediate defaults.
 - **forecast_screen.dart** — Full forecast: Syncfusion dual-axis chart (wave + wind), tide chart with high/low annotations, daily cards with day selection, weekly best windows. Day card tap updates charts.
+- **tracking_screen.dart** — Session planning: 7-day date chips, hourly grid (6AM-8PM) with condition dots and score labels, multi-hour selection, save session. Upcoming planned sessions with Complete/Cancel actions.
+- **history_screen.dart** — Profile/settings: account section (guest/signed-in), dark mode toggle, preferences summary with edit button, board quiver CRUD, Surf IQ card with progress bar + insight, stats grid (sessions, avg rating, best, accuracy), completed session history list with condition badges, tags, and star ratings.
 
 ### Components (`lib/components/`)
 - **score_ring.dart** — Animated arc (CustomPainter) with 0-100 score + condition label. 900ms ease-out animation.
@@ -105,6 +107,9 @@ All in `lib/state/`:
 - **tide_chart.dart** — Syncfusion spline area chart for tide height. High/low extrema labels (monospace), "now" marker dot. Trackball synced.
 - **daily_card.dart** — Forecast card per day: condition badge, temp, tide range, swell period, wind context badge (Offshore/Onshore/Cross/Light), energy level, moon emoji. Tap selects day for charts.
 - **weekly_windows.dart** — Top N best surf windows across the forecast period. Rows with day, time range, condition badge, wave height. Tap navigates to that day.
+- **star_rating.dart** — Interactive star rating widget with configurable max rating and size. Used in completion modal and history session rows.
+- **completion_modal.dart** — DraggableScrollableSheet for completing sessions: star rating, forecast accuracy calibration (worse/about right/better), board picker, tags, notes, Surf IQ nudge display.
+- **board_modal.dart** — Bottom sheet for adding/editing boards: board type grid (6 types from boardTypes), optional name field.
 
 ## Theming
 
@@ -115,4 +120,4 @@ All in `lib/state/`:
 
 ## Current Status
 
-Phase 5 complete: forecast view with Syncfusion charts, daily cards, weekly windows. 160 passing tests.
+Phase 6 complete: tracking + history views, session planning, completion modal, board quiver, Surf IQ card, stats. All 4 tabs wired. 160 passing tests.

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../theme/tokens.dart';
 import 'dashboard_screen.dart';
 import 'forecast_screen.dart';
+import 'tracking_screen.dart';
+import 'history_screen.dart';
 
 class ShellScreen extends StatefulWidget {
   const ShellScreen({super.key});
@@ -19,11 +21,11 @@ class _ShellScreenState extends State<ShellScreen> {
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: [
-          const DashboardScreen(),
-          const ForecastScreen(),
-          const _PlaceholderTab(label: 'Tracking'),
-          const _PlaceholderTab(label: 'History'),
+        children: const [
+          DashboardScreen(),
+          ForecastScreen(),
+          TrackingScreen(),
+          HistoryScreen(),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -56,25 +58,6 @@ class _ShellScreenState extends State<ShellScreen> {
             label: 'History',
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// Placeholder for tabs not yet built
-class _PlaceholderTab extends StatelessWidget {
-  final String label;
-  const _PlaceholderTab({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text(
-        '$label — coming in Phase 6',
-        style: TextStyle(
-          color: AppColors.textSecondary,
-          fontSize: AppTypography.textBase,
-        ),
       ),
     );
   }
