@@ -1,11 +1,26 @@
 # Boardcast Flutter — Backlog
 
 > Flutter port of the Boardcast PWA. Feature parity audit completed Feb 27, 2026.
-> 71 features at parity. 6 gaps remaining.
+> 71 features at parity. 6 gaps remaining. Xcode installed Feb 28.
+>
+> **#1 GOAL: App Store submission with sticky features by week of Mar 2.**
 
 ---
 
-## PWA Parity Gaps
+## App Store Sprint (Week of Mar 2)
+
+| Priority | Task | Effort | Status |
+|----------|------|--------|--------|
+| 1 | **APP-1: iOS build + TestFlight** — `sudo xcodebuild -license accept`, `flutter build ios`, App Store Connect listing, TestFlight upload. | Medium | Pending |
+| 2 | **APP-2: Home screen widget (iOS)** — WidgetKit + `home_widget` package. Score + wave height + wind on lock/home screen. THE sticky feature. | Large | Pending |
+| 3 | **APP-3: Push notifications** — FCM "Epic conditions at Rockaway in 2 hours." | Medium | Pending |
+| 4 | **APP-4: Geolocation auto-select** — Device GPS → nearest surf spot on first launch. `geolocator` already in pubspec. | Small | Pending |
+| 5 | **APP-5: Screenshots + metadata** — 5 phone screenshots + App Store description. | Small | Pending |
+| 6 | **APP-6: Submit to App Store** — Submit for review. | Tiny | Pending |
+
+---
+
+## PWA Parity Gaps (close before submission)
 
 | Priority | Task | Effort | Status |
 |----------|------|--------|--------|
@@ -17,14 +32,6 @@
 | 6 | **PARITY-6: Metric card explainer text** — Beginner-friendly explanations in expanded metric cards (what swell period means, why offshore wind matters). Content-only change in `metric_card.dart`. | Small | Pending |
 
 ---
-
-## Flutter-Native Features (not in PWA)
-
-| Priority | Task | Effort | Status |
-|----------|------|--------|--------|
-| 1 | **NATIVE-1: Home screen widgets** — Show current conditions (score + wave height + wind) without opening app. iOS WidgetKit + Android Glance. | Large | Pending |
-| 2 | **NATIVE-2: Push notifications** — "Epic conditions at Rockaway in 2 hours" via Firebase Cloud Messaging. | Medium | Pending |
-| 3 | **NATIVE-3: Geolocation auto-select** — Use device GPS to auto-select nearest surf spot on first launch. `geolocator` package already in pubspec. | Small | Pending |
 
 ---
 
