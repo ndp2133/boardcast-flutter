@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../theme/tokens.dart';
 import 'dashboard_screen.dart';
+import 'forecast_screen.dart';
 
 class ShellScreen extends StatefulWidget {
   const ShellScreen({super.key});
@@ -20,7 +21,7 @@ class _ShellScreenState extends State<ShellScreen> {
         index: _currentIndex,
         children: [
           const DashboardScreen(),
-          const _PlaceholderTab(label: 'Forecast'),
+          const ForecastScreen(),
           const _PlaceholderTab(label: 'Tracking'),
           const _PlaceholderTab(label: 'History'),
         ],
@@ -69,7 +70,7 @@ class _PlaceholderTab extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Text(
-        '$label — coming in Phase 5-6',
+        '$label — coming in Phase 6',
         style: TextStyle(
           color: AppColors.textSecondary,
           fontSize: AppTypography.textBase,

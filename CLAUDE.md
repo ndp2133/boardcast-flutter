@@ -91,6 +91,7 @@ All in `lib/state/`:
 - **shell_screen.dart** — Bottom nav with 4 tabs (Dashboard, Forecast, Track, History). Uses `IndexedStack` to preserve state.
 - **dashboard_screen.dart** — Full dashboard: score ring, 3 metric cards, best time card, forecast summary, stale badge. ConsumerStatefulWidget with 15-min auto-refresh timer. Pull-to-refresh. Skeleton loading + error states.
 - **onboarding_screen.dart** — 3-step PageView wizard: skill level cards → preference sliders/chips → confirmation summary. Populates defaults from `skillDefaults` map. "Continue as Guest" skips with intermediate defaults.
+- **forecast_screen.dart** — Full forecast: Syncfusion dual-axis chart (wave + wind), tide chart with high/low annotations, daily cards with day selection, weekly best windows. Day card tap updates charts.
 
 ### Components (`lib/components/`)
 - **score_ring.dart** — Animated arc (CustomPainter) with 0-100 score + condition label. 900ms ease-out animation.
@@ -100,6 +101,10 @@ All in `lib/state/`:
 - **stale_badge.dart** — Shows data age with refresh button. Hidden when data is fresh (<15 min).
 - **location_picker.dart** — Modal bottom sheet grouped by region (NY/NJ, CA, FL). Updates selectedLocationIdProvider.
 - **preferences_editor.dart** — Bottom sheet with wave range sliders, wind speed slider, wind dir + tide chips. Save/Cancel buttons. Real-time label updates.
+- **forecast_chart.dart** — Syncfusion `SfCartesianChart` with wave height (spline area, gradient) on primary Y, wind speed (dashed spline) on secondary Y. Trackball scrubber, "now" line annotation, best window overlay.
+- **tide_chart.dart** — Syncfusion spline area chart for tide height. High/low extrema labels (monospace), "now" marker dot. Trackball synced.
+- **daily_card.dart** — Forecast card per day: condition badge, temp, tide range, swell period, wind context badge (Offshore/Onshore/Cross/Light), energy level, moon emoji. Tap selects day for charts.
+- **weekly_windows.dart** — Top N best surf windows across the forecast period. Rows with day, time range, condition badge, wave height. Tap navigates to that day.
 
 ## Theming
 
@@ -110,4 +115,4 @@ All in `lib/state/`:
 
 ## Current Status
 
-Phase 4 complete: onboarding, preferences editor, full theming. 160 passing tests.
+Phase 5 complete: forecast view with Syncfusion charts, daily cards, weekly windows. 160 passing tests.
