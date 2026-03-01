@@ -25,11 +25,13 @@ class _ShellScreenState extends ConsumerState<ShellScreen> {
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: const [
-          DashboardScreen(),
-          ForecastScreen(),
-          TrackingScreen(),
-          HistoryScreen(),
+        children: [
+          DashboardScreen(
+            onNavigateToForecast: () => setState(() => _currentIndex = 1),
+          ),
+          const ForecastScreen(),
+          const TrackingScreen(),
+          const HistoryScreen(),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(

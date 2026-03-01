@@ -22,9 +22,12 @@ import '../components/stale_badge.dart';
 import '../components/location_picker.dart';
 import '../components/surf_coach_card.dart';
 import '../components/share_card.dart';
+import '../components/alert_banner.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
-  const DashboardScreen({super.key});
+  final VoidCallback? onNavigateToForecast;
+
+  const DashboardScreen({super.key, this.onNavigateToForecast});
 
   @override
   ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
@@ -208,6 +211,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       child: ListView(
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
         children: [
+          // Alert banner — proactive notification for good conditions
+          AlertBanner(
+            hourlyData: data.hourly,
+            prefs: prefs,
+            location: location,
+            onTap: widget.onNavigateToForecast,
+          ),
+
           // Stale badge
           if (data.isStale || (dataAge != null && dataAge >= 15))
             Padding(

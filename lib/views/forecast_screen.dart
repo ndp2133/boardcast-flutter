@@ -10,9 +10,11 @@ import '../state/conditions_provider.dart';
 import '../state/location_provider.dart';
 import '../state/preferences_provider.dart';
 import '../components/forecast_chart.dart';
+import '../components/condition_bar.dart';
 import '../components/tide_chart.dart';
 import '../components/daily_card.dart';
 import '../components/weekly_windows.dart';
+import '../components/stale_badge.dart';
 
 class ForecastScreen extends ConsumerStatefulWidget {
   const ForecastScreen({super.key});
@@ -87,6 +89,7 @@ class _ForecastScreenState extends ConsumerState<ForecastScreen> {
   Widget _buildForecast(MergedConditions data, bool isDark) {
     final location = ref.read(selectedLocationProvider);
     final prefs = ref.read(preferencesProvider);
+    final dataAge = ref.watch(dataAgeProvider);
 
     if (data.daily.isEmpty) {
       return const Center(child: Text('No forecast data available'));
@@ -144,6 +147,19 @@ class _ForecastScreenState extends ConsumerState<ForecastScreen> {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
       children: [
+        // Stale badge
+        if (data.isStale || (dataAge != null && dataAge >= 15))
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.s3),
+            child: Center(
+              child: StaleBadge(
+                ageMinutes: dataAge,
+                isStale: data.isStale,
+                onRefresh: () => ref.invalidate(conditionsProvider),
+              ),
+            ),
+          ),
+
         // Charts section
         ForecastChart(
           hourlyData: dayHours,
@@ -152,6 +168,16 @@ class _ForecastScreenState extends ConsumerState<ForecastScreen> {
           isToday: today,
           currentHourIndex: currentIdx,
           scrubberNotifier: _scrubberNotifier,
+        ),
+
+        // Condition quality bar
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: ConditionBar(
+            hourlyData: dayHours,
+            prefs: prefs,
+            location: location,
+          ),
         ),
 
         // Chart legend
