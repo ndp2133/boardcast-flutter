@@ -221,7 +221,7 @@ class HistoryScreen extends ConsumerWidget {
     final waveMin = prefs?.minWaveHeight?.toStringAsFixed(1) ?? '?';
     final waveMax = prefs?.maxWaveHeight?.toStringAsFixed(1) ?? '?';
     final windMax = prefs?.maxWindSpeed?.round().toString() ?? '?';
-    final windDir = prefs?.preferredWindDirection ?? 'any';
+    final windDir = prefs?.preferredWindDir ?? 'any';
     final tide = prefs?.preferredTide ?? 'any';
 
     return Container(
