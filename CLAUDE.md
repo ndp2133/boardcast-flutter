@@ -139,6 +139,23 @@ Flutter-side architecture:
 - Theme mode persisted via `themeModeProvider` → `StoreService` → Hive. Supports dark/light/system.
 - Onboarding gate in `main.dart`: shows onboarding if `!store.isOnboarded`, then transitions to shell.
 
+## Home Screen Widget (iOS)
+
+Native WidgetKit extension in `ios/BoardcastWidget/`. Medium widget (4x2) showing surf score area-fill timeline.
+
+### Architecture
+- **Flutter side**: `lib/services/widget_service.dart` pre-computes hourly scores and writes to shared UserDefaults via `home_widget` package. `lib/state/widget_provider.dart` auto-triggers updates when conditions change.
+- **iOS side**: `ios/BoardcastWidget/` contains SwiftUI widget with `StaticConfiguration`, `TimelineProvider` (15-min refresh), and `MediumWidgetView` with a custom `ScoreFillChart`.
+- **Data flow**: Flutter app → `HomeWidget.saveWidgetData()` → App Groups UserDefaults → WidgetKit reads on timeline reload.
+- **App Group ID**: `group.com.boardcast.boardcastFlutter`
+- **Widget kind**: `BoardcastWidget`
+
+### Xcode Setup Required
+See `ios/BoardcastWidget/XCODE_SETUP.md` for step-by-step instructions to add the widget extension target, configure App Groups, and include DM Mono fonts.
+
+### Widget Data Keys (UserDefaults)
+`score` (int 0-100), `conditionLabel`, `locationName`, `waveHeight`, `windSpeed`, `windDir`, `windContext`, `fetchedAt`, `hourlyScores` (JSON array of `{h, s, c}`), `bestWindowStart`, `bestWindowEnd`, `bestWindowScore`, `bestWindowLabel`
+
 ## Current Status
 
-Phase 7 complete + chart fixes. 171 passing tests. 93% feature parity with PWA (6 gaps in BACKLOG.md). Xcode installed, ready for iOS builds. Next: App Store sprint with sticky features (home screen widget, push notifications, geolocation). See BACKLOG.md for full plan.
+Phase 7 complete + chart fixes + widget extension scaffolded. 171 passing tests. 93% feature parity with PWA (6 gaps in BACKLOG.md). Xcode installed, ready for iOS builds. Widget extension needs Xcode target setup (see XCODE_SETUP.md). Next: App Store sprint with sticky features (push notifications, geolocation). See BACKLOG.md for full plan.

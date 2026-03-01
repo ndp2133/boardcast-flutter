@@ -5,10 +5,12 @@ import 'services/supabase_service.dart';
 import 'services/cache_service.dart';
 import 'services/store_service.dart';
 import 'services/auth_service.dart';
+import 'services/widget_service.dart';
 import 'state/conditions_provider.dart';
 import 'state/store_provider.dart';
 import 'state/auth_provider.dart';
 import 'state/theme_provider.dart';
+import 'state/widget_provider.dart';
 import 'theme/app_theme.dart';
 import 'views/shell_screen.dart';
 import 'views/onboarding_screen.dart';
@@ -25,6 +27,10 @@ Future<void> main() async {
 
   final storeService = StoreService();
   await storeService.init();
+
+  // Initialize home screen widget
+  final widgetService = WidgetService();
+  await widgetService.init();
 
   // Initialize Supabase
   await initSupabase();
@@ -57,6 +63,7 @@ Future<void> main() async {
         cacheServiceProvider.overrideWithValue(cacheService),
         storeServiceProvider.overrideWithValue(storeService),
         authServiceProvider.overrideWithValue(authService),
+        widgetServiceProvider.overrideWithValue(widgetService),
       ],
       child: const BoardcastApp(),
     ),
