@@ -20,6 +20,11 @@ class SessionsNotifier extends Notifier<List<Session>> {
     state = await store.updateSession(id, updated);
   }
 
+  Future<void> addBatch(List<Session> sessions) async {
+    final store = ref.read(storeServiceProvider);
+    state = await store.addSessionsBatch(sessions);
+  }
+
   Future<void> delete(String id) async {
     final store = ref.read(storeServiceProvider);
     state = await store.deleteSession(id);

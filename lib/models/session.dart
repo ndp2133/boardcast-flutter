@@ -48,6 +48,7 @@ class Session {
   final List<String>? tags;
   final String? notes;
   final SessionConditions? conditions;
+  final String? source; // 'manual' (default), 'healthkit', 'healthkit_nogps', 'strava'
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -64,6 +65,7 @@ class Session {
     this.tags,
     this.notes,
     this.conditions,
+    this.source,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -77,6 +79,7 @@ class Session {
     String? notes,
     SessionConditions? conditions,
     List<int>? selectedHours,
+    String? source,
   }) =>
       Session(
         id: id,
@@ -91,6 +94,7 @@ class Session {
         tags: tags ?? this.tags,
         notes: notes ?? this.notes,
         conditions: conditions ?? this.conditions,
+        source: source ?? this.source,
         createdAt: createdAt,
         updatedAt: DateTime.now(),
       );
@@ -111,6 +115,7 @@ class Session {
             ? SessionConditions.fromJson(
                 json['conditions'] as Map<String, dynamic>)
             : null,
+        source: json['source'] as String?,
         createdAt: DateTime.parse(json['createdAt'] as String),
         updatedAt: DateTime.parse(json['updatedAt'] as String),
       );
@@ -128,6 +133,7 @@ class Session {
         if (tags != null) 'tags': tags,
         if (notes != null) 'notes': notes,
         if (conditions != null) 'conditions': conditions!.toJson(),
+        if (source != null) 'source': source,
         'createdAt': createdAt.toIso8601String(),
         'updatedAt': updatedAt.toIso8601String(),
       };

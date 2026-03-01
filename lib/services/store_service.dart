@@ -166,6 +166,28 @@ class StoreService {
     return sessions;
   }
 
+  /// Bulk insert sessions (for HealthKit import). Deduplicates by ID.
+  /// Pushes to Supabase in chunks of 50.
+  Future<List<Session>> addSessionsBatch(List<Session> newSessions) async {
+    final sessions = getSessions();
+    final existingIds = sessions.map((s) => s.id).toSet();
+    final toAdd = newSessions.where((s) => !existingIds.contains(s.id)).toList();
+    if (toAdd.isEmpty) return sessions;
+
+    sessions.addAll(toAdd);
+    await _saveSessions(sessions);
+
+    if (!_guest) {
+      // Push in chunks of 50
+      for (var i = 0; i < toAdd.length; i += 50) {
+        final chunk = toAdd.sublist(i, i + 50 > toAdd.length ? toAdd.length : i + 50);
+        final rows = chunk.map(_sessionToRow).toList();
+        _supabase?.from('sessions').upsert(rows).then((_) {}, onError: (_) {});
+      }
+    }
+    return sessions;
+  }
+
   Map<String, dynamic> _sessionToRow(Session session) {
     final conditions = <String, dynamic>{};
     if (session.conditions != null) {

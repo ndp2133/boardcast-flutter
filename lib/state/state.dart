@@ -3,6 +3,7 @@ export 'ai_provider.dart';
 export 'auth_provider.dart';
 export 'boards_provider.dart';
 export 'conditions_provider.dart';
+export 'health_import_provider.dart';
 export 'location_provider.dart';
 export 'preferences_provider.dart';
 export 'sessions_provider.dart';

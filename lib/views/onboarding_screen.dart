@@ -6,6 +6,8 @@ import '../models/user_prefs.dart';
 import '../services/store_service.dart';
 import '../state/preferences_provider.dart';
 import '../state/store_provider.dart';
+import '../state/health_import_provider.dart';
+import 'health_import_step.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   final VoidCallback onComplete;
@@ -19,6 +21,7 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final _pageController = PageController();
   int _currentStep = 0;
+  bool _healthAvailable = false;
 
   // Prefs state
   String? _skillLevel;
@@ -27,6 +30,30 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   double _maxWind = 20.0;
   String _windDir = 'offshore';
   String _tide = 'mid';
+
+  /// Total steps: 3 without health, 4 with health
+  int get _totalSteps => _healthAvailable ? 4 : 3;
+
+  /// Step indices adjusted for health availability
+  int get _healthStep => 1; // Only used when _healthAvailable
+  int get _prefsStep => _healthAvailable ? 2 : 1;
+  int get _confirmStep => _healthAvailable ? 3 : 2;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkHealthAvailability();
+  }
+
+  Future<void> _checkHealthAvailability() async {
+    try {
+      final available =
+          await ref.read(healthImportProvider.notifier).isAvailable();
+      if (mounted) setState(() => _healthAvailable = available);
+    } catch (_) {
+      // Health not available — keep 3-step flow
+    }
+  }
 
   @override
   void dispose() {
@@ -46,8 +73,25 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     });
   }
 
+  /// Apply inferred prefs from HealthKit import to pre-fill sliders
+  void _applyInferredPrefs() {
+    final importState = ref.read(healthImportProvider);
+    final inferred = importState.inferredPrefs;
+    if (inferred == null) return;
+
+    final p = inferred.prefs;
+    setState(() {
+      if (p.skillLevel != null) _skillLevel = p.skillLevel;
+      if (p.minWaveHeight != null) _minWave = p.minWaveHeight!;
+      if (p.maxWaveHeight != null) _maxWave = p.maxWaveHeight!;
+      if (p.maxWindSpeed != null) _maxWind = p.maxWindSpeed!;
+      if (p.preferredWindDir != null) _windDir = p.preferredWindDir!;
+      if (p.preferredTide != null) _tide = p.preferredTide!;
+    });
+  }
+
   void _next() {
-    if (_currentStep < 2) {
+    if (_currentStep < _confirmStep) {
       _pageController.nextPage(
         duration: AppDurations.slow,
         curve: Curves.easeInOut,
@@ -88,7 +132,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     if (_currentStep == 0) {
       return _skillLevel != null ? 'Continue' : 'Select a Level';
     }
-    if (_currentStep == 1) return 'Review';
+    // Health import step has its own buttons — this label won't show
+    if (_healthAvailable && _currentStep == _healthStep) return '';
+    if (_currentStep == _prefsStep) return 'Review';
     return 'Start Surfing';
   }
 
@@ -125,7 +171,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   // Dot indicators
                   Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: List.generate(3, (i) {
+                    children: List.generate(_totalSteps, (i) {
                       final isActive = i == _currentStep;
                       return Container(
                         width: isActive ? 20 : 8,
@@ -156,40 +202,51 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 onPageChanged: (i) => setState(() => _currentStep = i),
                 children: [
                   _buildSkillStep(textColor, subColor, isDark),
+                  if (_healthAvailable)
+                    HealthImportStep(
+                      homeLocationId: null,
+                      userId: null,
+                      onSkip: _next,
+                      onComplete: () {
+                        _applyInferredPrefs();
+                        _next();
+                      },
+                    ),
                   _buildPrefsStep(textColor, subColor),
                   _buildConfirmStep(textColor, subColor),
                 ],
               ),
             ),
 
-            // Bottom buttons
-            Padding(
-              padding: const EdgeInsets.all(AppSpacing.s4),
-              child: Column(
-                children: [
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed:
-                          (_currentStep == 0 && _skillLevel == null)
-                              ? null
-                              : _next,
-                      child: Text(_nextLabel),
-                    ),
-                  ),
-                  if (_currentStep == 0) ...[
-                    const SizedBox(height: AppSpacing.s3),
-                    TextButton(
-                      onPressed: _skipAsGuest,
-                      child: Text(
-                        'Continue as Guest',
-                        style: TextStyle(color: subColor),
+            // Bottom buttons (hidden on health import step — it has its own)
+            if (!(_healthAvailable && _currentStep == _healthStep))
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.s4),
+                child: Column(
+                  children: [
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed:
+                            (_currentStep == 0 && _skillLevel == null)
+                                ? null
+                                : _next,
+                        child: Text(_nextLabel),
                       ),
                     ),
+                    if (_currentStep == 0) ...[
+                      const SizedBox(height: AppSpacing.s3),
+                      TextButton(
+                        onPressed: _skipAsGuest,
+                        child: Text(
+                          'Continue as Guest',
+                          style: TextStyle(color: subColor),
+                        ),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
           ],
         ),
       ),

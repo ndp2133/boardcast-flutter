@@ -4,6 +4,7 @@ export 'board_recommendation.dart';
 export 'forecast_summary.dart';
 export 'locations.dart';
 export 'moon_phase.dart';
+export 'preference_inference.dart';
 export 'scoring.dart';
 export 'surf_iq.dart';
 export 'time_utils.dart';
