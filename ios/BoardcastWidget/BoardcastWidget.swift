@@ -89,7 +89,7 @@ struct WidgetData {
 
 extension WidgetData {
     static func read() -> WidgetData {
-        let defaults = UserDefaults(suiteName: "group.com.boardcast.boardcastFlutter")
+        let defaults = UserDefaults(suiteName: "group.com.boardcast.app")
 
         let score = defaults?.integer(forKey: "score") ?? 0
         let conditionLabel = defaults?.string(forKey: "conditionLabel") ?? "Poor"

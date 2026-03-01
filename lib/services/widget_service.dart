@@ -8,7 +8,7 @@ import '../models/location.dart';
 import '../logic/scoring.dart';
 import '../logic/units.dart';
 
-const _appGroupId = 'group.com.boardcast.boardcastFlutter';
+const _appGroupId = 'group.com.boardcast.app';
 const _iOSWidgetName = 'BoardcastWidget';
 
 class WidgetService {

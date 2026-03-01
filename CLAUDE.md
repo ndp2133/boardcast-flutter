@@ -147,7 +147,7 @@ Native WidgetKit extension in `ios/BoardcastWidget/`. Medium widget (4x2) showin
 - **Flutter side**: `lib/services/widget_service.dart` pre-computes hourly scores and writes to shared UserDefaults via `home_widget` package. `lib/state/widget_provider.dart` auto-triggers updates when conditions change.
 - **iOS side**: `ios/BoardcastWidget/` contains SwiftUI widget with `StaticConfiguration`, `TimelineProvider` (15-min refresh), and `MediumWidgetView` with a custom `ScoreFillChart`.
 - **Data flow**: Flutter app → `HomeWidget.saveWidgetData()` → App Groups UserDefaults → WidgetKit reads on timeline reload.
-- **App Group ID**: `group.com.boardcast.boardcastFlutter`
+- **App Group ID**: `group.com.boardcast.app`
 - **Widget kind**: `BoardcastWidget`
 
 ### Xcode Setup Required
@@ -158,4 +158,4 @@ See `ios/BoardcastWidget/XCODE_SETUP.md` for step-by-step instructions to add th
 
 ## Current Status
 
-Phase 7 complete + chart fixes + widget extension scaffolded. 171 passing tests. 93% feature parity with PWA (6 gaps in BACKLOG.md). Xcode installed, ready for iOS builds. Widget extension needs Xcode target setup (see XCODE_SETUP.md). Next: App Store sprint with sticky features (push notifications, geolocation). See BACKLOG.md for full plan.
+Phase 7 complete + widget running on simulator. 171 passing tests. 93% feature parity with PWA (6 gaps in BACKLOG.md). Xcode installed, CocoaPods installed, full workspace builds on iOS Simulator. Widget extension target configured in pbxproj (signing still needed for device). Next: Apple Developer enrollment, subscription paywall (RevenueCat), account deletion, privacy updates, TestFlight, App Store submission. See BACKLOG.md for full plan.

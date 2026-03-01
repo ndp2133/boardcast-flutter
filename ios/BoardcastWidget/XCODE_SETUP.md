@@ -15,10 +15,10 @@ The widget extension target, source files, entitlements, build configs, font ref
 ### 2. Register App Group in Apple Developer Portal
 
 1. Go to developer.apple.com → Certificates, Identifiers & Profiles → Identifiers → App Groups
-2. Register: `group.com.boardcast.boardcastFlutter`
+2. Register: `group.com.boardcast.app`
 3. Add this App Group to both:
-   - `com.boardcast.boardcastFlutter` (main app)
-   - `com.boardcast.boardcastFlutter.BoardcastWidget` (widget extension)
+   - `com.boardcast.app` (main app)
+   - `com.boardcast.app.BoardcastWidget` (widget extension)
 
 ### 3. Install Real Fonts
 
@@ -51,6 +51,6 @@ flutter build ios --debug
 
 - **Widget shows placeholder**: Open the Boardcast app first so it fetches conditions and writes to shared UserDefaults
 - **Font not rendering**: Verify the .ttf files aren't 0 bytes; widget falls back to system mono
-- **App Group mismatch**: Both targets must use exactly `group.com.boardcast.boardcastFlutter`
+- **App Group mismatch**: Both targets must use exactly `group.com.boardcast.app`
 - **Widget not updating**: Check that `HomeWidget.updateWidget(iOSName: 'BoardcastWidget')` is called after data write
 - **Signing error**: Set development team in Xcode for both Runner and BoardcastWidgetExtension targets
