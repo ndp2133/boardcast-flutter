@@ -1,28 +1,23 @@
 /// Subscription service — wraps RevenueCat for IAP management.
 /// Handles initialization, entitlement checks, and purchase flow.
 import 'dart:async';
+import 'dart:developer';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:purchases_ui_flutter/purchases_ui_flutter.dart';
 
-/// TODO: Replace with your RevenueCat API key from https://app.revenuecat.com
-const _revenueCatApiKey = 'REPLACE_WITH_REVENUECAT_API_KEY';
+const _revenueCatApiKey = 'test_yodFFtVARGFBePMtASuebXVGwyD';
 
 /// RevenueCat entitlement ID (configured in RevenueCat dashboard).
 const entitlementId = 'premium';
-
-/// Product identifiers (configured in App Store Connect + RevenueCat).
-const monthlyProductId = 'boardcast_monthly_499';
-const annualProductId = 'boardcast_annual_2999';
 
 class SubscriptionService {
   bool _initialized = false;
   final _controller = StreamController<bool>.broadcast();
 
+  bool get isInitialized => _initialized;
+
   /// Initialize RevenueCat. Call once at app startup.
   Future<void> init() async {
-    if (_revenueCatApiKey == 'REPLACE_WITH_REVENUECAT_API_KEY') {
-      // Skip initialization if API key not configured yet
-      return;
-    }
     if (_initialized) return;
 
     await Purchases.configure(
@@ -32,20 +27,30 @@ class SubscriptionService {
 
     // Listen for customer info changes
     Purchases.addCustomerInfoUpdateListener((info) {
-      _controller.add(_isPremium(info));
+      final premium = _isPremium(info);
+      log('RevenueCat: premium=$premium');
+      _controller.add(premium);
     });
   }
 
   /// Link RevenueCat to authenticated user.
   Future<void> identify(String userId) async {
     if (!_initialized) return;
-    await Purchases.logIn(userId);
+    try {
+      await Purchases.logIn(userId);
+    } catch (e) {
+      log('RevenueCat identify error: $e');
+    }
   }
 
   /// Unlink on sign-out.
   Future<void> reset() async {
     if (!_initialized) return;
-    await Purchases.logOut();
+    try {
+      await Purchases.logOut();
+    } catch (e) {
+      log('RevenueCat reset error: $e');
+    }
   }
 
   /// Stream of premium status changes.
@@ -62,7 +67,20 @@ class SubscriptionService {
     }
   }
 
-  /// Get available packages for display in paywall.
+  /// Present RevenueCat's native paywall UI.
+  /// Returns the paywall result (purchased, cancelled, etc).
+  Future<PaywallResult> presentPaywall() async {
+    final result = await RevenueCatUI.presentPaywallIfNeeded(entitlementId);
+    log('Paywall result: $result');
+    return result;
+  }
+
+  /// Present RevenueCat's Customer Center for subscription management.
+  Future<void> presentCustomerCenter() async {
+    await RevenueCatUI.presentCustomerCenter();
+  }
+
+  /// Get available packages (for custom paywall fallback if needed).
   Future<List<Package>> getPackages() async {
     if (!_initialized) return [];
     try {
@@ -70,21 +88,6 @@ class SubscriptionService {
       return offerings.current?.availablePackages ?? [];
     } catch (_) {
       return [];
-    }
-  }
-
-  /// Purchase a package. Returns null on success, error string on failure.
-  Future<String?> purchase(Package package) async {
-    try {
-      await Purchases.purchasePackage(package);
-      return null;
-    } on PurchasesErrorCode catch (e) {
-      if (e == PurchasesErrorCode.purchaseCancelledError) {
-        return null; // User cancelled — not an error
-      }
-      return e.toString();
-    } catch (e) {
-      return e.toString();
     }
   }
 

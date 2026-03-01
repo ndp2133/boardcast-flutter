@@ -12,6 +12,8 @@ import '../state/preferences_provider.dart';
 import '../state/theme_provider.dart';
 import '../state/health_import_provider.dart';
 import '../state/store_provider.dart';
+import '../state/subscription_provider.dart';
+import '../components/paywall.dart';
 import '../components/preferences_editor.dart';
 import '../components/board_modal.dart';
 import '../components/star_rating.dart';
@@ -62,6 +64,10 @@ class HistoryScreen extends ConsumerWidget {
         children: [
           // Account section
           _buildAccountSection(context, ref, isGuest, isDark, textColor),
+          const SizedBox(height: AppSpacing.s5),
+
+          // Subscription section
+          _buildSubscriptionSection(context, ref, isDark, textColor, subColor),
           const SizedBox(height: AppSpacing.s5),
 
           // Theme toggle
@@ -538,6 +544,64 @@ class HistoryScreen extends ConsumerWidget {
           bottom: MediaQuery.of(ctx).viewInsets.bottom,
         ),
         child: _AuthModalContent(ref: ref),
+      ),
+    );
+  }
+
+  Widget _buildSubscriptionSection(BuildContext context, WidgetRef ref,
+      bool isDark, Color textColor, Color subColor) {
+    final isPremium = ref.watch(isPremiumProvider);
+    final service = ref.read(subscriptionServiceProvider);
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.s3),
+      decoration: BoxDecoration(
+        color: isDark ? AppColorsDark.bgSecondary : AppColors.bgSecondary,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isPremium ? Icons.star : Icons.star_border,
+            color: isPremium ? AppColors.conditionEpic : AppColors.accent,
+            size: 24,
+          ),
+          const SizedBox(width: AppSpacing.s3),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isPremium ? 'Premium' : 'Free',
+                  style: TextStyle(
+                    fontSize: AppTypography.textSm,
+                    fontWeight: AppTypography.weightMedium,
+                    color: textColor,
+                  ),
+                ),
+                Text(
+                  isPremium
+                      ? 'All features unlocked'
+                      : 'Upgrade for AI coach & more',
+                  style: TextStyle(
+                    fontSize: AppTypography.textXs,
+                    color: subColor,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (isPremium)
+            TextButton(
+              onPressed: () => service.presentCustomerCenter(),
+              child: const Text('Manage'),
+            )
+          else
+            TextButton(
+              onPressed: () => showPaywall(context),
+              child: const Text('Upgrade'),
+            ),
+        ],
       ),
     );
   }
