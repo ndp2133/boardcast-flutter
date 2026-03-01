@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/tokens.dart';
 import '../state/ai_provider.dart';
+import '../state/subscription_provider.dart';
+import '../components/paywall.dart';
 
 class SurfCoachCard extends ConsumerStatefulWidget {
   const SurfCoachCard({super.key});
@@ -22,6 +24,10 @@ class _SurfCoachCardState extends ConsumerState<SurfCoachCard> {
   }
 
   void _onGetTip() {
+    if (!ref.read(isPremiumProvider)) {
+      showPaywall(context);
+      return;
+    }
     setState(() => _hasRequestedTip = true);
     ref.read(surfTipProvider.notifier).fetchTip();
   }
@@ -29,6 +35,10 @@ class _SurfCoachCardState extends ConsumerState<SurfCoachCard> {
   void _onSubmitQuery() {
     final query = _queryController.text.trim();
     if (query.isEmpty) return;
+    if (!ref.read(isPremiumProvider)) {
+      showPaywall(context);
+      return;
+    }
     ref.read(surfQueryProvider.notifier).submitQuery(query);
     _queryController.clear();
   }

@@ -23,6 +23,7 @@ import '../components/location_picker.dart';
 import '../components/surf_coach_card.dart';
 import '../components/share_card.dart';
 import '../components/alert_banner.dart';
+import '../state/subscription_provider.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   final VoidCallback? onNavigateToForecast;
@@ -178,9 +179,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // Forecast summary (rule-based)
     final ruleBasedSummary = generateForecastSummary(todayHours, prefs, location);
 
-    // Trigger LLM summary fetch in background
+    // Trigger LLM summary fetch in background (premium only)
     final llmState = ref.watch(llmSummaryProvider);
-    if (ruleBasedSummary.isNotEmpty && llmState.status == AiStatus.idle) {
+    final isPremium = ref.watch(isPremiumProvider);
+    if (isPremium && ruleBasedSummary.isNotEmpty && llmState.status == AiStatus.idle) {
       // Schedule after frame to avoid build-time provider mutation
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ref.read(llmSummaryProvider.notifier).fetch(

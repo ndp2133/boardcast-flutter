@@ -51,6 +51,9 @@ dependencies:
   # HealthKit / Health Connect
   health: ^13.3.1
 
+  # Subscriptions (RevenueCat)
+  purchases_flutter: ^8.9.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -9,3 +9,4 @@ export 'preferences_provider.dart';
 export 'sessions_provider.dart';
 export 'store_provider.dart';
 export 'theme_provider.dart';
+export 'subscription_provider.dart';

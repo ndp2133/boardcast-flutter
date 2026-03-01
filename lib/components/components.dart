@@ -16,3 +16,4 @@ export 'star_rating.dart';
 export 'tide_chart.dart';
 export 'weekly_windows.dart';
 export 'wind_compass.dart';
+export 'paywall.dart';

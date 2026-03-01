@@ -23,6 +23,7 @@
 		BCB0000600000000BCBB0006 /* DMMono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = BCA0000600000000BCAA0006 /* DMMono-Regular.ttf */; };
 		BCB0000700000000BCBB0007 /* DMMono-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = BCA0000700000000BCAA0007 /* DMMono-Medium.ttf */; };
 		BCB0000900000000BCBB0009 /* BoardcastWidgetExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = BCA0000900000000BCAA0009 /* BoardcastWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		BCA0001000000000BCAA0010 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = BCA0000A00000000BCAA000A /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -98,6 +99,7 @@
 		BCA0000600000000BCAA0006 /* DMMono-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "DMMono-Regular.ttf"; path = "../fonts/DMMono-Regular.ttf"; sourceTree = SOURCE_ROOT; };
 		BCA0000700000000BCAA0007 /* DMMono-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "DMMono-Medium.ttf"; path = "../fonts/DMMono-Medium.ttf"; sourceTree = SOURCE_ROOT; };
 		BCA0000800000000BCAA0008 /* Runner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Runner.entitlements; sourceTree = "<group>"; };
+		BCA0000A00000000BCAA000A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		BCA0000900000000BCAA0009 /* BoardcastWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BoardcastWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		CC12DBF19383548FB227A290 /* Pods_RunnerTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RunnerTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -207,6 +209,7 @@
 				7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 				BCA0000800000000BCAA0008 /* Runner.entitlements */,
+				BCA0000A00000000BCAA000A /* PrivacyInfo.xcprivacy */,
 			);
 			path = Runner;
 			sourceTree = "<group>";
@@ -347,6 +350,7 @@
 				3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */,
 				97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */,
 				97C146FC1CF9000F007C117D /* Main.storyboard in Resources */,
+				BCA0001000000000BCAA0010 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -563,7 +567,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = iphoneos;
@@ -693,7 +697,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -744,7 +748,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = iphoneos;

@@ -6,11 +6,13 @@ import 'services/cache_service.dart';
 import 'services/store_service.dart';
 import 'services/auth_service.dart';
 import 'services/widget_service.dart';
+import 'services/subscription_service.dart';
 import 'state/conditions_provider.dart';
 import 'state/store_provider.dart';
 import 'state/auth_provider.dart';
 import 'state/theme_provider.dart';
 import 'state/widget_provider.dart';
+import 'state/subscription_provider.dart';
 import 'theme/app_theme.dart';
 import 'views/shell_screen.dart';
 import 'views/onboarding_screen.dart';
@@ -39,6 +41,10 @@ Future<void> main() async {
   final authService = AuthService(supabase);
   await authService.init();
 
+  // Initialize subscriptions
+  final subscriptionService = SubscriptionService();
+  await subscriptionService.init();
+
   // Wire store to auth + supabase
   storeService.configure(
     supabase: supabase,
@@ -53,6 +59,9 @@ Future<void> main() async {
       await storeService.migrateGuestSessions();
       await storeService.syncSessions();
       await storeService.syncUserData();
+      await subscriptionService.identify(user.id);
+    } else {
+      await subscriptionService.reset();
     }
   });
 
@@ -64,6 +73,7 @@ Future<void> main() async {
         storeServiceProvider.overrideWithValue(storeService),
         authServiceProvider.overrideWithValue(authService),
         widgetServiceProvider.overrideWithValue(widgetService),
+        subscriptionServiceProvider.overrideWithValue(subscriptionService),
       ],
       child: const BoardcastApp(),
     ),
