@@ -98,6 +98,7 @@ class BoardcastApp extends ConsumerWidget {
 
     return MaterialApp(
       title: 'Boardcast',
+      debugShowCheckedModeBanner: false,
       theme: buildLightTheme(),
       darkTheme: buildDarkTheme(),
       themeMode: themeMode,
