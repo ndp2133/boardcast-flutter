@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/tokens.dart';
 import '../models/session.dart';
@@ -322,7 +323,10 @@ class _CompletionSheetState extends State<_CompletionSheet> {
     final selected = _calibration == value;
     return Expanded(
       child: GestureDetector(
-        onTap: () => setState(() => _calibration = value),
+        onTap: () {
+          HapticFeedback.lightImpact();
+          setState(() => _calibration = value);
+        },
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: AppSpacing.s2),
           decoration: BoxDecoration(
@@ -523,6 +527,7 @@ class _CompletionSheetState extends State<_CompletionSheet> {
   }
 
   void _save() {
+    HapticFeedback.heavyImpact();
     // Store forecast accuracy if available
     final comparison = _computeForecastComparison();
     final conditions = comparison != null && widget.session.conditions != null

@@ -70,9 +70,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
 
           // Hour grid
           conditionsAsync.when(
-            loading: () => const Center(
-              child: CircularProgressIndicator(color: AppColors.accent),
-            ),
+            loading: () => _buildHourGridSkeleton(isDark),
             error: (_, __) => Center(
               child: Column(
                 children: [
@@ -411,6 +409,22 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
         content: Text('Session planned!'),
         duration: Duration(seconds: 2),
       ),
+    );
+  }
+
+  Widget _buildHourGridSkeleton(bool isDark) {
+    final shimmer = isDark ? AppColorsDark.bgTertiary : AppColors.bgTertiary;
+    return Column(
+      children: List.generate(6, (_) => Padding(
+        padding: const EdgeInsets.only(bottom: AppSpacing.s2),
+        child: Container(
+          height: 48,
+          decoration: BoxDecoration(
+            color: shimmer,
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+          ),
+        ),
+      )),
     );
   }
 }

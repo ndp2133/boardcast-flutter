@@ -1,6 +1,7 @@
 /// Dashboard screen — score ring, metric cards, best time, forecast summary, AI coach
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/tokens.dart';
 import '../models/merged_conditions.dart';
@@ -212,6 +213,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return RefreshIndicator(
       color: AppColors.accent,
       onRefresh: () async {
+        HapticFeedback.mediumImpact();
         ref.read(llmSummaryProvider.notifier).reset();
         ref.invalidate(conditionsProvider);
       },

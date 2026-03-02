@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme/tokens.dart';
 
 class StarRating extends StatelessWidget {
@@ -17,22 +18,34 @@ class StarRating extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(maxRating, (i) {
-        final filled = i < rating;
-        return GestureDetector(
-          onTap: onChanged != null ? () => onChanged!(i + 1) : null,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 2),
-            child: Icon(
-              filled ? Icons.star : Icons.star_border,
-              size: size,
-              color: filled ? AppColors.conditionFair : AppColors.textTertiary,
+    return Semantics(
+      label: 'Rating: $rating of $maxRating stars',
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(maxRating, (i) {
+          final filled = i < rating;
+          return Semantics(
+            label: '${i + 1} star${i == 0 ? '' : 's'}',
+            button: true,
+            child: GestureDetector(
+              onTap: onChanged != null
+                  ? () {
+                      HapticFeedback.lightImpact();
+                      onChanged!(i + 1);
+                    }
+                  : null,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: Icon(
+                  filled ? Icons.star : Icons.star_border,
+                  size: size,
+                  color: filled ? AppColors.conditionFair : AppColors.textTertiary,
+                ),
+              ),
             ),
-          ),
-        );
-      }),
+          );
+        }),
+      ),
     );
   }
 }

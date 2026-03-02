@@ -1,5 +1,6 @@
 /// Location picker — modal bottom sheet grouped by region
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import '../theme/tokens.dart';
@@ -190,6 +191,7 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
                 ? Icon(Icons.check, color: AppColors.accent, size: 18)
                 : null,
             onTap: () {
+              HapticFeedback.selectionClick();
               widget.ref.read(selectedLocationIdProvider.notifier).select(id);
               Navigator.pop(context);
             },

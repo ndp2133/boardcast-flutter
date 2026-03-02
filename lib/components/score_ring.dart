@@ -26,7 +26,7 @@ class _ScoreRingState extends State<ScoreRing>
       duration: const Duration(milliseconds: 900),
       vsync: this,
     );
-    _animation = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
+    _animation = CurvedAnimation(parent: _controller, curve: Curves.elasticOut);
     _controller.forward();
   }
 
@@ -55,47 +55,54 @@ class _ScoreRingState extends State<ScoreRing>
         final animatedScore = widget.score * _animation.value;
         final displayScore = (animatedScore * 100).round();
 
-        return SizedBox(
-          width: widget.size,
-          height: widget.size,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              CustomPaint(
-                size: Size(widget.size, widget.size),
-                painter: _RingPainter(
-                  progress: animatedScore,
-                  color: color,
-                  trackColor: Theme.of(context).brightness == Brightness.dark
-                      ? AppColorsDark.bgTertiary
-                      : AppColors.bgTertiary,
-                ),
-              ),
-              Column(
-                mainAxisSize: MainAxisSize.min,
+        // Cap text scale inside the ring to prevent overflow
+        return MediaQuery.withClampedTextScaling(
+          maxScaleFactor: 1.3,
+          child: Semantics(
+            label: 'Surf conditions score: $displayScore out of 100, ${label.label}',
+            child: SizedBox(
+              width: widget.size,
+              height: widget.size,
+              child: Stack(
+                alignment: Alignment.center,
                 children: [
-                  Text(
-                    '$displayScore',
-                    style: TextStyle(
-                      fontFamily: AppTypography.fontMono,
-                      fontSize: widget.size * 0.22,
-                      fontWeight: AppTypography.weightBold,
+                  CustomPaint(
+                    size: Size(widget.size, widget.size),
+                    painter: _RingPainter(
+                      progress: animatedScore,
                       color: color,
-                      height: 1,
+                      trackColor: Theme.of(context).brightness == Brightness.dark
+                          ? AppColorsDark.bgTertiary
+                          : AppColors.bgTertiary,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    label.label,
-                    style: TextStyle(
-                      fontSize: AppTypography.textSm,
-                      fontWeight: AppTypography.weightMedium,
-                      color: color,
-                    ),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '$displayScore',
+                        style: TextStyle(
+                          fontFamily: AppTypography.fontMono,
+                          fontSize: widget.size * 0.22,
+                          fontWeight: AppTypography.weightBold,
+                          color: color,
+                          height: 1,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        label.label,
+                        style: TextStyle(
+                          fontSize: AppTypography.textSm,
+                          fontWeight: AppTypography.weightMedium,
+                          color: color,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
+            ),
           ),
         );
       },

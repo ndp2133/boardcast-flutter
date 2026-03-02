@@ -1,6 +1,7 @@
 /// Expandable metric card — wave, wind, or tide with dot, value, sub-label,
 /// sparkline, and explainer.
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme/tokens.dart';
 
 class MetricCard extends StatefulWidget {
@@ -43,8 +44,14 @@ class _MetricCardState extends State<MetricCard> {
     final subColor =
         isDark ? AppColorsDark.textSecondary : AppColors.textSecondary;
 
-    return GestureDetector(
-      onTap: () => setState(() => _expanded = !_expanded),
+    return Semantics(
+      label: '${widget.name}: ${widget.value} ${widget.unit}. ${widget.subLabel}',
+      button: true,
+      child: GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        setState(() => _expanded = !_expanded);
+      },
       child: AnimatedContainer(
         duration: AppDurations.base,
         curve: Curves.easeInOut,
@@ -87,13 +94,17 @@ class _MetricCardState extends State<MetricCard> {
               crossAxisAlignment: CrossAxisAlignment.baseline,
               textBaseline: TextBaseline.alphabetic,
               children: [
-                Text(
-                  widget.value,
-                  style: TextStyle(
-                    fontFamily: AppTypography.fontMono,
-                    fontSize: AppTypography.textXl,
-                    fontWeight: AppTypography.weightBold,
-                    color: textColor,
+                Flexible(
+                  child: Text(
+                    widget.value,
+                    style: TextStyle(
+                      fontFamily: AppTypography.fontMono,
+                      fontSize: AppTypography.textXl,
+                      fontWeight: AppTypography.weightBold,
+                      color: textColor,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 const SizedBox(width: 2),
@@ -127,6 +138,7 @@ class _MetricCardState extends State<MetricCard> {
           ],
         ),
       ),
+    ),
     );
   }
 

@@ -58,9 +58,7 @@ class _ForecastScreenState extends ConsumerState<ForecastScreen> {
         centerTitle: true,
       ),
       body: conditionsAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(color: AppColors.accent),
-        ),
+        loading: () => _buildSkeleton(isDark),
         error: (err, _) => Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -298,6 +296,38 @@ class _ForecastScreenState extends ConsumerState<ForecastScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildSkeleton(bool isDark) {
+    final shimmer = isDark ? AppColorsDark.bgTertiary : AppColors.bgTertiary;
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.s4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Chart placeholder
+          Container(
+            height: 180,
+            decoration: BoxDecoration(
+              color: shimmer,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s4),
+          // Daily card placeholders
+          ...List.generate(4, (_) => Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.s2),
+            child: Container(
+              height: 72,
+              decoration: BoxDecoration(
+                color: shimmer,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+            ),
+          )),
+        ],
+      ),
     );
   }
 }

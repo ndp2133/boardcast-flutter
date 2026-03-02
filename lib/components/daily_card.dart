@@ -76,7 +76,12 @@ class DailyCard extends StatelessWidget {
         ? formatWaveHeight(day.waveHeightMax)
         : '--';
 
-    return GestureDetector(
+    final semanticLabel = '$dayLabel: ${condLabel?.label ?? ''} conditions, $waveMaxFt ft waves';
+
+    return Semantics(
+      label: semanticLabel,
+      button: true,
+      child: GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: AppDurations.fast,
@@ -153,6 +158,7 @@ class DailyCard extends StatelessWidget {
           ],
         ),
       ),
+    ),
     );
   }
 

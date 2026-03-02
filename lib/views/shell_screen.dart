@@ -1,5 +1,6 @@
 /// App shell with bottom navigation — 4 tabs
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/tokens.dart';
 import '../state/widget_provider.dart';
@@ -38,6 +39,7 @@ class _ShellScreenState extends ConsumerState<ShellScreen> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (i) {
+          HapticFeedback.selectionClick();
           const tabs = ['Dashboard', 'Forecast', 'Track', 'History'];
           ref.read(analyticsProvider).screen(tabs[i]);
           setState(() => _currentIndex = i);
