@@ -24,8 +24,16 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Boardcast reads your surf workout history to personalize your experience.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Boardcast does not write health data, but this permission is required by a linked framework.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Boardcast uses your location to show conditions at your nearest surf spot.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -49,12 +57,6 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
-	<key>NSHealthShareUsageDescription</key>
-	<string>Boardcast reads your surf workout history to personalize your experience.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Boardcast uses your location to show conditions at your nearest surf spot.</string>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
