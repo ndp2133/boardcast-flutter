@@ -203,6 +203,9 @@ class _PaywallSheetState extends State<_PaywallSheet> {
       final product = package.storeProduct;
       final isAnnual = product.identifier.contains('annual') ||
           product.identifier.contains('yearly');
+      final intro = product.introductoryPrice;
+      final hasTrial = intro != null && intro.price == 0;
+      final trialDays = hasTrial ? intro!.periodNumberOfUnits : 0;
       return Padding(
         padding: const EdgeInsets.only(bottom: AppSpacing.s2),
         child: SizedBox(
@@ -240,8 +243,9 @@ class _PaywallSheetState extends State<_PaywallSheet> {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        product.priceString +
-                            (isAnnual ? '/year' : '/month'),
+                        hasTrial
+                            ? '$trialDays-day free trial, then ${product.priceString}${isAnnual ? '/year' : '/month'}'
+                            : '${product.priceString}${isAnnual ? '/year' : '/month'}',
                         style: TextStyle(
                           fontSize: AppTypography.textSm,
                           fontWeight: AppTypography.weightMedium,
