@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/tokens.dart';
 import '../state/widget_provider.dart';
+import '../state/analytics_provider.dart';
 import 'dashboard_screen.dart';
 import 'forecast_screen.dart';
 import 'tracking_screen.dart';
@@ -36,7 +37,11 @@ class _ShellScreenState extends ConsumerState<ShellScreen> {
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        onTap: (i) => setState(() => _currentIndex = i),
+        onTap: (i) {
+          const tabs = ['Dashboard', 'Forecast', 'Track', 'History'];
+          ref.read(analyticsProvider).screen(tabs[i]);
+          setState(() => _currentIndex = i);
+        },
         type: BottomNavigationBarType.fixed,
         selectedItemColor: AppColors.accent,
         unselectedItemColor: AppColors.textTertiary,

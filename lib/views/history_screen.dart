@@ -152,6 +152,21 @@ class HistoryScreen extends ConsumerWidget {
               ),
             ),
 
+          // Privacy statement
+          const SizedBox(height: AppSpacing.s4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
+            child: Text(
+              'Your data stays yours. No ads. No tracking. No selling your location to third parties.',
+              style: TextStyle(
+                fontSize: AppTypography.textXs,
+                color: subColor,
+                fontStyle: FontStyle.italic,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+
           // Legal links
           const SizedBox(height: AppSpacing.s3),
           Row(

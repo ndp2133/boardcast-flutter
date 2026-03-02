@@ -7,12 +7,14 @@ import 'services/store_service.dart';
 import 'services/auth_service.dart';
 import 'services/widget_service.dart';
 import 'services/subscription_service.dart';
+import 'services/analytics_service.dart';
 import 'state/conditions_provider.dart';
 import 'state/store_provider.dart';
 import 'state/auth_provider.dart';
 import 'state/theme_provider.dart';
 import 'state/widget_provider.dart';
 import 'state/subscription_provider.dart';
+import 'state/analytics_provider.dart';
 import 'theme/app_theme.dart';
 import 'views/shell_screen.dart';
 import 'views/onboarding_screen.dart';
@@ -45,6 +47,10 @@ Future<void> main() async {
   final subscriptionService = SubscriptionService();
   await subscriptionService.init();
 
+  // Initialize analytics
+  final analyticsService = AnalyticsService();
+  await analyticsService.init();
+
   // Wire store to auth + supabase
   storeService.configure(
     supabase: supabase,
@@ -60,8 +66,10 @@ Future<void> main() async {
       await storeService.syncSessions();
       await storeService.syncUserData();
       await subscriptionService.identify(user.id);
+      analyticsService.identify(user.id);
     } else {
       await subscriptionService.reset();
+      analyticsService.reset();
     }
   });
 
@@ -74,6 +82,7 @@ Future<void> main() async {
         authServiceProvider.overrideWithValue(authService),
         widgetServiceProvider.overrideWithValue(widgetService),
         subscriptionServiceProvider.overrideWithValue(subscriptionService),
+        analyticsProvider.overrideWithValue(analyticsService),
       ],
       child: const BoardcastApp(),
     ),
