@@ -3,7 +3,6 @@
 import 'dart:async';
 import 'dart:developer';
 import 'package:purchases_flutter/purchases_flutter.dart';
-import 'package:purchases_ui_flutter/purchases_ui_flutter.dart';
 
 const _revenueCatApiKey = 'appl_RdbLMAkPUXjbIRyPlpmoxipQFgQ';
 
@@ -72,17 +71,24 @@ class SubscriptionService {
     }
   }
 
-  /// Present RevenueCat's native paywall UI.
-  /// Returns the paywall result (purchased, cancelled, etc).
-  Future<PaywallResult> presentPaywall() async {
-    final result = await RevenueCatUI.presentPaywallIfNeeded(entitlementId);
-    log('Paywall result: $result');
-    return result;
+  /// Purchase a specific package.
+  /// Returns true if the purchase was successful.
+  Future<bool> purchasePackage(Package package) async {
+    if (!_initialized) return false;
+    try {
+      final info = await Purchases.purchasePackage(package);
+      return _isPremium(info);
+    } catch (e) {
+      log('RevenueCat purchase error: $e');
+      return false;
+    }
   }
 
   /// Present RevenueCat's Customer Center for subscription management.
   Future<void> presentCustomerCenter() async {
-    await RevenueCatUI.presentCustomerCenter();
+    // Customer Center requires purchases_ui_flutter — skip for now
+    // Users can manage subscriptions via iOS Settings > Subscriptions
+    log('Customer Center: redirect to iOS Settings for subscription management');
   }
 
   /// Get available packages (for custom paywall fallback if needed).
