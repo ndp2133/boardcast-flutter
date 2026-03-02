@@ -1,6 +1,7 @@
 /// Location picker — modal bottom sheet grouped by region
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import '../theme/tokens.dart';
 import '../logic/locations.dart';
 import '../state/location_provider.dart';
@@ -16,9 +17,16 @@ void showLocationPicker(BuildContext context, WidgetRef ref) {
   );
 }
 
-class _LocationPickerSheet extends StatelessWidget {
+class _LocationPickerSheet extends StatefulWidget {
   final WidgetRef ref;
   const _LocationPickerSheet({required this.ref});
+
+  @override
+  State<_LocationPickerSheet> createState() => _LocationPickerSheetState();
+}
+
+class _LocationPickerSheetState extends State<_LocationPickerSheet> {
+  bool _locating = false;
 
   static const _regions = {
     'New York / New Jersey': ['rockaway', 'longbeach', 'asbury', 'belmar'],
@@ -26,9 +34,45 @@ class _LocationPickerSheet extends StatelessWidget {
     'Florida': ['clearwater', 'cocoa', 'jacksonville', 'miami'],
   };
 
+  Future<void> _useMyLocation() async {
+    setState(() => _locating = true);
+    try {
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Enable location in Settings')),
+          );
+        }
+        return;
+      }
+      final pos = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.low,
+          timeLimit: Duration(seconds: 5),
+        ),
+      );
+      final nearest = findNearestLocation(pos.latitude, pos.longitude);
+      widget.ref.read(selectedLocationIdProvider.notifier).select(nearest.id);
+      if (mounted) Navigator.pop(context);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Couldn't get location")),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _locating = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final selected = ref.watch(selectedLocationIdProvider);
+    final selected = widget.ref.watch(selectedLocationIdProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return SafeArea(
@@ -59,6 +103,30 @@ class _LocationPickerSheet extends StatelessWidget {
                   fontWeight: AppTypography.weightSemibold,
                   color:
                       isDark ? AppColorsDark.textPrimary : AppColors.textPrimary,
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.s3),
+            // Use My Location button
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _locating ? null : _useMyLocation,
+                  icon: _locating
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.my_location, size: 18),
+                  label: Text(_locating ? 'Locating...' : 'Use My Location'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.accent,
+                    side: BorderSide(color: AppColors.accent.withValues(alpha: 0.3)),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
                 ),
               ),
             ),
@@ -122,7 +190,7 @@ class _LocationPickerSheet extends StatelessWidget {
                 ? Icon(Icons.check, color: AppColors.accent, size: 18)
                 : null,
             onTap: () {
-              ref.read(selectedLocationIdProvider.notifier).select(id);
+              widget.ref.read(selectedLocationIdProvider.notifier).select(id);
               Navigator.pop(context);
             },
           );

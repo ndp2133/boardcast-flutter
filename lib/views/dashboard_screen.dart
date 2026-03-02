@@ -203,7 +203,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     );
     final windDot = current.windSpeed != null && prefs.maxWindSpeed != null
         ? (current.windSpeed! <= prefs.maxWindSpeed!
-            ? AppColors.conditionEpic
+            ? (windDir != null && isOffshoreWind(windDir, location)
+                ? AppColors.conditionEpic
+                : AppColors.conditionFair)
             : AppColors.conditionPoor)
         : null;
 

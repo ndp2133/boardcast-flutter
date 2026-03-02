@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/tokens.dart';
 import '../models/session.dart';
+import '../models/user_prefs.dart';
 import '../logic/surf_iq.dart';
 import '../logic/units.dart';
 import '../state/sessions_provider.dart';
 import '../state/boards_provider.dart';
 import '../state/preferences_provider.dart';
+import '../state/conditions_provider.dart';
 import 'star_rating.dart';
 
 void showCompletionModal(BuildContext context, WidgetRef ref, Session session) {
@@ -33,6 +35,7 @@ class _CompletionSheetState extends State<_CompletionSheet> {
   int _rating = 0;
   int? _calibration;
   String? _boardId;
+  bool _nudgeApplied = false;
   final _selectedTags = <String>{};
   final _notesController = TextEditingController();
 
@@ -66,7 +69,9 @@ class _CompletionSheetState extends State<_CompletionSheet> {
     final sessions = widget.ref.read(sessionsProvider);
     final prefs = widget.ref.read(preferencesProvider);
     final nudgeResult = generateNudge(sessions, prefs);
-    final nudge = nudgeResult?.message;
+
+    // Forecast vs Actual comparison
+    final forecastComparison = _computeForecastComparison();
 
     return DraggableScrollableSheet(
       initialChildSize: 0.85,
@@ -160,6 +165,10 @@ class _CompletionSheetState extends State<_CompletionSheet> {
               ),
               const SizedBox(height: AppSpacing.s5),
 
+              // Forecast vs Actual
+              if (forecastComparison != null)
+                _buildForecastComparison(forecastComparison, textColor, subColor),
+
               // Board picker
               if (boards.isNotEmpty) ...[
                 Text('Board used',
@@ -243,8 +252,8 @@ class _CompletionSheetState extends State<_CompletionSheet> {
               ),
               const SizedBox(height: AppSpacing.s4),
 
-              // Nudge
-              if (nudge != null)
+              // Nudge with Apply button
+              if (nudgeResult != null)
                 Container(
                   padding: const EdgeInsets.all(AppSpacing.s3),
                   margin: const EdgeInsets.only(bottom: AppSpacing.s4),
@@ -258,13 +267,38 @@ class _CompletionSheetState extends State<_CompletionSheet> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          nudge,
+                          nudgeResult.message,
                           style: TextStyle(
                             fontSize: AppTypography.textXs,
                             color: textColor,
                           ),
                         ),
                       ),
+                      const SizedBox(width: 8),
+                      _nudgeApplied
+                          ? Text(
+                              'Applied',
+                              style: TextStyle(
+                                fontSize: AppTypography.textXs,
+                                color: subColor,
+                                fontWeight: AppTypography.weightMedium,
+                              ),
+                            )
+                          : SizedBox(
+                              height: 28,
+                              child: TextButton(
+                                onPressed: () => _applyNudge(nudgeResult, prefs),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: AppColors.accent,
+                                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                                  textStyle: TextStyle(
+                                    fontSize: AppTypography.textXs,
+                                    fontWeight: AppTypography.weightSemibold,
+                                  ),
+                                ),
+                                child: const Text('Apply'),
+                              ),
+                            ),
                     ],
                   ),
                 ),
@@ -330,7 +364,171 @@ class _CompletionSheetState extends State<_CompletionSheet> {
     );
   }
 
+  _ForecastComparison? _computeForecastComparison() {
+    final cond = widget.session.conditions;
+    if (cond == null || cond.waveHeight == null || cond.windSpeed == null) {
+      return null;
+    }
+
+    final cached = widget.ref.read(cachedConditionsProvider);
+    if (cached == null) return null;
+
+    final sessionDate = widget.session.date;
+    final selectedHours = widget.session.selectedHours;
+    if (selectedHours == null || selectedHours.isEmpty) return null;
+
+    final relevantHours = cached.hourly.where((h) {
+      if (!h.time.startsWith(sessionDate)) return false;
+      final hour = int.tryParse(h.time.split('T')[1].split(':')[0]) ?? -1;
+      return selectedHours.contains(hour);
+    }).toList();
+
+    if (relevantHours.isEmpty) return null;
+
+    final actualWaves = relevantHours
+        .where((h) => h.waveHeight != null)
+        .map((h) => h.waveHeight!)
+        .toList();
+    final actualWinds = relevantHours
+        .where((h) => h.windSpeed != null)
+        .map((h) => h.windSpeed!)
+        .toList();
+
+    if (actualWaves.isEmpty || actualWinds.isEmpty) return null;
+
+    final actualWaveAvg = actualWaves.reduce((a, b) => a + b) / actualWaves.length;
+    final actualWindAvg = actualWinds.reduce((a, b) => a + b) / actualWinds.length;
+
+    double metricAccuracy(double forecast, double actual) {
+      final mx = forecast > actual ? forecast : actual;
+      if (mx == 0) return 1.0;
+      return 1 - (forecast - actual).abs() / mx;
+    }
+
+    final waveAcc = metricAccuracy(cond.waveHeight!, actualWaveAvg);
+    final windAcc = metricAccuracy(cond.windSpeed!, actualWindAvg);
+    final overall = ((waveAcc + windAcc) / 2).clamp(0.0, 1.0);
+
+    return _ForecastComparison(
+      forecastWave: cond.waveHeight!,
+      actualWave: actualWaveAvg,
+      forecastWind: cond.windSpeed!,
+      actualWind: actualWindAvg,
+      accuracy: overall,
+    );
+  }
+
+  Widget _buildForecastComparison(
+      _ForecastComparison comp, Color textColor, Color subColor) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.s3),
+      margin: const EdgeInsets.only(bottom: AppSpacing.s5),
+      decoration: BoxDecoration(
+        color: subColor.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Forecast vs Actual',
+            style: TextStyle(
+              fontSize: AppTypography.textSm,
+              fontWeight: AppTypography.weightMedium,
+              color: textColor,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _comparisonRow(
+            'Waves',
+            '${formatWaveHeight(comp.actualWave)} ft',
+            'forecast ${formatWaveHeight(comp.forecastWave)} ft',
+            subColor,
+          ),
+          const SizedBox(height: 4),
+          _comparisonRow(
+            'Wind',
+            '${formatWindSpeed(comp.actualWind)} mph',
+            'forecast ${formatWindSpeed(comp.forecastWind)} mph',
+            subColor,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Forecast accuracy: ${(comp.accuracy * 100).round()}%',
+            style: TextStyle(
+              fontSize: AppTypography.textXs,
+              fontWeight: AppTypography.weightMedium,
+              color: comp.accuracy >= 0.8
+                  ? AppColors.conditionEpic
+                  : comp.accuracy >= 0.6
+                      ? AppColors.conditionFair
+                      : AppColors.conditionPoor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _comparisonRow(
+      String label, String actual, String forecast, Color subColor) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 48,
+          child: Text(
+            label,
+            style: TextStyle(fontSize: AppTypography.textXs, color: subColor),
+          ),
+        ),
+        Text(
+          actual,
+          style: TextStyle(
+            fontSize: AppTypography.textXs,
+            fontWeight: AppTypography.weightMedium,
+            color: subColor,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          'vs $forecast',
+          style: TextStyle(fontSize: AppTypography.textXs, color: subColor.withValues(alpha: 0.6)),
+        ),
+      ],
+    );
+  }
+
+  void _applyNudge(PreferenceNudge nudge, UserPrefs prefs) {
+    UserPrefs newPrefs;
+    switch (nudge.prefKey) {
+      case 'minWaveHeight':
+        newPrefs = prefs.copyWith(minWaveHeight: nudge.suggestedValue);
+      case 'maxWaveHeight':
+        newPrefs = prefs.copyWith(maxWaveHeight: nudge.suggestedValue);
+      case 'maxWindSpeed':
+        newPrefs = prefs.copyWith(maxWindSpeed: nudge.suggestedValue);
+      default:
+        return;
+    }
+    widget.ref.read(preferencesProvider.notifier).update(newPrefs);
+    setState(() => _nudgeApplied = true);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${nudge.formatLabel} updated to ${nudge.suggestedValue}'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
   void _save() {
+    // Store forecast accuracy if available
+    final comparison = _computeForecastComparison();
+    final conditions = comparison != null && widget.session.conditions != null
+        ? widget.session.conditions!.copyWith(forecastAccuracy: comparison.accuracy)
+        : widget.session.conditions;
+
     final updated = widget.session.copyWith(
       status: 'completed',
       rating: _rating > 0 ? _rating : null,
@@ -338,8 +536,25 @@ class _CompletionSheetState extends State<_CompletionSheet> {
       boardId: _boardId,
       tags: _selectedTags.isNotEmpty ? _selectedTags.toList() : null,
       notes: _notesController.text.isNotEmpty ? _notesController.text : null,
+      conditions: conditions,
     );
     widget.ref.read(sessionsProvider.notifier).update(widget.session.id, updated);
     Navigator.pop(context);
   }
+}
+
+class _ForecastComparison {
+  final double forecastWave;
+  final double actualWave;
+  final double forecastWind;
+  final double actualWind;
+  final double accuracy;
+
+  const _ForecastComparison({
+    required this.forecastWave,
+    required this.actualWave,
+    required this.forecastWind,
+    required this.actualWind,
+    required this.accuracy,
+  });
 }

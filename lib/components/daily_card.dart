@@ -36,16 +36,15 @@ class DailyCard extends StatelessWidget {
     final subColor =
         isDark ? AppColorsDark.textSecondary : AppColors.textSecondary;
 
-    // Condition badge
-    double? avgScore;
+    // Condition badge — use best-hour score instead of average
+    double? bestScore;
     ConditionLabel? condLabel;
     if (prefs != null && location != null && dayHours.isNotEmpty) {
-      var total = 0.0;
-      for (final h in dayHours) {
-        total += computeMatchScore(h, prefs, location!);
+      final bestHour = findBestHours(dayHours, prefs!, location!, day.date);
+      if (bestHour != null) {
+        bestScore = bestHour.matchScore;
+        condLabel = getConditionLabel(bestScore);
       }
-      avgScore = total / dayHours.length;
-      condLabel = getConditionLabel(avgScore);
     }
 
     // Wind context
@@ -69,8 +68,8 @@ class DailyCard extends StatelessWidget {
     // Moon
     final moonEmoji = getMoonPhase(day.date).emoji;
 
-    // Wave energy
-    final energy = _getEnergy(day);
+    // Wave energy (ft² × period)
+    final energy = _getEnergyFromHours(dayHours);
 
     final dayLabel = isToday(day.date) ? 'Today' : formatDayFull(day.date);
     final waveMaxFt = day.waveHeightMax != null
@@ -108,7 +107,7 @@ class DailyCard extends StatelessWidget {
                   ),
                 ),
                 if (condLabel != null) ...[
-                  _conditionBadge(condLabel, avgScore!),
+                  _conditionBadge(condLabel, bestScore!),
                   const SizedBox(width: 6),
                 ],
                 Text(
@@ -145,7 +144,8 @@ class DailyCard extends StatelessWidget {
                 if (windContext != null)
                   _windBadge(windContext.$1, windContext.$2),
                 // Energy
-                if (energy != null) _chip(energy, subColor),
+                if (energy != null)
+                  _windBadge(energy.$1, energy.$2),
                 // Moon
                 _chip(moonEmoji, subColor),
               ],
@@ -253,12 +253,24 @@ class DailyCard extends StatelessWidget {
     return '$dir ${d.wavePeriodMax!.round()}s';
   }
 
-  String? _getEnergy(DailyData d) {
-    if (d.waveHeightMax == null || d.wavePeriodMax == null) return null;
-    final energy = d.waveHeightMax! * d.wavePeriodMax!;
-    if (energy >= 15) return 'High Energy';
-    if (energy >= 8) return 'Moderate';
-    return 'Low Energy';
+  (String, Color)? _getEnergyFromHours(List<HourlyData> hours) {
+    if (hours.isEmpty) return null;
+    final waveFts = hours
+        .where((h) => h.waveHeight != null)
+        .map((h) => metersToFeet(h.waveHeight!))
+        .toList();
+    final periods = hours
+        .where((h) => h.swellPeriod != null || h.wavePeriod != null)
+        .map((h) => (h.swellPeriod ?? h.wavePeriod)!)
+        .toList();
+    if (waveFts.isEmpty || periods.isEmpty) return null;
+    final avgWaveFt = waveFts.reduce((a, b) => a + b) / waveFts.length;
+    final avgPeriod = periods.reduce((a, b) => a + b) / periods.length;
+    if (avgWaveFt <= 0 || avgPeriod <= 0) return null;
+    final energy = avgWaveFt * avgWaveFt * avgPeriod;
+    if (energy >= 100) return ('High Energy', AppColors.conditionEpic);
+    if (energy >= 30) return ('Moderate', AppColors.conditionFair);
+    return ('Low Energy', AppColors.conditionPoor);
   }
 
 }

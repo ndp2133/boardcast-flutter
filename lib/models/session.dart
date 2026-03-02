@@ -5,6 +5,7 @@ class SessionConditions {
   final double? windDirection;
   final double? swellDirection;
   final double? swellPeriod;
+  final double? forecastAccuracy;
 
   const SessionConditions({
     this.matchScore,
@@ -13,7 +14,27 @@ class SessionConditions {
     this.windDirection,
     this.swellDirection,
     this.swellPeriod,
+    this.forecastAccuracy,
   });
+
+  SessionConditions copyWith({
+    double? matchScore,
+    double? waveHeight,
+    double? windSpeed,
+    double? windDirection,
+    double? swellDirection,
+    double? swellPeriod,
+    double? forecastAccuracy,
+  }) =>
+      SessionConditions(
+        matchScore: matchScore ?? this.matchScore,
+        waveHeight: waveHeight ?? this.waveHeight,
+        windSpeed: windSpeed ?? this.windSpeed,
+        windDirection: windDirection ?? this.windDirection,
+        swellDirection: swellDirection ?? this.swellDirection,
+        swellPeriod: swellPeriod ?? this.swellPeriod,
+        forecastAccuracy: forecastAccuracy ?? this.forecastAccuracy,
+      );
 
   factory SessionConditions.fromJson(Map<String, dynamic> json) =>
       SessionConditions(
@@ -23,6 +44,7 @@ class SessionConditions {
         windDirection: (json['windDirection'] as num?)?.toDouble(),
         swellDirection: (json['swellDirection'] as num?)?.toDouble(),
         swellPeriod: (json['swellPeriod'] as num?)?.toDouble(),
+        forecastAccuracy: (json['forecastAccuracy'] as num?)?.toDouble(),
       );
 
   Map<String, dynamic> toJson() => {
@@ -32,6 +54,7 @@ class SessionConditions {
         if (windDirection != null) 'windDirection': windDirection,
         if (swellDirection != null) 'swellDirection': swellDirection,
         if (swellPeriod != null) 'swellPeriod': swellPeriod,
+        if (forecastAccuracy != null) 'forecastAccuracy': forecastAccuracy,
       };
 }
 
