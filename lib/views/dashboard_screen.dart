@@ -108,10 +108,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
         ],
       ),
-      body: conditionsAsync.when(
-        loading: () => _buildSkeleton(isDark),
-        error: (err, _) => _buildError(err, isDark),
-        data: (data) => _buildDashboard(data, location, prefs, dataAge, isDark),
+      body: AnimatedSwitcher(
+        duration: AppDurations.slow,
+        child: conditionsAsync.when(
+          skipLoadingOnRefresh: true,
+          loading: () => _buildSkeleton(isDark),
+          error: (err, _) => _buildError(err, isDark),
+          data: (data) => _buildDashboard(data, location, prefs, dataAge, isDark),
+        ),
       ),
     ),
     );
@@ -211,6 +215,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         : null;
 
     return RefreshIndicator(
+      key: ValueKey('dashboard_${location.id}'),
       color: AppColors.accent,
       onRefresh: () async {
         HapticFeedback.mediumImpact();
@@ -261,6 +266,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   name: 'Waves',
                   value: formatWaveHeight(current.waveHeight),
                   unit: 'ft',
+                  numericValue: current.waveHeight,
+                  formatValue: (v) => formatWaveHeight(v),
                   subLabel:
                       '${windDir != null ? degreesToCardinal(current.waveDirection ?? 0) : '--'} ${current.wavePeriod != null ? '${current.wavePeriod!.round()}s' : ''}',
                   dotColor: waveDot,
@@ -278,6 +285,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   name: 'Wind',
                   value: formatWindSpeed(current.windSpeed),
                   unit: 'mph',
+                  numericValue: current.windSpeed,
+                  formatValue: (v) => formatWindSpeed(v),
                   subLabel: '$windDirLabel \u00b7 $windQuality',
                   dotColor: windDot,
                   idealRange: prefs.maxWindSpeed != null
@@ -302,6 +311,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ? formatWaveHeight(current.tideHeight)
                       : '--',
                   unit: 'ft',
+                  numericValue: current.tideHeight,
+                  formatValue: (v) => formatWaveHeight(v),
                   subLabel: tideSubLabel,
                   sparklineData: tideSparkline,
                   explainer:

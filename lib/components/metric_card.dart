@@ -14,6 +14,8 @@ class MetricCard extends StatefulWidget {
   final String? explainer;
   final List<double>? sparklineData;
   final Widget? extra; // e.g. WindCompass
+  final double? numericValue;
+  final String Function(double)? formatValue;
 
   const MetricCard({
     super.key,
@@ -26,6 +28,8 @@ class MetricCard extends StatefulWidget {
     this.explainer,
     this.sparklineData,
     this.extra,
+    this.numericValue,
+    this.formatValue,
   });
 
   @override
@@ -95,17 +99,34 @@ class _MetricCardState extends State<MetricCard> {
               textBaseline: TextBaseline.alphabetic,
               children: [
                 Flexible(
-                  child: Text(
-                    widget.value,
-                    style: TextStyle(
-                      fontFamily: AppTypography.fontMono,
-                      fontSize: AppTypography.textXl,
-                      fontWeight: AppTypography.weightBold,
-                      color: textColor,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  child: widget.numericValue != null && widget.formatValue != null
+                      ? TweenAnimationBuilder<double>(
+                          tween: Tween(end: widget.numericValue!),
+                          duration: AppDurations.slow,
+                          curve: Curves.easeOut,
+                          builder: (_, val, __) => Text(
+                            widget.formatValue!(val),
+                            style: TextStyle(
+                              fontFamily: AppTypography.fontMono,
+                              fontSize: AppTypography.textXl,
+                              fontWeight: AppTypography.weightBold,
+                              color: textColor,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        )
+                      : Text(
+                          widget.value,
+                          style: TextStyle(
+                            fontFamily: AppTypography.fontMono,
+                            fontSize: AppTypography.textXl,
+                            fontWeight: AppTypography.weightBold,
+                            color: textColor,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                 ),
                 const SizedBox(width: 2),
                 Text(

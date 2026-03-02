@@ -18,6 +18,7 @@ import '../components/preferences_editor.dart';
 import '../components/board_modal.dart';
 import '../components/star_rating.dart';
 import '../components/surf_wrapped.dart';
+import '../components/empty_state.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class HistoryScreen extends ConsumerWidget {
@@ -143,13 +144,10 @@ class HistoryScreen extends ConsumerWidget {
             ...completed
                 .map((s) => _buildSessionRow(s, boards, isDark, textColor, subColor)),
           ] else
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
-              child: Text(
-                'No completed sessions yet.\nPlan a session from the Track tab!',
-                style: TextStyle(color: subColor),
-                textAlign: TextAlign.center,
-              ),
+            const EmptyState(
+              icon: Icons.surfing,
+              title: 'No sessions yet',
+              subtitle: 'The ocean is waiting. Plan your first session from the Track tab.',
             ),
 
           // Privacy statement
@@ -733,15 +731,10 @@ class HistoryScreen extends ConsumerWidget {
             ],
           ),
           if (boards.isEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: AppSpacing.s2),
-              child: Text(
-                'No boards yet. Tap + to add one.',
-                style: TextStyle(
-                  fontSize: AppTypography.textXs,
-                  color: subColor,
-                ),
-              ),
+            const EmptyState(
+              icon: Icons.sailing_outlined,
+              title: 'Your quiver is empty',
+              subtitle: 'Add your first board to track which shapes work best.',
             )
           else
             ...boards.map((b) => Padding(

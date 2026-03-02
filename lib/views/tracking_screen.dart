@@ -11,6 +11,7 @@ import '../state/location_provider.dart';
 import '../state/preferences_provider.dart';
 import '../state/sessions_provider.dart';
 import '../components/completion_modal.dart';
+import '../components/empty_state.dart';
 
 class TrackingScreen extends ConsumerStatefulWidget {
   const TrackingScreen({super.key});
@@ -92,13 +93,10 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
               }).toList();
 
               if (dayHours.isEmpty) {
-                return Padding(
-                  padding: const EdgeInsets.all(AppSpacing.s8),
-                  child: Text(
-                    'No forecast data for this day.',
-                    style: TextStyle(color: subColor),
-                    textAlign: TextAlign.center,
-                  ),
+                return const EmptyState(
+                  icon: Icons.cloud_off_outlined,
+                  title: 'No forecast available',
+                  subtitle: 'Conditions data isn\'t available this far out. Try a closer date.',
                 );
               }
 

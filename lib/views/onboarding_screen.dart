@@ -31,6 +31,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   String _windDir = 'offshore';
   String _tide = 'mid';
 
+  bool _skillCardsVisible = false;
+
   /// Total steps: 3 without health, 4 with health
   int get _totalSteps => _healthAvailable ? 4 : 3;
 
@@ -43,6 +45,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   void initState() {
     super.initState();
     _checkHealthAvailability();
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) setState(() => _skillCardsVisible = true);
+    });
   }
 
   Future<void> _checkHealthAvailability() async {
@@ -173,7 +178,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: List.generate(_totalSteps, (i) {
                       final isActive = i == _currentStep;
-                      return Container(
+                      return AnimatedContainer(
+                        duration: AppDurations.fast,
+                        curve: Curves.easeInOut,
                         width: isActive ? 20 : 8,
                         height: 8,
                         margin: const EdgeInsets.symmetric(horizontal: 3),
@@ -255,13 +262,47 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   // ---- Step 0: Skill Level ----
 
+  Widget _staggeredCard({required int delay, required Widget child}) {
+    final offset = _skillCardsVisible ? Offset.zero : const Offset(0, 0.15);
+    final opacity = _skillCardsVisible ? 1.0 : 0.0;
+    return AnimatedOpacity(
+      duration: Duration(milliseconds: 300 + delay * 80),
+      curve: Curves.easeOut,
+      opacity: opacity,
+      child: AnimatedSlide(
+        duration: Duration(milliseconds: 300 + delay * 80),
+        curve: Curves.easeOut,
+        offset: offset,
+        child: child,
+      ),
+    );
+  }
+
+  Widget _buildStepIcon(IconData icon, Color color) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: AppDurations.slow,
+      curve: Curves.easeOut,
+      builder: (_, val, child) => Opacity(
+        opacity: val,
+        child: Transform.scale(
+          scale: 0.8 + 0.2 * val,
+          child: child,
+        ),
+      ),
+      child: Icon(icon, size: 48, color: color),
+    );
+  }
+
   Widget _buildSkillStep(Color textColor, Color subColor, bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: AppSpacing.s6),
+          const SizedBox(height: AppSpacing.s4),
+          Center(child: _buildStepIcon(Icons.waves, AppColors.accent)),
+          const SizedBox(height: AppSpacing.s4),
           Text(
             'What\'s your skill level?',
             style: TextStyle(
@@ -279,25 +320,34 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             ),
           ),
           const SizedBox(height: AppSpacing.s6),
-          _buildSkillCard(
-            'Beginner',
-            'Learning to catch waves. Prefer smaller, gentle conditions.',
-            'beginner',
-            isDark,
+          _staggeredCard(
+            delay: 0,
+            child: _buildSkillCard(
+              'Beginner',
+              'Learning to catch waves. Prefer smaller, gentle conditions.',
+              'beginner',
+              isDark,
+            ),
           ),
           const SizedBox(height: AppSpacing.s3),
-          _buildSkillCard(
-            'Intermediate',
-            'Comfortable in varied conditions. Looking for fun waves.',
-            'intermediate',
-            isDark,
+          _staggeredCard(
+            delay: 1,
+            child: _buildSkillCard(
+              'Intermediate',
+              'Comfortable in varied conditions. Looking for fun waves.',
+              'intermediate',
+              isDark,
+            ),
           ),
           const SizedBox(height: AppSpacing.s3),
-          _buildSkillCard(
-            'Advanced',
-            'Seek bigger, more powerful waves. Handle any conditions.',
-            'advanced',
-            isDark,
+          _staggeredCard(
+            delay: 2,
+            child: _buildSkillCard(
+              'Advanced',
+              'Seek bigger, more powerful waves. Handle any conditions.',
+              'advanced',
+              isDark,
+            ),
           ),
         ],
       ),
@@ -370,7 +420,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: AppSpacing.s6),
+          const SizedBox(height: AppSpacing.s4),
+          Center(child: _buildStepIcon(Icons.tune, AppColors.accent)),
+          const SizedBox(height: AppSpacing.s4),
           Text(
             'Fine-tune your preferences',
             style: TextStyle(
@@ -569,13 +621,27 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: AppSpacing.s6),
-          Text(
-            'You\'re all set!',
-            style: TextStyle(
-              fontSize: AppTypography.textXl,
-              fontWeight: AppTypography.weightBold,
-              color: textColor,
+          const SizedBox(height: AppSpacing.s4),
+          Center(
+            child: _buildStepIcon(
+                Icons.check_circle_outline, AppColors.conditionEpic),
+          ),
+          const SizedBox(height: AppSpacing.s4),
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.9, end: 1.0),
+            duration: AppDurations.slow,
+            curve: Curves.elasticOut,
+            builder: (_, scale, child) => Transform.scale(
+              scale: scale,
+              child: child,
+            ),
+            child: Text(
+              'You\'re all set!',
+              style: TextStyle(
+                fontSize: AppTypography.textXl,
+                fontWeight: AppTypography.weightBold,
+                color: textColor,
+              ),
             ),
           ),
           const SizedBox(height: AppSpacing.s2),
