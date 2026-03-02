@@ -20,17 +20,22 @@ class SubscriptionService {
   Future<void> init() async {
     if (_initialized) return;
 
-    await Purchases.configure(
-      PurchasesConfiguration(_revenueCatApiKey),
-    );
-    _initialized = true;
+    try {
+      await Purchases.configure(
+        PurchasesConfiguration(_revenueCatApiKey),
+      );
+      _initialized = true;
 
-    // Listen for customer info changes
-    Purchases.addCustomerInfoUpdateListener((info) {
-      final premium = _isPremium(info);
-      log('RevenueCat: premium=$premium');
-      _controller.add(premium);
-    });
+      // Listen for customer info changes
+      Purchases.addCustomerInfoUpdateListener((info) {
+        final premium = _isPremium(info);
+        log('RevenueCat: premium=$premium');
+        _controller.add(premium);
+      });
+    } catch (e) {
+      log('RevenueCat init error: $e');
+      // App continues without subscriptions — fallback paywall will show
+    }
   }
 
   /// Link RevenueCat to authenticated user.

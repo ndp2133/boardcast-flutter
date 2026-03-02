@@ -1,6 +1,8 @@
 /// Auth service — wraps Supabase auth
 /// Direct port of js/auth.js
 import 'dart:async';
+import 'dart:io' show Platform;
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthService {
@@ -62,13 +64,41 @@ class AuthService {
     try {
       await _client.auth.signInWithOAuth(
         OAuthProvider.google,
-        redirectTo: 'com.boardcast.boardcastflutter://callback',
+        redirectTo: 'com.boardcast.app://callback',
       );
       return null;
     } on AuthException catch (e) {
       return e.message;
     }
   }
+
+  Future<String?> signInWithApple() async {
+    try {
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+
+      final idToken = credential.identityToken;
+      if (idToken == null) return 'Apple Sign In failed: no identity token';
+
+      await _client.auth.signInWithIdToken(
+        provider: OAuthProvider.apple,
+        idToken: idToken,
+      );
+      return null;
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code == AuthorizationErrorCode.canceled) return null;
+      return e.message;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  /// Whether Apple Sign In is available on this platform.
+  bool get isAppleSignInAvailable => Platform.isIOS;
 
   Future<String?> signOut() async {
     try {

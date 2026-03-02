@@ -40,7 +40,9 @@ class _ForecastScreenState extends ConsumerState<ForecastScreen> {
     final prefs = ref.watch(preferencesProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
+    return GestureDetector(
+      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+      child: Scaffold(
       backgroundColor: isDark ? AppColorsDark.bgPrimary : AppColors.bgPrimary,
       appBar: AppBar(
         backgroundColor: isDark ? AppColorsDark.bgPrimary : AppColors.bgPrimary,
@@ -83,6 +85,7 @@ class _ForecastScreenState extends ConsumerState<ForecastScreen> {
         ),
         data: (data) => _buildForecast(data, isDark),
       ),
+    ),
     );
   }
 

@@ -17,13 +17,13 @@
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
 		AAC6005FE1B32198C5882303 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8D7F7BA1CC2D67BC9871F563 /* Pods_Runner.framework */; };
+		BCA0001000000000BCAA0010 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = BCA0000A00000000BCAA000A /* PrivacyInfo.xcprivacy */; };
 		BCB0000100000000BCBB0001 /* BoardcastWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0000100000000BCAA0001 /* BoardcastWidget.swift */; };
 		BCB0000200000000BCBB0002 /* MediumWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0000200000000BCAA0002 /* MediumWidgetView.swift */; };
 		BCB0000300000000BCBB0003 /* BoardcastWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0000300000000BCAA0003 /* BoardcastWidgetBundle.swift */; };
 		BCB0000600000000BCBB0006 /* DMMono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = BCA0000600000000BCAA0006 /* DMMono-Regular.ttf */; };
 		BCB0000700000000BCBB0007 /* DMMono-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = BCA0000700000000BCAA0007 /* DMMono-Medium.ttf */; };
 		BCB0000900000000BCBB0009 /* BoardcastWidgetExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = BCA0000900000000BCAA0009 /* BoardcastWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		BCA0001000000000BCAA0010 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = BCA0000A00000000BCAA000A /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -99,8 +99,8 @@
 		BCA0000600000000BCAA0006 /* DMMono-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "DMMono-Regular.ttf"; path = "../fonts/DMMono-Regular.ttf"; sourceTree = SOURCE_ROOT; };
 		BCA0000700000000BCAA0007 /* DMMono-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "DMMono-Medium.ttf"; path = "../fonts/DMMono-Medium.ttf"; sourceTree = SOURCE_ROOT; };
 		BCA0000800000000BCAA0008 /* Runner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Runner.entitlements; sourceTree = "<group>"; };
-		BCA0000A00000000BCAA000A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		BCA0000900000000BCAA0009 /* BoardcastWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BoardcastWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		BCA0000A00000000BCAA000A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		CC12DBF19383548FB227A290 /* Pods_RunnerTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RunnerTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -149,7 +149,6 @@
 				7904F7102B257C41CB3077A2 /* Pods-RunnerTests.release.xcconfig */,
 				6A05837B10E0B9AD335DB466 /* Pods-RunnerTests.profile.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -584,6 +583,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = 4H96A7962Y;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -767,6 +767,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = 4H96A7962Y;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -790,6 +791,7 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
 				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = 4H96A7962Y;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -811,6 +813,7 @@
 				CODE_SIGN_ENTITLEMENTS = BoardcastWidget/BoardcastWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4H96A7962Y;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = BoardcastWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Boardcast Widget";
@@ -840,6 +843,7 @@
 				CODE_SIGN_ENTITLEMENTS = BoardcastWidget/BoardcastWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4H96A7962Y;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = BoardcastWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Boardcast Widget";
@@ -867,6 +871,7 @@
 				CODE_SIGN_ENTITLEMENTS = BoardcastWidget/BoardcastWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 4H96A7962Y;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = BoardcastWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Boardcast Widget";

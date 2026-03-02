@@ -55,6 +55,7 @@ dependencies:
   purchases_flutter: ^8.9.1
   purchases_ui_flutter: ^8.11.0
   posthog_flutter: ^5.15.2
+  sign_in_with_apple: ^7.0.1
 
 dev_dependencies:
   flutter_test:

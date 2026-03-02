@@ -12,11 +12,15 @@
 | Priority | Task | Effort | Status |
 |----------|------|--------|--------|
 | 1 | **APP-1: iOS build + TestFlight** — `sudo xcodebuild -license accept`, `flutter build ios`, App Store Connect listing, TestFlight upload. | Medium | Pending |
-| 2 | **APP-2: Home screen widget (iOS)** — WidgetKit + `home_widget` package. Score + wave height + wind on lock/home screen. THE sticky feature. | Large | Pending |
+| 2 | **APP-2: Home screen widget (iOS)** — WidgetKit + `home_widget` package. Medium (4x2) score area-fill timeline chart. | Large | **Done** |
 | 3 | **APP-3: Push notifications** — FCM "Epic conditions at Rockaway in 2 hours." | Medium | Pending |
 | 4 | **APP-4: Geolocation auto-select** — Device GPS → nearest surf spot on first launch. `geolocator` already in pubspec. | Small | Pending |
-| 5 | **APP-5: Screenshots + metadata** — 5 phone screenshots + App Store description. | Small | Pending |
+| 5 | **APP-5: Screenshots + metadata** — 5 phone screenshots (1290x2796), App Store description, keywords, app icon. | Small | Pending |
 | 6 | **APP-6: Submit to App Store** — Submit for review. | Tiny | Pending |
+| 7 | **APP-7: Subscription paywall** — RevenueCat integration, paywall UI (price, features, restore, ToS/PP links, cancel info). $4.99/mo + $29.99/yr. | Medium | Pending |
+| 8 | **APP-8: In-app account deletion** — Apple requires this. Delete Supabase data + Hive + sign out. | Small | Pending |
+| 9 | **APP-9: Privacy & legal** — Update privacy policy (location, AI disclosure, GDPR/CCPA), PrivacyInfo.xcprivacy manifest, nutrition labels. | Medium | Pending |
+| 10 | **APP-10: App config fixes** — CFBundleDisplayName→"Boardcast", ITSAppUsesNonExemptEncryption=false, widget version match. | Tiny | Pending |
 
 ---
 
@@ -54,3 +58,6 @@
 - Phase 6: Tracking (hourly grid, session planning, completion modal, board quiver, Surf IQ, streaks, history)
 - Phase 7: AI surf coach, LLM forecast summary crossfade, share cards (conditions + Surf Wrapped)
 - BUG-1: Best window PlotBand fix
+- APP-2: Home screen widget — WidgetKit medium (4x2) score area-fill timeline, Flutter widget_service + widget_provider, SwiftUI MediumWidgetView, Xcode target setup
+- BUG-2: preferredWindDir typo in history_screen.dart (was preferredWindDirection)
+- FIX: Xcode build cycle — reordered build phases (Embed App Extensions before Thin Binary)

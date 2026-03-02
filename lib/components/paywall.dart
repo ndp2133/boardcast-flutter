@@ -15,15 +15,22 @@ Future<void> showPaywall(BuildContext context) async {
   final service = container.read(subscriptionServiceProvider);
 
   if (service.isInitialized) {
-    // Use RevenueCat's native paywall (remotely configurable from dashboard)
-    final result = await service.presentPaywall();
+    try {
+      // Use RevenueCat's native paywall (remotely configurable from dashboard)
+      final result = await service.presentPaywall();
 
-    // Refresh premium state after paywall closes
-    container.read(isPremiumProvider.notifier).refresh();
+      // Refresh premium state after paywall closes
+      container.read(isPremiumProvider.notifier).refresh();
 
-    // If user purchased, no need to do anything else
-    if (result == PaywallResult.purchased || result == PaywallResult.restored) {
-      return;
+      // If user purchased, no need to do anything else
+      if (result == PaywallResult.purchased || result == PaywallResult.restored) {
+        return;
+      }
+    } catch (_) {
+      // RevenueCat config error (e.g. Error 23) — show fallback
+      if (context.mounted) {
+        _showFallbackPaywall(context);
+      }
     }
   } else {
     // Fallback: show a simple info sheet

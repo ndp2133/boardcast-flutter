@@ -1160,6 +1160,27 @@ class _AuthModalContentState extends State<_AuthModalContent> {
     // Google OAuth opens a browser — modal stays open until auth callback
   }
 
+  Future<void> _signInWithApple() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    final auth = widget.ref.read(authServiceProvider);
+    final error = await auth.signInWithApple();
+
+    if (!mounted) return;
+
+    if (error != null) {
+      setState(() {
+        _loading = false;
+        _error = error;
+      });
+    } else {
+      Navigator.of(context).pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -1256,6 +1277,31 @@ class _AuthModalContentState extends State<_AuthModalContent> {
             ),
           ),
           const SizedBox(height: AppSpacing.s3),
+          // Apple sign-in (required by App Store if offering Google)
+          if (widget.ref.read(authServiceProvider).isAppleSignInAvailable)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.s2),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _loading ? null : _signInWithApple,
+                  icon: const Icon(Icons.apple, size: 20),
+                  label: const Text('Continue with Apple'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.black,
+                    foregroundColor: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.black
+                        : Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                  ),
+                ),
+              ),
+            ),
           // Google sign-in
           SizedBox(
             width: double.infinity,

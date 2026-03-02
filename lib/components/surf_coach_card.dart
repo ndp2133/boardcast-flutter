@@ -41,6 +41,7 @@ class _SurfCoachCardState extends ConsumerState<SurfCoachCard> {
     }
     ref.read(surfQueryProvider.notifier).submitQuery(query);
     _queryController.clear();
+    FocusManager.instance.primaryFocus?.unfocus();
   }
 
   @override

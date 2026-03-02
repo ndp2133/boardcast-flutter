@@ -60,7 +60,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final dataAge = ref.watch(dataAgeProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
+    return GestureDetector(
+      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+      child: Scaffold(
       backgroundColor: isDark ? AppColorsDark.bgPrimary : AppColors.bgPrimary,
       appBar: AppBar(
         backgroundColor: isDark ? AppColorsDark.bgPrimary : AppColors.bgPrimary,
@@ -110,6 +112,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         error: (err, _) => _buildError(err, isDark),
         data: (data) => _buildDashboard(data, location, prefs, dataAge, isDark),
       ),
+    ),
     );
   }
 
