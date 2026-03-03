@@ -21,6 +21,8 @@
 		BCB0000100000000BCBB0001 /* BoardcastWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0000100000000BCAA0001 /* BoardcastWidget.swift */; };
 		BCB0000200000000BCBB0002 /* MediumWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0000200000000BCAA0002 /* MediumWidgetView.swift */; };
 		BCB0000300000000BCBB0003 /* BoardcastWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0000300000000BCAA0003 /* BoardcastWidgetBundle.swift */; };
+		BCB0000400000000BCBB0004 /* SmallWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0000B00000000BCAA000B /* SmallWidgetView.swift */; };
+		BCB0000500000000BCBB0005 /* LockScreenWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0000C00000000BCAA000C /* LockScreenWidgetView.swift */; };
 		BCB0000600000000BCBB0006 /* DMMono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = BCA0000600000000BCAA0006 /* DMMono-Regular.ttf */; };
 		BCB0000700000000BCBB0007 /* DMMono-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = BCA0000700000000BCAA0007 /* DMMono-Medium.ttf */; };
 		BCB0000900000000BCBB0009 /* BoardcastWidgetExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = BCA0000900000000BCAA0009 /* BoardcastWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -101,6 +103,8 @@
 		BCA0000800000000BCAA0008 /* Runner.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Runner.entitlements; sourceTree = "<group>"; };
 		BCA0000900000000BCAA0009 /* BoardcastWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BoardcastWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		BCA0000A00000000BCAA000A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		BCA0000B00000000BCAA000B /* SmallWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmallWidgetView.swift; sourceTree = "<group>"; };
+		BCA0000C00000000BCAA000C /* LockScreenWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenWidgetView.swift; sourceTree = "<group>"; };
 		CC12DBF19383548FB227A290 /* Pods_RunnerTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RunnerTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -219,6 +223,8 @@
 				BCA0000100000000BCAA0001 /* BoardcastWidget.swift */,
 				BCA0000300000000BCAA0003 /* BoardcastWidgetBundle.swift */,
 				BCA0000200000000BCAA0002 /* MediumWidgetView.swift */,
+				BCA0000B00000000BCAA000B /* SmallWidgetView.swift */,
+				BCA0000C00000000BCAA000C /* LockScreenWidgetView.swift */,
 				BCA0000400000000BCAA0004 /* Info.plist */,
 				BCA0000500000000BCAA0005 /* BoardcastWidget.entitlements */,
 				BCA0000600000000BCAA0006 /* DMMono-Regular.ttf */,
@@ -485,6 +491,8 @@
 				BCB0000100000000BCBB0001 /* BoardcastWidget.swift in Sources */,
 				BCB0000200000000BCBB0002 /* MediumWidgetView.swift in Sources */,
 				BCB0000300000000BCBB0003 /* BoardcastWidgetBundle.swift in Sources */,
+				BCB0000400000000BCBB0004 /* SmallWidgetView.swift in Sources */,
+				BCB0000500000000BCBB0005 /* LockScreenWidgetView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

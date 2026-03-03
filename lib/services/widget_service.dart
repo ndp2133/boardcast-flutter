@@ -98,7 +98,10 @@ class WidgetService {
       ),
     ]);
 
-    // Tell WidgetKit to reload the timeline
+    // Tell WidgetKit to reload timelines for all widget kinds
     await HomeWidget.updateWidget(iOSName: _iOSWidgetName);
+    await HomeWidget.updateWidget(iOSName: 'BoardcastSmallWidget');
+    await HomeWidget.updateWidget(iOSName: 'BoardcastLockScreenWidget');
+    await HomeWidget.updateWidget(iOSName: 'BoardcastLockScreenCircularWidget');
   }
 }
