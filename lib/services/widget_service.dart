@@ -69,8 +69,9 @@ class WidgetService {
       hourlyScores.add({'h': t.hour, 's': scoreInt, 'c': cIdx});
     }
 
-    // Write all keys
+    // Write all keys (including selectedLocationId for Siri Shortcuts)
     await Future.wait([
+      HomeWidget.saveWidgetData<String>('selectedLocationId', location.id),
       HomeWidget.saveWidgetData<int>('score', (score * 100).round()),
       HomeWidget.saveWidgetData<String>('conditionLabel', label.label),
       HomeWidget.saveWidgetData<String>('locationName', location.name),
