@@ -77,6 +77,7 @@ Future<void> main() async {
       await subscriptionService.identify(user.id);
       analyticsService.identify(user.id);
     } else {
+      await storeService.clearUserData();
       await subscriptionService.reset();
       analyticsService.reset();
     }

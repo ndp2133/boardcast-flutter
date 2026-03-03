@@ -200,6 +200,20 @@ class StoreService {
     return sessions;
   }
 
+  /// Count how many optional fields a session has filled in (for dedup ranking).
+  int _sessionFieldCount(Session s) {
+    var n = 0;
+    if (s.rating != null) n++;
+    if (s.notes != null && s.notes!.isNotEmpty) n++;
+    if (s.boardId != null) n++;
+    if (s.conditions != null) n++;
+    if (s.selectedHours != null && s.selectedHours!.isNotEmpty) n++;
+    if (s.calibration != null) n++;
+    if (s.tags != null && s.tags!.isNotEmpty) n++;
+    if (s.status == 'completed') n++;
+    return n;
+  }
+
   Map<String, dynamic> _sessionToRow(Session session) {
     final conditions = <String, dynamic>{};
     if (session.conditions != null) {
@@ -274,7 +288,29 @@ class StoreService {
         );
       }
 
-      final mergedList = merged.values.toList();
+      var mergedList = merged.values.toList();
+
+      // Deduplicate sessions with same date + location but different IDs
+      // (can happen when created offline on two devices)
+      final seen = <String, Session>{};
+      final deduped = <Session>[];
+      for (final s in mergedList) {
+        final key = '${s.date}|${s.locationId}';
+        final existing = seen[key];
+        if (existing != null) {
+          // Keep the one with more data filled in
+          if (_sessionFieldCount(s) > _sessionFieldCount(existing)) {
+            final idx = deduped.indexOf(existing);
+            if (idx >= 0) deduped[idx] = s;
+            seen[key] = s;
+          }
+        } else {
+          seen[key] = s;
+          deduped.add(s);
+        }
+      }
+      mergedList = deduped;
+
       await _saveSessions(mergedList);
 
       // Push local-only sessions to Supabase
@@ -525,8 +561,32 @@ class StoreService {
     } catch (_) {}
   }
 
+  /// Delete all user data from Supabase tables (sessions + user_data).
+  /// Must be called BEFORE sign-out so RLS still applies.
+  Future<void> deleteRemoteData() async {
+    if (_guest) return;
+    final userId = _userId;
+    if (userId == null) return;
+
+    try {
+      await _supabase!.from('sessions').delete().eq('user_id', userId);
+    } catch (_) {}
+    try {
+      await _supabase!.from('user_data').delete().eq('user_id', userId);
+    } catch (_) {}
+  }
+
   /// Clear all local data.
   Future<void> clearAll() async {
     await _box.clear();
+  }
+
+  /// Clear user-scoped data but keep device preferences (theme, location).
+  Future<void> clearUserData() async {
+    final theme = _box.get(_keyTheme);
+    final location = _box.get(_keyLocation);
+    await _box.clear();
+    if (theme != null) await _box.put(_keyTheme, theme);
+    if (location != null) await _box.put(_keyLocation, location);
   }
 }

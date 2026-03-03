@@ -7,6 +7,8 @@ import '../state/widget_provider.dart';
 import '../state/live_activity_provider.dart';
 import '../state/analytics_provider.dart';
 import '../state/conditions_provider.dart';
+import '../state/store_provider.dart';
+import '../state/auth_provider.dart';
 import 'dashboard_screen.dart';
 import 'forecast_screen.dart';
 import 'tracking_screen.dart';
@@ -70,6 +72,14 @@ class _ShellScreenState extends ConsumerState<ShellScreen>
         ref.invalidate(conditionsProvider);
       }
       _pausedAt = null;
+
+      // Sync user data + sessions from Supabase on resume
+      final auth = ref.read(authServiceProvider);
+      if (!auth.isGuest) {
+        final store = ref.read(storeServiceProvider);
+        store.syncUserData();
+        store.syncSessions();
+      }
     }
   }
 
