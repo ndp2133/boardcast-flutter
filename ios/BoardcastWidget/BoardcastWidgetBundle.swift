@@ -8,6 +8,7 @@ struct BoardcastWidgetBundle: WidgetBundle {
         BoardcastSmallWidget()
         BoardcastLockScreenWidget()
         BoardcastLockScreenCircularWidget()
+        SurfLiveActivityWidget()
     }
 }
 

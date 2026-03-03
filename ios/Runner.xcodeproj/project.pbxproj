@@ -32,6 +32,12 @@
 		BCB0001300000000BCBB0013 /* SurfIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0000F00000000BCAA000F /* SurfIntents.swift */; };
 		BCB0001400000000BCBB0014 /* ConditionsSnippetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0001100000000BCAA0011 /* ConditionsSnippetView.swift */; };
 		BCB0001500000000BCBB0015 /* AppShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0001200000000BCAA0012 /* AppShortcuts.swift */; };
+		BCB0001600000000BCBB0016 /* BestTimeSnippetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0001300000000BCAA0013 /* BestTimeSnippetView.swift */; };
+		BCB0001700000000BCBB0017 /* LiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0001400000000BCAA0014 /* LiveActivityManager.swift */; };
+		BCB0001800000000BCBB0018 /* LiveActivityChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0001500000000BCAA0015 /* LiveActivityChannel.swift */; };
+		BCB0001900000000BCBB0019 /* SurfActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0001600000000BCAA0016 /* SurfActivityAttributes.swift */; };
+		BCB0002000000000BCBB0020 /* SurfActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0001600000000BCAA0016 /* SurfActivityAttributes.swift */; };
+		BCB0002100000000BCBB0021 /* SurfLiveActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0001700000000BCAA0017 /* SurfLiveActivityView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -116,6 +122,11 @@
 		BCA0000F00000000BCAA000F /* SurfIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurfIntents.swift; sourceTree = "<group>"; };
 		BCA0001100000000BCAA0011 /* ConditionsSnippetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConditionsSnippetView.swift; sourceTree = "<group>"; };
 		BCA0001200000000BCAA0012 /* AppShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShortcuts.swift; sourceTree = "<group>"; };
+		BCA0001300000000BCAA0013 /* BestTimeSnippetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BestTimeSnippetView.swift; sourceTree = "<group>"; };
+		BCA0001400000000BCAA0014 /* LiveActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityManager.swift; sourceTree = "<group>"; };
+		BCA0001500000000BCAA0015 /* LiveActivityChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityChannel.swift; sourceTree = "<group>"; };
+		BCA0001600000000BCAA0016 /* SurfActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurfActivityAttributes.swift; sourceTree = "<group>"; };
+		BCA0001700000000BCAA0017 /* SurfLiveActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurfLiveActivityView.swift; sourceTree = "<group>"; };
 		CC12DBF19383548FB227A290 /* Pods_RunnerTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RunnerTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -229,6 +240,9 @@
 				BCA0000F00000000BCAA000F /* SurfIntents.swift */,
 				BCA0001100000000BCAA0011 /* ConditionsSnippetView.swift */,
 				BCA0001200000000BCAA0012 /* AppShortcuts.swift */,
+				BCA0001300000000BCAA0013 /* BestTimeSnippetView.swift */,
+				BCA0001400000000BCAA0014 /* LiveActivityManager.swift */,
+				BCA0001500000000BCAA0015 /* LiveActivityChannel.swift */,
 			);
 			path = Runner;
 			sourceTree = "<group>";
@@ -237,6 +251,7 @@
 			isa = PBXGroup;
 			children = (
 				BCA0000D00000000BCAA000D /* SharedSurfData.swift */,
+				BCA0001600000000BCAA0016 /* SurfActivityAttributes.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -249,6 +264,7 @@
 				BCA0000200000000BCAA0002 /* MediumWidgetView.swift */,
 				BCA0000B00000000BCAA000B /* SmallWidgetView.swift */,
 				BCA0000C00000000BCAA000C /* LockScreenWidgetView.swift */,
+				BCA0001700000000BCAA0017 /* SurfLiveActivityView.swift */,
 				BCA0000400000000BCAA0004 /* Info.plist */,
 				BCA0000500000000BCAA0005 /* BoardcastWidget.entitlements */,
 				BCA0000600000000BCAA0006 /* DMMono-Regular.ttf */,
@@ -510,6 +526,10 @@
 				BCB0001300000000BCBB0013 /* SurfIntents.swift in Sources */,
 				BCB0001400000000BCBB0014 /* ConditionsSnippetView.swift in Sources */,
 				BCB0001500000000BCBB0015 /* AppShortcuts.swift in Sources */,
+				BCB0001600000000BCBB0016 /* BestTimeSnippetView.swift in Sources */,
+				BCB0001700000000BCBB0017 /* LiveActivityManager.swift in Sources */,
+				BCB0001800000000BCBB0018 /* LiveActivityChannel.swift in Sources */,
+				BCB0001900000000BCBB0019 /* SurfActivityAttributes.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -523,6 +543,8 @@
 				BCB0000300000000BCBB0003 /* BoardcastWidgetBundle.swift in Sources */,
 				BCB0000400000000BCBB0004 /* SmallWidgetView.swift in Sources */,
 				BCB0000500000000BCBB0005 /* LockScreenWidgetView.swift in Sources */,
+				BCB0002000000000BCBB0020 /* SurfActivityAttributes.swift in Sources */,
+				BCB0002100000000BCBB0021 /* SurfLiveActivityView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

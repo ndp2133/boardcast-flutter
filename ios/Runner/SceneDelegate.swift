@@ -3,4 +3,13 @@ import UIKit
 
 class SceneDelegate: FlutterSceneDelegate {
 
+    override func scene(_ scene: UIScene, willConnectTo session: UISceneSession,
+                        options connectionOptions: UIScene.ConnectionOptions) {
+        super.scene(scene, willConnectTo: session, options: connectionOptions)
+
+        if let windowScene = scene as? UIWindowScene,
+           let flutterVC = windowScene.windows.first?.rootViewController as? FlutterViewController {
+            LiveActivityChannel.register(with: flutterVC.binaryMessenger)
+        }
+    }
 }

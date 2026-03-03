@@ -6,7 +6,7 @@ import '../models/merged_conditions.dart';
 import '../models/user_prefs.dart';
 import '../models/location.dart';
 import '../logic/scoring.dart';
-import '../logic/units.dart';
+import 'condition_state_builder.dart';
 
 const _appGroupId = 'group.com.boardcast.app';
 const _iOSWidgetName = 'BoardcastWidget';
@@ -24,39 +24,15 @@ class WidgetService {
     required UserPrefs prefs,
     required Location location,
   }) async {
-    final now = DateTime.now();
-    final currentHour = conditions.hourly.where((h) {
-      final t = DateTime.parse(h.time);
-      return t.year == now.year &&
-          t.month == now.month &&
-          t.day == now.day &&
-          t.hour == now.hour;
-    }).toList();
-
-    // Current score
-    final currentData = currentHour.isNotEmpty ? currentHour.first : null;
-    final score = computeMatchScore(currentData, prefs, location);
-    final label = getConditionLabel(score);
-
-    // Current conditions formatted
-    final waveHeight = formatWaveHeight(conditions.current.waveHeight);
-    final windSpeed = formatWindSpeed(conditions.current.windSpeed);
-    final windDir = conditions.current.windDirection != null
-        ? degreesToCardinal(conditions.current.windDirection!)
-        : '--';
-    final windContext = conditions.current.windDirection != null
-        ? (isOffshoreWind(conditions.current.windDirection!, location)
-            ? 'offshore'
-            : isOnshoreWind(conditions.current.windDirection!, location)
-                ? 'onshore'
-                : 'cross')
-        : '';
-
-    // Best window today
-    final bestWindow = findBestWindow(conditions.hourly, prefs, location);
+    final state = buildConditionState(
+      conditions: conditions,
+      prefs: prefs,
+      location: location,
+    );
 
     // Build 18-hour score timeline starting from current hour
     // Each entry: { "h": hour (0-23), "s": score (0-100 int), "c": condition index (0-3) }
+    final now = DateTime.now();
     final hourlyScores = <Map<String, dynamic>>[];
     for (var i = 0; i < conditions.hourly.length && hourlyScores.length < 18; i++) {
       final h = conditions.hourly[i];
@@ -69,16 +45,19 @@ class WidgetService {
       hourlyScores.add({'h': t.hour, 's': scoreInt, 'c': cIdx});
     }
 
+    // Best window raw times for widget (ISO format)
+    final bestWindow = findBestWindow(conditions.hourly, prefs, location);
+
     // Write all keys (including selectedLocationId for Siri Shortcuts)
     await Future.wait([
       HomeWidget.saveWidgetData<String>('selectedLocationId', location.id),
-      HomeWidget.saveWidgetData<int>('score', (score * 100).round()),
-      HomeWidget.saveWidgetData<String>('conditionLabel', label.label),
+      HomeWidget.saveWidgetData<int>('score', state.score),
+      HomeWidget.saveWidgetData<String>('conditionLabel', state.label),
       HomeWidget.saveWidgetData<String>('locationName', location.name),
-      HomeWidget.saveWidgetData<String>('waveHeight', waveHeight),
-      HomeWidget.saveWidgetData<String>('windSpeed', windSpeed),
-      HomeWidget.saveWidgetData<String>('windDir', windDir),
-      HomeWidget.saveWidgetData<String>('windContext', windContext),
+      HomeWidget.saveWidgetData<String>('waveHeight', state.waveHeight),
+      HomeWidget.saveWidgetData<String>('windSpeed', state.windSpeed),
+      HomeWidget.saveWidgetData<String>('windDir', state.windDir),
+      HomeWidget.saveWidgetData<String>('windContext', state.windContext),
       HomeWidget.saveWidgetData<String>('fetchedAt', conditions.fetchedAt.toIso8601String()),
       HomeWidget.saveWidgetData<String>('hourlyScores', jsonEncode(hourlyScores)),
       HomeWidget.saveWidgetData<String>(

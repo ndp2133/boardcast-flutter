@@ -7,6 +7,7 @@ import 'services/cache_service.dart';
 import 'services/store_service.dart';
 import 'services/auth_service.dart';
 import 'services/widget_service.dart';
+import 'services/live_activity_service.dart';
 import 'services/subscription_service.dart';
 import 'services/analytics_service.dart';
 import 'state/conditions_provider.dart';
@@ -14,6 +15,7 @@ import 'state/store_provider.dart';
 import 'state/auth_provider.dart';
 import 'state/theme_provider.dart';
 import 'state/widget_provider.dart';
+import 'state/live_activity_provider.dart';
 import 'state/subscription_provider.dart';
 import 'state/analytics_provider.dart';
 import 'theme/app_theme.dart';
@@ -39,6 +41,9 @@ Future<void> main() async {
   // Initialize home screen widget
   final widgetService = WidgetService();
   await widgetService.init();
+
+  // Initialize Live Activity service
+  final liveActivityService = LiveActivityService();
 
   // Initialize Supabase
   await initSupabase();
@@ -85,6 +90,7 @@ Future<void> main() async {
         storeServiceProvider.overrideWithValue(storeService),
         authServiceProvider.overrideWithValue(authService),
         widgetServiceProvider.overrideWithValue(widgetService),
+        liveActivityServiceProvider.overrideWithValue(liveActivityService),
         subscriptionServiceProvider.overrideWithValue(subscriptionService),
         analyticsProvider.overrideWithValue(analyticsService),
       ],
@@ -120,19 +126,12 @@ class _OnboardingGate extends ConsumerStatefulWidget {
 }
 
 class _OnboardingGateState extends ConsumerState<_OnboardingGate> {
-  bool? _onboarded;
-  bool? _tourSeen;
-
-  @override
-  void initState() {
-    super.initState();
-    final store = ref.read(storeServiceProvider);
-    _onboarded = store.isOnboarded;
-    _tourSeen = store.isFeatureTourSeen;
-  }
-
   @override
   Widget build(BuildContext context) {
+    // Watch auth state — rebuilds on sign in/out (incl. account deletion)
+    ref.watch(authStateProvider);
+
+    final store = ref.read(storeServiceProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: isDark
@@ -142,19 +141,19 @@ class _OnboardingGateState extends ConsumerState<_OnboardingGate> {
           : SystemUiOverlayStyle.dark.copyWith(
               systemNavigationBarColor: AppColors.bgSecondary,
             ),
-      child: _buildChild(),
+      child: _buildChild(store),
     );
   }
 
-  Widget _buildChild() {
-    if (_onboarded != true) {
+  Widget _buildChild(StoreService store) {
+    if (!store.isOnboarded) {
       return OnboardingScreen(
-        onComplete: () => setState(() => _onboarded = true),
+        onComplete: () => setState(() {}),
       );
     }
-    if (_tourSeen != true) {
+    if (!store.isFeatureTourSeen) {
       return FeatureTourScreen(
-        onComplete: () => setState(() => _tourSeen = true),
+        onComplete: () => setState(() {}),
       );
     }
     return const ShellScreen();
