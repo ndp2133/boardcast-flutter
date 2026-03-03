@@ -186,8 +186,11 @@ class _CompletionSheetState extends State<_CompletionSheet> {
                     return ChoiceChip(
                       label: Text(b.name),
                       selected: selected,
-                      onSelected: (_) => setState(
-                          () => _boardId = selected ? null : b.id),
+                      onSelected: (_) {
+                        HapticFeedback.selectionClick();
+                        setState(
+                            () => _boardId = selected ? null : b.id);
+                      },
                       selectedColor: AppColors.accentBgStrong,
                       labelStyle: TextStyle(
                         color: selected ? AppColors.accent : textColor,
@@ -215,13 +218,16 @@ class _CompletionSheetState extends State<_CompletionSheet> {
                   return FilterChip(
                     label: Text(tag),
                     selected: selected,
-                    onSelected: (v) => setState(() {
-                      if (v) {
-                        _selectedTags.add(tag);
-                      } else {
-                        _selectedTags.remove(tag);
-                      }
-                    }),
+                    onSelected: (v) {
+                      HapticFeedback.selectionClick();
+                      setState(() {
+                        if (v) {
+                          _selectedTags.add(tag);
+                        } else {
+                          _selectedTags.remove(tag);
+                        }
+                      });
+                    },
                     selectedColor: AppColors.accentBgStrong,
                     labelStyle: TextStyle(
                       color: selected ? AppColors.accent : textColor,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'services/supabase_service.dart';
@@ -16,6 +17,7 @@ import 'state/widget_provider.dart';
 import 'state/subscription_provider.dart';
 import 'state/analytics_provider.dart';
 import 'theme/app_theme.dart';
+import 'theme/tokens.dart';
 import 'views/shell_screen.dart';
 import 'views/onboarding_screen.dart';
 import 'views/feature_tour_screen.dart';
@@ -129,6 +131,20 @@ class _OnboardingGateState extends ConsumerState<_OnboardingGate> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: isDark
+          ? SystemUiOverlayStyle.light.copyWith(
+              systemNavigationBarColor: AppColorsDark.bgSecondary,
+            )
+          : SystemUiOverlayStyle.dark.copyWith(
+              systemNavigationBarColor: AppColors.bgSecondary,
+            ),
+      child: _buildChild(),
+    );
+  }
+
+  Widget _buildChild() {
     if (_onboarded != true) {
       return OnboardingScreen(
         onComplete: () => setState(() => _onboarded = true),

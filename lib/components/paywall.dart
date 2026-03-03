@@ -1,7 +1,8 @@
-/// Paywall — custom paywall with RevenueCat purchase flow.
-/// Fetches available packages and presents them with buy buttons.
+// Paywall — premium paywall with RevenueCat purchase flow.
+// Fetches available packages and presents them with buy buttons.
 import 'dart:developer';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/tokens.dart';
 import '../state/subscription_provider.dart';
@@ -75,6 +76,7 @@ class _PaywallSheetState extends State<_PaywallSheet> {
   }
 
   Future<void> _purchase(dynamic package) async {
+    HapticFeedback.mediumImpact();
     setState(() => _purchasing = true);
     try {
       final success = await widget.service.purchasePackage(package);
@@ -91,6 +93,7 @@ class _PaywallSheetState extends State<_PaywallSheet> {
   }
 
   Future<void> _restore() async {
+    HapticFeedback.lightImpact();
     setState(() => _purchasing = true);
     final result = await widget.service.restore();
     if (result.restored) {
@@ -114,7 +117,9 @@ class _PaywallSheetState extends State<_PaywallSheet> {
     final subColor =
         isDark ? AppColorsDark.textSecondary : AppColors.textSecondary;
 
-    return Padding(
+    return Semantics(
+      label: 'Premium subscription paywall',
+      child: Padding(
       padding: EdgeInsets.only(
         left: AppSpacing.s4,
         right: AppSpacing.s4,
@@ -128,42 +133,90 @@ class _PaywallSheetState extends State<_PaywallSheet> {
           Container(
             width: 40,
             height: 4,
-            margin: const EdgeInsets.only(bottom: AppSpacing.s4),
+            margin: const EdgeInsets.only(bottom: AppSpacing.s5),
             decoration: BoxDecoration(
               color: subColor.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: BorderRadius.circular(AppRadius.full),
             ),
           ),
 
+          // Premium icon
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppColors.accent,
+                  AppColors.accentDark,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+            ),
+            child: const Icon(Icons.auto_awesome, color: Colors.white, size: 28),
+          ),
+          const SizedBox(height: AppSpacing.s4),
+
           // Header
           Text(
-            'Upgrade to Premium',
+            'Unlock Your Full Potential',
             style: TextStyle(
-              fontSize: AppTypography.textLg,
+              fontSize: AppTypography.textXl,
               fontWeight: AppTypography.weightBold,
               color: textColor,
             ),
           ),
           const SizedBox(height: AppSpacing.s2),
           Text(
-            'Unlock the full Boardcast experience',
+            'Know exactly when to paddle out with AI coaching, smart alerts, and widgets.',
+            textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: AppTypography.textSm,
               color: subColor,
+              height: 1.4,
             ),
           ),
-          const SizedBox(height: AppSpacing.s5),
+          const SizedBox(height: AppSpacing.s6),
 
           // Features list
           ..._features.map((f) => Padding(
-                padding: const EdgeInsets.only(bottom: AppSpacing.s2),
+                padding: const EdgeInsets.only(bottom: AppSpacing.s3),
                 child: Row(
                   children: [
-                    Icon(Icons.check_circle, size: 20, color: AppColors.accent),
-                    const SizedBox(width: AppSpacing.s2),
-                    Text(f,
-                        style: TextStyle(
-                            fontSize: AppTypography.textSm, color: textColor)),
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: AppColors.accent.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
+                      ),
+                      child: Icon(f.$1, size: AppIconSize.base, color: AppColors.accent),
+                    ),
+                    const SizedBox(width: AppSpacing.s3),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            f.$2,
+                            style: TextStyle(
+                              fontSize: AppTypography.textSm,
+                              fontWeight: AppTypography.weightSemibold,
+                              color: textColor,
+                            ),
+                          ),
+                          Text(
+                            f.$3,
+                            style: TextStyle(
+                              fontSize: AppTypography.textXs,
+                              color: subColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               )),
@@ -171,14 +224,11 @@ class _PaywallSheetState extends State<_PaywallSheet> {
 
           // Purchase buttons
           if (_loading)
-            const Padding(
-              padding: EdgeInsets.all(AppSpacing.s4),
-              child: CircularProgressIndicator(color: AppColors.accent),
-            )
+            _buildLoadingSkeleton(isDark)
           else if (_error != null && (_packages == null || _packages!.isEmpty))
             _buildFallbackPricing(textColor, subColor)
           else
-            ..._buildPackageButtons(textColor, subColor),
+            ..._buildPackageButtons(textColor, subColor, isDark),
 
           // Restore purchases
           const SizedBox(height: AppSpacing.s3),
@@ -195,74 +245,199 @@ class _PaywallSheetState extends State<_PaywallSheet> {
           const SizedBox(height: AppSpacing.s2),
         ],
       ),
+    ),
     );
   }
 
-  List<Widget> _buildPackageButtons(Color textColor, Color subColor) {
-    return _packages!.map<Widget>((package) {
+  Widget _buildLoadingSkeleton(bool isDark) {
+    final shimmer = isDark ? AppColorsDark.bgTertiary : AppColors.bgTertiary;
+    return Column(
+      children: [
+        Container(
+          width: double.infinity,
+          height: 72,
+          decoration: BoxDecoration(
+            color: shimmer,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.s2),
+        Container(
+          width: double.infinity,
+          height: 56,
+          decoration: BoxDecoration(
+            color: shimmer,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _buildPackageButtons(
+      Color textColor, Color subColor, bool isDark) {
+    // Sort so annual comes first
+    final sorted = List.of(_packages!);
+    sorted.sort((a, b) {
+      final aAnnual = a.storeProduct.identifier.contains('annual') ||
+          a.storeProduct.identifier.contains('yearly');
+      return aAnnual ? -1 : 1;
+    });
+
+    return sorted.map<Widget>((package) {
       final product = package.storeProduct;
       final isAnnual = product.identifier.contains('annual') ||
           product.identifier.contains('yearly');
       final intro = product.introductoryPrice;
       final hasTrial = intro != null && intro.price == 0;
       final trialDays = hasTrial ? intro!.periodNumberOfUnits : 0;
-      return Padding(
-        padding: const EdgeInsets.only(bottom: AppSpacing.s2),
-        child: SizedBox(
-          width: double.infinity,
-          child: TextButton(
-            onPressed: _purchasing ? null : () => _purchase(package),
-            style: TextButton.styleFrom(
-              backgroundColor:
-                  isAnnual ? AppColors.accent : Colors.transparent,
-              foregroundColor: isAnnual ? Colors.white : AppColors.accent,
-              padding: const EdgeInsets.symmetric(
-                  vertical: AppSpacing.s3, horizontal: AppSpacing.s4),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                side: isAnnual
-                    ? BorderSide.none
-                    : BorderSide(color: AppColors.accent),
-              ),
-            ),
-            child: _purchasing
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white),
-                  )
-                : Column(
-                    children: [
-                      Text(
-                        isAnnual ? 'Yearly — Save 50%' : 'Monthly',
-                        style: TextStyle(
-                          fontSize: AppTypography.textBase,
-                          fontWeight: AppTypography.weightSemibold,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        hasTrial
-                            ? '$trialDays-day free trial, then ${product.priceString}${isAnnual ? '/year' : '/month'}'
-                            : '${product.priceString}${isAnnual ? '/year' : '/month'}',
-                        style: TextStyle(
-                          fontSize: AppTypography.textSm,
-                          fontWeight: AppTypography.weightMedium,
-                        ),
+
+      if (isAnnual) {
+        // Annual — primary CTA with "Best Value" badge
+        return Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.s2),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              SizedBox(
+                width: double.infinity,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppColors.accent,
+                        AppColors.accentDark,
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.accent.withValues(alpha: 0.3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
+                  child: TextButton(
+                    onPressed: _purchasing ? null : () => _purchase(package),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                          vertical: AppSpacing.s4, horizontal: AppSpacing.s4),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.md),
+                      ),
+                    ),
+                    child: _purchasing
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white),
+                          )
+                        : Column(
+                            children: [
+                              Text(
+                                'Yearly — Save 50%',
+                                style: TextStyle(
+                                  fontSize: AppTypography.textBase,
+                                  fontWeight: AppTypography.weightBold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: AppSpacing.s1),
+                              Text(
+                                hasTrial
+                                    ? '$trialDays-day free trial, then ${product.priceString}/year'
+                                    : '${product.priceString}/year',
+                                style: TextStyle(
+                                  fontSize: AppTypography.textSm,
+                                  fontWeight: AppTypography.weightMedium,
+                                  color: Colors.white.withValues(alpha: 0.85),
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
+                ),
+              ),
+              // "Best Value" badge
+              Positioned(
+                top: -10,
+                right: AppSpacing.s4,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.s3, vertical: AppSpacing.s1),
+                  decoration: BoxDecoration(
+                    color: AppColors.conditionEpic,
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                    boxShadow: AppShadows.sm,
+                  ),
+                  child: Text(
+                    'Best Value',
+                    style: TextStyle(
+                      fontSize: AppTypography.textXs,
+                      fontWeight: AppTypography.weightBold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ),
-      );
+        );
+      } else {
+        // Monthly — secondary option
+        return Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.s2),
+          child: SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: _purchasing ? null : () => _purchase(package),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                    vertical: AppSpacing.s3, horizontal: AppSpacing.s4),
+              ),
+              child: _purchasing
+                  ? SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: AppColors.accent),
+                    )
+                  : Column(
+                      children: [
+                        Text(
+                          'Monthly',
+                          style: TextStyle(
+                            fontSize: AppTypography.textBase,
+                            fontWeight: AppTypography.weightSemibold,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.s1),
+                        Text(
+                          hasTrial
+                              ? '$trialDays-day free trial, then ${product.priceString}/month'
+                              : '${product.priceString}/month',
+                          style: TextStyle(
+                            fontSize: AppTypography.textSm,
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+        );
+      }
     }).toList();
   }
 
   Widget _buildFallbackPricing(Color textColor, Color subColor) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.s3),
+      padding: const EdgeInsets.all(AppSpacing.s4),
       decoration: BoxDecoration(
         border: Border.all(color: AppColors.accent),
         borderRadius: BorderRadius.circular(AppRadius.md),
@@ -277,7 +452,7 @@ class _PaywallSheetState extends State<_PaywallSheet> {
               color: textColor,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.s1),
           Text(
             'Subscriptions available soon.',
             style: TextStyle(
@@ -291,10 +466,10 @@ class _PaywallSheetState extends State<_PaywallSheet> {
   }
 }
 
-const _features = [
-  'AI Surf Coach — personalized tips',
-  'Unlimited AI condition queries',
-  'Push alerts for ideal conditions',
-  'Home screen widget',
-  'Advanced session analytics',
+const _features = <(IconData, String, String)>[
+  (Icons.psychology, 'AI Surf Coach', 'Personalized tips based on your style'),
+  (Icons.chat_bubble_outline, 'Unlimited AI Queries', 'Ask anything about conditions'),
+  (Icons.notifications_active, 'Smart Alerts', 'Never miss epic conditions'),
+  (Icons.widgets, 'Home Screen Widget', 'Check the score at a glance'),
+  (Icons.insights, 'Session Analytics', 'Track your Surf IQ progression'),
 ];

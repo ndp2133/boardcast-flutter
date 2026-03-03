@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/tokens.dart';
 import '../logic/units.dart';
@@ -223,7 +224,10 @@ class _PreferencesEditorSheetState extends State<_PreferencesEditorSheet> {
           min: min,
           max: max,
           divisions: divisions,
-          onChanged: onChanged,
+          onChanged: (v) {
+            HapticFeedback.selectionClick();
+            onChanged(v);
+          },
         ),
         Text(
           contextLabels,
@@ -263,7 +267,10 @@ class _PreferencesEditorSheetState extends State<_PreferencesEditorSheet> {
             return ChoiceChip(
               label: Text(displayLabels[i]),
               selected: isSelected,
-              onSelected: (_) => onSelected(options[i]),
+              onSelected: (_) {
+                HapticFeedback.selectionClick();
+                onSelected(options[i]);
+              },
               selectedColor: AppColors.accentBgStrong,
               labelStyle: TextStyle(
                 color: isSelected ? AppColors.accent : textColor,

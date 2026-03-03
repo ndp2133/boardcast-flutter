@@ -58,9 +58,7 @@ class ForecastChart extends StatelessWidget {
       bestWindow = findBestWindowIndices(matchScores);
     }
 
-    final gridColor = isDark
-        ? Colors.white.withValues(alpha: 0.06)
-        : Colors.black.withValues(alpha: 0.04);
+    final gridColor = isDark ? AppColorsDark.border : AppColors.border;
     final tickColor =
         isDark ? AppColorsDark.textTertiary : AppColors.textTertiary;
 
@@ -86,8 +84,8 @@ class ForecastChart extends StatelessWidget {
         start: currentHourIndex!,
         end: currentHourIndex!,
         borderColor: isDark
-            ? Colors.white.withValues(alpha: 0.4)
-            : Colors.black.withValues(alpha: 0.3),
+            ? AppColorsDark.textTertiary
+            : AppColors.textTertiary,
         borderWidth: 1.5,
         dashArray: const [4, 4],
       ));
@@ -96,7 +94,7 @@ class ForecastChart extends StatelessWidget {
     return SizedBox(
       height: 210,
       child: SfCartesianChart(
-        margin: const EdgeInsets.only(top: 8, right: 4, bottom: 0, left: 4),
+        margin: const EdgeInsets.only(top: AppSpacing.s2, right: AppSpacing.s1, bottom: 0, left: AppSpacing.s1),
         plotAreaBorderWidth: 0,
         primaryXAxis: CategoryAxis(
           majorGridLines: const MajorGridLines(width: 0),
@@ -140,8 +138,8 @@ class ForecastChart extends StatelessWidget {
           activationMode: ActivationMode.singleTap,
           tooltipDisplayMode: TrackballDisplayMode.groupAllPoints,
           tooltipSettings: InteractiveTooltip(
-            color: isDark ? AppColorsDark.bgTertiary : const Color(0xFF1A1A2E),
-            textStyle: const TextStyle(fontSize: 11, color: Colors.white),
+            color: isDark ? AppColorsDark.chartTooltipBg : AppColors.chartTooltipBg,
+            textStyle: TextStyle(fontSize: AppTypography.textXxs, color: isDark ? AppColorsDark.textPrimary : Colors.white),
             borderColor: Colors.transparent,
             borderWidth: 0,
           ),
@@ -180,8 +178,7 @@ class ForecastChart extends StatelessWidget {
             xValueMapper: (p, _) => p.label,
             yValueMapper: (p, _) => p.value,
             yAxisName: 'windAxis',
-            color:
-                isDark ? const Color(0xFF64748B) : const Color(0xFF9CA3AF),
+            color: isDark ? AppColorsDark.chartWind : AppColors.chartWind,
             width: 1.5,
             dashArray: const [5, 3],
             splineType: SplineType.monotonic,

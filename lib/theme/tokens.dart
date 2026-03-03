@@ -27,6 +27,10 @@ abstract final class AppColors {
   static const conditionFair = Color(0xFFF59E0B);
   static const conditionPoor = Color(0xFFEF4444);
 
+  // Charts
+  static const chartWind = Color(0xFF9CA3AF);
+  static const chartTooltipBg = textPrimary;
+
   // Utility
   static final border = Colors.black.withValues(alpha: 0.06);
   static final borderStrong = Colors.black.withValues(alpha: 0.10);
@@ -46,6 +50,10 @@ abstract final class AppColorsDark {
   // Accent stays teal
   static final accentBg = const Color(0xFF4DB8A4).withValues(alpha: 0.12);
   static final accentBgStrong = const Color(0xFF4DB8A4).withValues(alpha: 0.20);
+
+  // Charts
+  static const chartWind = Color(0xFF64748B);
+  static const chartTooltipBg = Color(0xFF2A3A4A);
 
   static final border = Colors.white.withValues(alpha: 0.06);
   static final borderStrong = Colors.white.withValues(alpha: 0.12);
@@ -78,6 +86,7 @@ abstract final class AppTypography {
   static const fontSans = 'Inter';
   static const fontMono = 'DMMono';
 
+  static const textXxs = 10.0;
   static const textXs = 12.0;
   static const textSm = 14.0;
   static const textBase = 16.0;
@@ -98,6 +107,17 @@ abstract final class AppShadows {
   static const sm = [BoxShadow(offset: Offset(0, 1), blurRadius: 3, color: Color(0x0F000000))];
   static const base = [BoxShadow(offset: Offset(0, 2), blurRadius: 8, color: Color(0x0F000000))];
   static const lg = [BoxShadow(offset: Offset(0, 4), blurRadius: 16, color: Color(0x14000000))];
+}
+
+// --- Icon sizes ---
+abstract final class AppIconSize {
+  static const xs = 12.0;
+  static const sm = 14.0;
+  static const base = 16.0;
+  static const md = 18.0;
+  static const lg = 20.0;
+  static const xl = 24.0;
+  static const xxl = 48.0;
 }
 
 // --- Durations ---

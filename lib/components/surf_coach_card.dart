@@ -1,4 +1,5 @@
 /// AI Surf Coach card — personalized tips + natural language queries
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/tokens.dart';
@@ -73,7 +74,7 @@ class _SurfCoachCardState extends ConsumerState<SurfCoachCard> {
           // Header
           Row(
             children: [
-              Icon(Icons.waves, size: 18, color: AppColors.accent),
+              Icon(Icons.waves, size: AppIconSize.md, color: AppColors.accent),
               const SizedBox(width: AppSpacing.s2),
               Text(
                 'AI Surf Coach',
@@ -198,29 +199,7 @@ class _SurfCoachCardState extends ConsumerState<SurfCoachCard> {
           ),
         );
       case AiStatus.loading:
-        return Row(
-          children: [
-            SizedBox(
-              width: 14,
-              height: 14,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: AppColors.accent,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.s2),
-            Expanded(
-              child: Text(
-                displayState.text ?? 'Analyzing conditions...',
-                style: TextStyle(
-                  fontSize: AppTypography.textSm,
-                  color: subColor,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            ),
-          ],
-        );
+        return _ShimmerBlock(subColor: subColor);
       case AiStatus.loaded:
         return Text(
           displayState.text ?? '',
@@ -240,5 +219,76 @@ class _SurfCoachCardState extends ConsumerState<SurfCoachCard> {
           ),
         );
     }
+  }
+}
+
+class _ShimmerBlock extends StatefulWidget {
+  final Color subColor;
+  const _ShimmerBlock({required this.subColor});
+
+  @override
+  State<_ShimmerBlock> createState() => _ShimmerBlockState();
+}
+
+class _ShimmerBlockState extends State<_ShimmerBlock>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
+    _controller.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final base = isDark ? AppColorsDark.bgTertiary : AppColors.bgTertiary;
+    final highlight = isDark ? AppColorsDark.bgSurface : AppColors.bgSurface;
+    final value = _controller.value;
+    final pulse = (sin(value * 3.14159 * 2) + 1) / 2;
+    final color = Color.lerp(base, highlight, pulse)!;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: double.infinity,
+          height: AppTypography.textSm,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.s2),
+        Container(
+          width: 200,
+          height: AppTypography.textSm,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.s2),
+        Container(
+          width: 140,
+          height: AppTypography.textSm,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+          ),
+        ),
+      ],
+    );
   }
 }

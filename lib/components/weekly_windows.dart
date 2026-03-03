@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme/tokens.dart';
 import '../logic/scoring.dart';
 import '../logic/time_utils.dart';
@@ -36,13 +37,43 @@ class WeeklyWindows extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.s2),
-        ...windows.map((w) => _windowRow(w, isDark, textColor, subColor)),
+        ...windows.map((w) => _WindowRow(
+              window: w,
+              isDark: isDark,
+              textColor: textColor,
+              subColor: subColor,
+              onTap: () => onWindowTap?.call(w.date),
+            )),
       ],
     );
   }
+}
 
-  Widget _windowRow(
-      TopWindow w, bool isDark, Color textColor, Color subColor) {
+class _WindowRow extends StatefulWidget {
+  final TopWindow window;
+  final bool isDark;
+  final Color textColor;
+  final Color subColor;
+  final VoidCallback? onTap;
+
+  const _WindowRow({
+    required this.window,
+    required this.isDark,
+    required this.textColor,
+    required this.subColor,
+    this.onTap,
+  });
+
+  @override
+  State<_WindowRow> createState() => _WindowRowState();
+}
+
+class _WindowRowState extends State<_WindowRow> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final w = widget.window;
     final dayLabel = isToday(w.date) ? 'Today' : formatDayShort(w.date);
     final startHour = formatHour(w.startTime);
     final endHour = formatHour(w.endTime);
@@ -52,70 +83,87 @@ class WeeklyWindows extends StatelessWidget {
         w.waveHeight != null ? '${formatWaveHeight(w.waveHeight)} ft' : '';
 
     return GestureDetector(
-      onTap: () => onWindowTap?.call(w.date),
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: AppSpacing.s2),
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.s3,
-            vertical: AppSpacing.s2,
-          ),
-          decoration: BoxDecoration(
-            color: isDark ? AppColorsDark.bgSecondary : AppColors.bgSecondary,
-            borderRadius: BorderRadius.circular(AppRadius.sm),
-          ),
-          child: Row(
-            children: [
-              SizedBox(
-                width: 42,
-                child: Text(
-                  dayLabel,
-                  style: TextStyle(
-                    fontSize: AppTypography.textXs,
-                    fontWeight: AppTypography.weightSemibold,
-                    color: textColor,
-                  ),
-                ),
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) {
+        setState(() => _pressed = false);
+        HapticFeedback.selectionClick();
+        widget.onTap?.call();
+      },
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedScale(
+        scale: _pressed ? 0.97 : 1.0,
+        duration: AppDurations.fast,
+        child: AnimatedOpacity(
+          opacity: _pressed ? 0.7 : 1.0,
+          duration: AppDurations.fast,
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.s2),
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.s3,
+                vertical: AppSpacing.s2,
               ),
-              Expanded(
-                child: Text(
-                  '$startHour – $endHour',
-                  style: TextStyle(
-                    fontSize: AppTypography.textXs,
-                    color: subColor,
-                  ),
-                ),
+              decoration: BoxDecoration(
+                color: widget.isDark
+                    ? AppColorsDark.bgSecondary
+                    : AppColors.bgSecondary,
+                borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  label.label,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: AppTypography.weightMedium,
-                    color: color,
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 42,
+                    child: Text(
+                      dayLabel,
+                      style: TextStyle(
+                        fontSize: AppTypography.textXs,
+                        fontWeight: AppTypography.weightSemibold,
+                        color: widget.textColor,
+                      ),
+                    ),
                   ),
-                ),
+                  Expanded(
+                    child: Text(
+                      '$startHour – $endHour',
+                      style: TextStyle(
+                        fontSize: AppTypography.textXs,
+                        color: widget.subColor,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 5, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      label.label,
+                      style: TextStyle(
+                        fontSize: AppTypography.textXxs,
+                        fontWeight: AppTypography.weightMedium,
+                        color: color,
+                      ),
+                    ),
+                  ),
+                  if (waveText.isNotEmpty) ...[
+                    const SizedBox(width: 6),
+                    Text(
+                      waveText,
+                      style: TextStyle(
+                        fontFamily: AppTypography.fontMono,
+                        fontSize: AppTypography.textXs,
+                        color: widget.subColor,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(width: AppSpacing.s1),
+                  Icon(Icons.chevron_right,
+                      size: AppIconSize.base, color: widget.subColor),
+                ],
               ),
-              if (waveText.isNotEmpty) ...[
-                const SizedBox(width: 6),
-                Text(
-                  waveText,
-                  style: TextStyle(
-                    fontFamily: AppTypography.fontMono,
-                    fontSize: AppTypography.textXs,
-                    color: subColor,
-                  ),
-                ),
-              ],
-              const SizedBox(width: 4),
-              Icon(Icons.chevron_right, size: 16, color: subColor),
-            ],
+            ),
           ),
         ),
       ),

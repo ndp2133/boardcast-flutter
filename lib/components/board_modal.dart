@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/tokens.dart';
 import '../models/board.dart';
@@ -86,13 +87,22 @@ class _BoardModalSheetState extends State<_BoardModalSheet> {
 
             // Board type grid
             Wrap(
-              spacing: 8,
-              runSpacing: 8,
+              spacing: AppSpacing.s2,
+              runSpacing: AppSpacing.s2,
               children: boardTypes.map((bt) {
                 final selected = _type == bt.id;
-                return GestureDetector(
-                  onTap: () => setState(() => _type = bt.id),
-                  child: Container(
+                return Semantics(
+                  label: '${bt.name}: ${bt.bestFor}',
+                  selected: selected,
+                  button: true,
+                  child: GestureDetector(
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    setState(() => _type = bt.id);
+                  },
+                  child: AnimatedContainer(
+                    duration: AppDurations.fast,
+                    curve: Curves.easeOut,
                     width: (MediaQuery.of(context).size.width - 48) / 3,
                     padding: const EdgeInsets.all(AppSpacing.s2),
                     decoration: BoxDecoration(
@@ -106,6 +116,13 @@ class _BoardModalSheetState extends State<_BoardModalSheet> {
                             : Colors.transparent,
                         width: 2,
                       ),
+                      boxShadow: selected
+                          ? [BoxShadow(
+                              color: AppColors.accent.withValues(alpha: 0.25),
+                              blurRadius: 8,
+                              spreadRadius: 1,
+                            )]
+                          : null,
                     ),
                     child: Column(
                       children: [
@@ -133,6 +150,7 @@ class _BoardModalSheetState extends State<_BoardModalSheet> {
                       ],
                     ),
                   ),
+                ),
                 );
               }).toList(),
             ),

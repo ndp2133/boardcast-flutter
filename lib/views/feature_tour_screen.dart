@@ -1,5 +1,6 @@
 // Post-onboarding feature tour — 4 animated slides showcasing key differentiators
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/tokens.dart';
 import '../components/score_ring.dart';
@@ -32,6 +33,7 @@ class _FeatureTourScreenState extends ConsumerState<FeatureTourScreen> {
   }
 
   void _next() {
+    HapticFeedback.lightImpact();
     if (_currentPage < 3) {
       _pageController.nextPage(
         duration: AppDurations.slow,
@@ -42,7 +44,10 @@ class _FeatureTourScreenState extends ConsumerState<FeatureTourScreen> {
     }
   }
 
-  void _skip() => _finish();
+  void _skip() {
+    HapticFeedback.lightImpact();
+    _finish();
+  }
 
   Future<void> _finish() async {
     await ref.read(storeServiceProvider).setFeatureTourSeen();
@@ -399,12 +404,12 @@ class _FeatureTourScreenState extends ConsumerState<FeatureTourScreen> {
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.waves, size: 14, color: AppColors.accent),
-                        const SizedBox(width: 4),
+                        Icon(Icons.waves, size: AppIconSize.sm, color: AppColors.accent),
+                        const SizedBox(width: AppSpacing.s1),
                         Text(
                           'Boardcast',
                           style: TextStyle(
-                            fontSize: 10,
+                            fontSize: AppTypography.textXxs,
                             fontWeight: AppTypography.weightSemibold,
                             color: isDark
                                 ? AppColorsDark.textSecondary
@@ -413,7 +418,7 @@ class _FeatureTourScreenState extends ConsumerState<FeatureTourScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.s2),
                     Text(
                       '72',
                       style: TextStyle(
@@ -431,11 +436,11 @@ class _FeatureTourScreenState extends ConsumerState<FeatureTourScreen> {
                         color: AppColors.conditionGood,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppSpacing.s1),
                     Text(
                       '3-4 ft \u2022 Offshore',
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: AppTypography.textXxs,
                         color: isDark
                             ? AppColorsDark.textTertiary
                             : AppColors.textTertiary,
@@ -483,9 +488,9 @@ class _FeatureTourScreenState extends ConsumerState<FeatureTourScreen> {
                         borderRadius: BorderRadius.circular(AppRadius.full),
                       ),
                       child: const Icon(Icons.mic,
-                          color: Colors.white, size: 20),
+                          color: Colors.white, size: AppIconSize.lg),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSpacing.s2),
                     Text(
                       '"How\'s the surf?"',
                       textAlign: TextAlign.center,
@@ -497,11 +502,11 @@ class _FeatureTourScreenState extends ConsumerState<FeatureTourScreen> {
                             : AppColors.textPrimary,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppSpacing.s1),
                     Text(
                       'Siri Shortcuts',
                       style: TextStyle(
-                        fontSize: 10,
+                        fontSize: AppTypography.textXxs,
                         color: isDark
                             ? AppColorsDark.textTertiary
                             : AppColors.textTertiary,

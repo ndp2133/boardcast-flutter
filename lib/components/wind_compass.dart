@@ -27,15 +27,23 @@ class WindCompass extends StatelessWidget {
             ? AppColors.conditionPoor
             : AppColors.conditionFair;
 
-    return SizedBox(
-      width: size,
-      height: size,
-      child: CustomPaint(
-        painter: _CompassPainter(
-          windDegrees: windDegrees,
-          beachFacing: location.beachFacing,
-          arrowColor: arrowColor,
-          isDark: Theme.of(context).brightness == Brightness.dark,
+    return Semantics(
+      label: 'Wind direction ${windDegrees.round()} degrees, ${offshore ? "offshore" : onshore ? "onshore" : "cross-shore"}',
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(end: windDegrees),
+          duration: AppDurations.slow,
+          curve: Curves.easeInOut,
+          builder: (context, animatedDegrees, _) => CustomPaint(
+            painter: _CompassPainter(
+              windDegrees: animatedDegrees,
+              beachFacing: location.beachFacing,
+              arrowColor: arrowColor,
+              isDark: Theme.of(context).brightness == Brightness.dark,
+            ),
+          ),
         ),
       ),
     );
@@ -124,7 +132,6 @@ class _CompassPainter extends CustomPainter {
     for (var i = 0; i < 4; i++) {
       final rad = angles[i] * pi / 180 - pi / 2;
       final labelRadius = radius + 0.5; // just inside edge
-      // Skip if too close to arrow tip
       final pos = Offset(
         center.dx + labelRadius * 0.85 * cos(rad),
         center.dy + labelRadius * 0.85 * sin(rad),

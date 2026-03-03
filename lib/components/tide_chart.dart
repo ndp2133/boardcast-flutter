@@ -42,7 +42,7 @@ class TideChart extends StatelessWidget {
     return SizedBox(
       height: 80,
       child: SfCartesianChart(
-        margin: const EdgeInsets.only(top: 14, right: 4, bottom: 0, left: 4),
+        margin: const EdgeInsets.only(top: AppSpacing.s3, right: AppSpacing.s1, bottom: 0, left: AppSpacing.s1),
         plotAreaBorderWidth: 0,
         primaryXAxis: CategoryAxis(
           isVisible: false,
@@ -57,8 +57,8 @@ class TideChart extends StatelessWidget {
           enable: true,
           activationMode: ActivationMode.singleTap,
           tooltipSettings: InteractiveTooltip(
-            color: isDark ? AppColorsDark.bgTertiary : const Color(0xFF1A1A2E),
-            textStyle: const TextStyle(fontSize: 10, color: Colors.white),
+            color: isDark ? AppColorsDark.chartTooltipBg : AppColors.chartTooltipBg,
+            textStyle: TextStyle(fontSize: AppTypography.textXxs, color: isDark ? AppColorsDark.textPrimary : Colors.white),
             borderColor: Colors.transparent,
           ),
           lineWidth: 1,
@@ -78,11 +78,9 @@ class TideChart extends StatelessWidget {
             dataSource: tidePoints,
             xValueMapper: (p, _) => p.label,
             yValueMapper: (p, _) => p.height,
-            borderColor: const Color(0xFF22C55E),
+            borderColor: AppColors.conditionEpic,
             borderWidth: 1.5,
-            color: isDark
-                ? const Color(0x2E22C55E)
-                : const Color(0x2622C55E),
+            color: AppColors.conditionEpic.withValues(alpha: isDark ? 0.18 : 0.15),
             splineType: SplineType.monotonic,
             name: 'Tide',
           ),
@@ -138,7 +136,7 @@ class TideChart extends StatelessWidget {
             color: AppColors.accent,
             shape: BoxShape.circle,
             border: Border.all(
-              color: isDark ? AppColorsDark.bgPrimary : Colors.white,
+              color: isDark ? AppColorsDark.bgPrimary : AppColors.bgSecondary,
               width: 1.5,
             ),
           ),

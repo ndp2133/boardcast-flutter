@@ -46,7 +46,7 @@ class ConditionBar extends StatelessWidget {
 
   static Color _conditionColor(double score) {
     if (score >= 0.8) return AppColors.conditionEpic.withValues(alpha: 0.7);
-    if (score >= 0.6) return const Color(0xFF3B82F6).withValues(alpha: 0.6);
+    if (score >= 0.6) return AppColors.conditionGood.withValues(alpha: 0.6);
     if (score >= 0.4) return AppColors.conditionFair.withValues(alpha: 0.5);
     return AppColors.conditionPoor.withValues(alpha: 0.35);
   }

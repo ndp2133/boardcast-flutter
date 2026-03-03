@@ -1,4 +1,4 @@
-/// App shell with bottom navigation — 4 tabs
+// App shell with bottom navigation — 4 tabs
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,25 +20,43 @@ class ShellScreen extends ConsumerStatefulWidget {
 class _ShellScreenState extends ConsumerState<ShellScreen> {
   int _currentIndex = 0;
 
+  // Keep all tabs alive for state preservation
+  final _tabs = <Widget>[];
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_tabs.isEmpty) {
+      _tabs.addAll([
+        DashboardScreen(
+          onNavigateToForecast: () => setState(() => _currentIndex = 1),
+        ),
+        const ForecastScreen(),
+        const TrackingScreen(),
+        const HistoryScreen(),
+      ]);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Activate widget updater — pushes conditions to home screen widget
     ref.watch(widgetUpdaterProvider);
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: [
-          DashboardScreen(
-            onNavigateToForecast: () => setState(() => _currentIndex = 1),
-          ),
-          const ForecastScreen(),
-          const TrackingScreen(),
-          const HistoryScreen(),
-        ],
+      body: AnimatedSwitcher(
+        duration: AppDurations.fast,
+        switchInCurve: Curves.easeOut,
+        switchOutCurve: Curves.easeIn,
+        child: IndexedStack(
+          key: ValueKey(_currentIndex),
+          index: _currentIndex,
+          children: _tabs,
+        ),
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (i) {
+          if (i == _currentIndex) return;
           HapticFeedback.selectionClick();
           const tabs = ['Dashboard', 'Forecast', 'Track', 'History'];
           ref.read(analyticsProvider).screen(tabs[i]);

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/tokens.dart';
 import '../logic/units.dart';
@@ -67,6 +68,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   void _selectSkill(String skill) {
+    HapticFeedback.selectionClick();
     setState(() {
       _skillLevel = skill;
       final defaults = skillDefaults[skill]!;
@@ -597,7 +599,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             return ChoiceChip(
               label: Text(display[i]),
               selected: isActive,
-              onSelected: (_) => onSelected(options[i]),
+              onSelected: (_) {
+                HapticFeedback.selectionClick();
+                onSelected(options[i]);
+              },
               selectedColor: AppColors.accentBgStrong,
               labelStyle: TextStyle(
                 color: isActive ? AppColors.accent : textColor,

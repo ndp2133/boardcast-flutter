@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/tokens.dart';
 import '../models/merged_conditions.dart';
@@ -36,8 +37,6 @@ class _ForecastScreenState extends ConsumerState<ForecastScreen> {
   @override
   Widget build(BuildContext context) {
     final conditionsAsync = ref.watch(conditionsProvider);
-    final location = ref.watch(selectedLocationProvider);
-    final prefs = ref.watch(preferencesProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return GestureDetector(
@@ -140,12 +139,18 @@ class _ForecastScreenState extends ConsumerState<ForecastScreen> {
       dayHoursMap.putIfAbsent(d, () => []).add(h);
     }
 
-    final textColor =
-        isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
     final subColor =
         isDark ? AppColorsDark.textSecondary : AppColors.textSecondary;
 
-    return ListView(
+    return RefreshIndicator(
+      color: AppColors.accent,
+      onRefresh: () async {
+        HapticFeedback.mediumImpact();
+        ref.invalidate(conditionsProvider);
+        // Wait for the provider to reload
+        await ref.read(conditionsProvider.future);
+      },
+      child: ListView(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
       children: [
         // Stale badge
@@ -173,7 +178,7 @@ class _ForecastScreenState extends ConsumerState<ForecastScreen> {
 
         // Condition quality bar
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s1),
           child: ConditionBar(
             hourlyData: dayHours,
             prefs: prefs,
@@ -183,15 +188,15 @@ class _ForecastScreenState extends ConsumerState<ForecastScreen> {
 
         // Chart legend
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.s1),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _legendItem('Waves (ft)', AppColors.accent),
-              const SizedBox(width: 16),
+              const SizedBox(width: AppSpacing.s4),
               _legendItem(
                 'Wind (mph)',
-                isDark ? const Color(0xFF64748B) : const Color(0xFF9CA3AF),
+                isDark ? AppColorsDark.chartWind : AppColors.chartWind,
                 dashed: true,
               ),
             ],
@@ -204,7 +209,7 @@ class _ForecastScreenState extends ConsumerState<ForecastScreen> {
           isToday: today,
           currentHourIndex: currentIdx,
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: AppSpacing.s1),
 
         // Window label
         if (windowLabel != null)
@@ -264,6 +269,7 @@ class _ForecastScreenState extends ConsumerState<ForecastScreen> {
 
         const SizedBox(height: AppSpacing.s8),
       ],
+    ),
     );
   }
 
@@ -287,11 +293,11 @@ class _ForecastScreenState extends ConsumerState<ForecastScreen> {
                 : null,
           ),
         ),
-        const SizedBox(width: 4),
+        const SizedBox(width: AppSpacing.s1),
         Text(
           label,
           style: TextStyle(
-            fontSize: 10,
+            fontSize: AppTypography.textXxs,
             color: color,
           ),
         ),

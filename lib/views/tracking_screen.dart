@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/tokens.dart';
 import '../models/session.dart';
@@ -62,7 +63,15 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
         ),
         centerTitle: true,
       ),
-      body: ListView(
+      body: RefreshIndicator(
+        color: AppColors.accent,
+        onRefresh: () async {
+          HapticFeedback.mediumImpact();
+          ref.invalidate(conditionsProvider);
+          ref.invalidate(sessionsProvider);
+          await ref.read(conditionsProvider.future);
+        },
+        child: ListView(
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
         children: [
           // Date chips
@@ -140,6 +149,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
           const SizedBox(height: AppSpacing.s8),
         ],
       ),
+      ),
     );
   }
 
@@ -164,7 +174,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             }),
             child: Container(
               width: 52,
-              margin: const EdgeInsets.only(right: 8),
+              margin: const EdgeInsets.only(right: AppSpacing.s2),
               decoration: BoxDecoration(
                 color: isSelected
                     ? AppColors.accent
@@ -179,7 +189,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                   Text(
                     dayLabel,
                     style: TextStyle(
-                      fontSize: 10,
+                      fontSize: AppTypography.textXxs,
                       fontWeight: AppTypography.weightSemibold,
                       color: isSelected ? Colors.white : textColor,
                     ),
@@ -251,7 +261,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                 shape: BoxShape.circle,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: AppSpacing.s2),
             Expanded(
               child: Text(
                 '${formatWaveHeight(h.waveHeight)} ft · ${formatWindSpeed(h.windSpeed)} mph${h.windDirection != null ? ' ${degreesToCardinal(h.windDirection!)}' : ''}',
@@ -264,14 +274,14 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             Text(
               label.label,
               style: TextStyle(
-                fontSize: 10,
+                fontSize: AppTypography.textXxs,
                 fontWeight: AppTypography.weightMedium,
                 color: dotColor,
               ),
             ),
             if (isSelected) ...[
               const SizedBox(width: 6),
-              Icon(Icons.check, size: 16, color: AppColors.accent),
+              Icon(Icons.check, size: AppIconSize.base, color: AppColors.accent),
             ],
           ],
         ),
@@ -320,7 +330,7 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
             ],
           ),
           if (hoursText.isNotEmpty) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: AppSpacing.s1),
             Text(
               hoursText,
               style: TextStyle(
@@ -336,20 +346,20 @@ class _TrackingScreenState extends ConsumerState<TrackingScreen> {
                 child: ElevatedButton.icon(
                   onPressed: () =>
                       showCompletionModal(context, ref, s),
-                  icon: const Icon(Icons.check, size: 16),
+                  icon: const Icon(Icons.check, size: AppIconSize.base),
                   label: const Text('Complete'),
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.s2),
                     textStyle: const TextStyle(fontSize: 13),
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.s2),
               TextButton.icon(
                 onPressed: () =>
                     ref.read(sessionsProvider.notifier).delete(s.id),
                 icon: Icon(Icons.delete_outline,
-                    size: 16, color: AppColors.conditionPoor),
+                    size: AppIconSize.base, color: AppColors.conditionPoor),
                 label: Text('Cancel',
                     style: TextStyle(color: AppColors.conditionPoor)),
               ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'tokens.dart';
 
 ThemeData buildLightTheme() {
@@ -20,6 +21,11 @@ ThemeData buildLightTheme() {
       foregroundColor: AppColors.textPrimary,
       elevation: 0,
       centerTitle: true,
+      systemOverlayStyle: SystemUiOverlayStyle(
+        statusBarBrightness: Brightness.light,
+        statusBarIconBrightness: Brightness.dark,
+        systemNavigationBarColor: AppColors.bgSecondary,
+      ),
       titleTextStyle: TextStyle(
         fontSize: AppTypography.textBase,
         fontWeight: AppTypography.weightSemibold,
@@ -158,6 +164,11 @@ ThemeData buildDarkTheme() {
       foregroundColor: AppColorsDark.textPrimary,
       elevation: 0,
       centerTitle: true,
+      systemOverlayStyle: SystemUiOverlayStyle(
+        statusBarBrightness: Brightness.dark,
+        statusBarIconBrightness: Brightness.light,
+        systemNavigationBarColor: AppColorsDark.bgSecondary,
+      ),
       titleTextStyle: TextStyle(
         fontSize: AppTypography.textBase,
         fontWeight: AppTypography.weightSemibold,
