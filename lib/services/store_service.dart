@@ -14,6 +14,7 @@ const _keyOnboarded = 'onboarded';
 const _keyLocation = 'location';
 const _keyTheme = 'theme';
 const _keyBoards = 'boards';
+const _keyFeatureTourSeen = 'feature_tour_seen';
 
 const defaultLocationId = 'rockaway';
 
@@ -101,6 +102,17 @@ class StoreService {
 
   Future<void> setOnboarded() async {
     await _box.put(_keyOnboarded, 'true');
+    _pushUserData('settings', _getSettingsObject());
+  }
+
+  // ---------------------------------------------------------------------------
+  // Feature Tour
+  // ---------------------------------------------------------------------------
+
+  bool get isFeatureTourSeen => _box.get(_keyFeatureTourSeen) == 'true';
+
+  Future<void> setFeatureTourSeen() async {
+    await _box.put(_keyFeatureTourSeen, 'true');
     _pushUserData('settings', _getSettingsObject());
   }
 
@@ -372,6 +384,7 @@ class StoreService {
         'theme': _box.get(_keyTheme),
         'locationId': _box.get(_keyLocation) ?? defaultLocationId,
         'onboarded': _box.get(_keyOnboarded) == 'true',
+        'featureTourSeen': _box.get(_keyFeatureTourSeen) == 'true',
       };
 
   /// Non-blocking push of a single column to user_data table.
@@ -471,6 +484,9 @@ class StoreService {
         }
         if (remoteSettings['onboarded'] == true) {
           await _box.put(_keyOnboarded, 'true');
+        }
+        if (remoteSettings['featureTourSeen'] == true) {
+          await _box.put(_keyFeatureTourSeen, 'true');
         }
       } else {
         _pushUserData('settings', _getSettingsObject());

@@ -18,6 +18,7 @@ import 'state/analytics_provider.dart';
 import 'theme/app_theme.dart';
 import 'views/shell_screen.dart';
 import 'views/onboarding_screen.dart';
+import 'views/feature_tour_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -116,21 +117,28 @@ class _OnboardingGate extends ConsumerStatefulWidget {
 
 class _OnboardingGateState extends ConsumerState<_OnboardingGate> {
   bool? _onboarded;
+  bool? _tourSeen;
 
   @override
   void initState() {
     super.initState();
     final store = ref.read(storeServiceProvider);
     _onboarded = store.isOnboarded;
+    _tourSeen = store.isFeatureTourSeen;
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_onboarded == true) {
-      return const ShellScreen();
+    if (_onboarded != true) {
+      return OnboardingScreen(
+        onComplete: () => setState(() => _onboarded = true),
+      );
     }
-    return OnboardingScreen(
-      onComplete: () => setState(() => _onboarded = true),
-    );
+    if (_tourSeen != true) {
+      return FeatureTourScreen(
+        onComplete: () => setState(() => _tourSeen = true),
+      );
+    }
+    return const ShellScreen();
   }
 }

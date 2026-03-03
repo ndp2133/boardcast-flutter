@@ -54,6 +54,17 @@ void main() {
     });
   });
 
+  group('Feature Tour', () {
+    test('defaults to not seen', () {
+      expect(store.isFeatureTourSeen, false);
+    });
+
+    test('setFeatureTourSeen persists', () async {
+      await store.setFeatureTourSeen();
+      expect(store.isFeatureTourSeen, true);
+    });
+  });
+
   group('Sessions', () {
     Session _makeSession({String id = 'test-1'}) => Session(
           id: id,

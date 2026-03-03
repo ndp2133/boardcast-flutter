@@ -19,6 +19,7 @@ import '../components/board_modal.dart';
 import '../components/star_rating.dart';
 import '../components/surf_wrapped.dart';
 import '../components/empty_state.dart';
+import 'feature_tour_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class HistoryScreen extends ConsumerWidget {
@@ -73,6 +74,10 @@ class HistoryScreen extends ConsumerWidget {
 
           // Theme toggle
           _buildThemeToggle(ref, themeMode, isDark, textColor),
+          const SizedBox(height: AppSpacing.s5),
+
+          // Feature Tour replay
+          _buildFeatureTourRow(context, isDark, textColor),
           const SizedBox(height: AppSpacing.s5),
 
           // Preferences summary
@@ -649,6 +654,46 @@ class HistoryScreen extends ConsumerWidget {
                 ref.read(themeModeProvider.notifier).toggle(),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFeatureTourRow(
+      BuildContext context, bool isDark, Color textColor) {
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const FeatureTourScreen(isReplay: true),
+        ),
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.s3, vertical: AppSpacing.s3),
+        decoration: BoxDecoration(
+          color: isDark ? AppColorsDark.bgSecondary : AppColors.bgSecondary,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.auto_awesome, color: AppColors.accent, size: 20),
+            const SizedBox(width: AppSpacing.s3),
+            Expanded(
+              child: Text(
+                'Feature Tour',
+                style: TextStyle(
+                  fontSize: AppTypography.textSm,
+                  color: textColor,
+                ),
+              ),
+            ),
+            Icon(Icons.chevron_right,
+                color: isDark
+                    ? AppColorsDark.textTertiary
+                    : AppColors.textTertiary,
+                size: 20),
+          ],
+        ),
       ),
     );
   }
