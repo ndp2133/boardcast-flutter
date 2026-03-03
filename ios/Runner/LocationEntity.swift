@@ -27,9 +27,15 @@ struct LocationEntity: AppEntity {
     ]
 }
 
-struct LocationEntityQuery: EntityQuery {
+struct LocationEntityQuery: EntityStringQuery {
     func entities(for identifiers: [String]) async throws -> [LocationEntity] {
         LocationEntity.allLocations.filter { identifiers.contains($0.id) }
+    }
+
+    func entities(matching string: String) async throws -> [LocationEntity] {
+        LocationEntity.allLocations.filter {
+            $0.name.localizedCaseInsensitiveContains(string)
+        }
     }
 
     func suggestedEntities() async throws -> [LocationEntity] {
