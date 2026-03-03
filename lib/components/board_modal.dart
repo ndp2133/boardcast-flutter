@@ -45,6 +45,36 @@ class _BoardModalSheetState extends State<_BoardModalSheet> {
     super.dispose();
   }
 
+  bool get _hasUnsavedChanges {
+    if (widget.existing != null) {
+      return _type != widget.existing!.type ||
+          _nameController.text != widget.existing!.name;
+    }
+    return _type != null || _nameController.text.isNotEmpty;
+  }
+
+  void _showDiscardDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Discard changes?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Keep Editing'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              Navigator.of(context).pop();
+            },
+            child: const Text('Discard'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -52,7 +82,12 @@ class _BoardModalSheetState extends State<_BoardModalSheet> {
         isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
     final isEdit = widget.existing != null;
 
-    return SafeArea(
+    return PopScope(
+      canPop: !_hasUnsavedChanges,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) _showDiscardDialog();
+      },
+      child: SafeArea(
       child: Padding(
         padding: EdgeInsets.fromLTRB(
           AppSpacing.s4,
@@ -188,6 +223,7 @@ class _BoardModalSheetState extends State<_BoardModalSheet> {
             ),
           ],
         ),
+      ),
       ),
     );
   }

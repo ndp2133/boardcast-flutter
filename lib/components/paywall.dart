@@ -117,7 +117,9 @@ class _PaywallSheetState extends State<_PaywallSheet> {
     final subColor =
         isDark ? AppColorsDark.textSecondary : AppColors.textSecondary;
 
-    return Semantics(
+    return PopScope(
+      canPop: !_purchasing,
+      child: Semantics(
       label: 'Premium subscription paywall',
       child: Padding(
       padding: EdgeInsets.only(
@@ -245,6 +247,7 @@ class _PaywallSheetState extends State<_PaywallSheet> {
           const SizedBox(height: AppSpacing.s2),
         ],
       ),
+    ),
     ),
     );
   }

@@ -20,6 +20,7 @@ import '../components/health_import_modal.dart';
 import '../components/surf_iq_card.dart';
 import '../components/session_history_list.dart';
 import '../components/surf_wrapped.dart';
+import '../theme/transitions.dart';
 import 'feature_tour_screen.dart';
 
 class HistoryScreen extends ConsumerStatefulWidget {
@@ -409,7 +410,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           ),
           Switch(
             value: mode == ThemeMode.dark,
-            activeColor: AppColors.accent,
+            activeThumbColor: AppColors.accent,
             onChanged: (_) =>
                 ref.read(themeModeProvider.notifier).toggle(),
           ),
@@ -423,7 +424,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     return GestureDetector(
       onTap: () => Navigator.push(
         context,
-        MaterialPageRoute(
+        SlideUpRoute(
           builder: (_) => const FeatureTourScreen(isReplay: true),
         ),
       ),

@@ -18,6 +18,7 @@ import 'state/subscription_provider.dart';
 import 'state/analytics_provider.dart';
 import 'theme/app_theme.dart';
 import 'theme/tokens.dart';
+import 'theme/transitions.dart';
 import 'views/shell_screen.dart';
 import 'views/onboarding_screen.dart';
 import 'views/feature_tour_screen.dart';
@@ -105,6 +106,7 @@ class BoardcastApp extends ConsumerWidget {
       theme: buildLightTheme(),
       darkTheme: buildDarkTheme(),
       themeMode: themeMode,
+      scrollBehavior: const BoardcastScrollBehavior(),
       home: const _OnboardingGate(),
     );
   }

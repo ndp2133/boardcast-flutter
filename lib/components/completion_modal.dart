@@ -40,6 +40,36 @@ class _CompletionSheetState extends State<_CompletionSheet> {
   final _selectedTags = <String>{};
   final _notesController = TextEditingController();
 
+  bool get _hasFormData =>
+      _rating > 0 ||
+      _calibration != null ||
+      _selectedTags.isNotEmpty ||
+      _notesController.text.isNotEmpty ||
+      _boardId != null;
+
+  void _showDiscardDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Discard session review?'),
+        content: const Text('Your ratings and notes will be lost.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Keep Editing'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              Navigator.of(context).pop();
+            },
+            child: const Text('Discard'),
+          ),
+        ],
+      ),
+    );
+  }
+
   static const _tagOptions = [
     'Great waves',
     'Clean wind',
@@ -74,7 +104,12 @@ class _CompletionSheetState extends State<_CompletionSheet> {
     // Forecast vs Actual comparison
     final forecastComparison = _computeForecastComparison();
 
-    return DraggableScrollableSheet(
+    return PopScope(
+      canPop: !_hasFormData,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) _showDiscardDialog();
+      },
+      child: DraggableScrollableSheet(
       initialChildSize: 0.85,
       maxChildSize: 0.95,
       minChildSize: 0.5,
@@ -322,6 +357,7 @@ class _CompletionSheetState extends State<_CompletionSheet> {
           ),
         );
       },
+    ),
     );
   }
 
