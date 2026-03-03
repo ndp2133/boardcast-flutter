@@ -26,6 +26,12 @@
 		BCB0000600000000BCBB0006 /* DMMono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = BCA0000600000000BCAA0006 /* DMMono-Regular.ttf */; };
 		BCB0000700000000BCBB0007 /* DMMono-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = BCA0000700000000BCAA0007 /* DMMono-Medium.ttf */; };
 		BCB0000900000000BCBB0009 /* BoardcastWidgetExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = BCA0000900000000BCAA0009 /* BoardcastWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		BCB0001000000000BCBB0010 /* SharedSurfData.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0000D00000000BCAA000D /* SharedSurfData.swift */; };
+		BCB0001100000000BCBB0011 /* SharedSurfData.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0000D00000000BCAA000D /* SharedSurfData.swift */; };
+		BCB0001200000000BCBB0012 /* LocationEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0000E00000000BCAA000E /* LocationEntity.swift */; };
+		BCB0001300000000BCBB0013 /* SurfIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0000F00000000BCAA000F /* SurfIntents.swift */; };
+		BCB0001400000000BCBB0014 /* ConditionsSnippetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0001100000000BCAA0011 /* ConditionsSnippetView.swift */; };
+		BCB0001500000000BCBB0015 /* AppShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0001200000000BCAA0012 /* AppShortcuts.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -105,6 +111,11 @@
 		BCA0000A00000000BCAA000A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		BCA0000B00000000BCAA000B /* SmallWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmallWidgetView.swift; sourceTree = "<group>"; };
 		BCA0000C00000000BCAA000C /* LockScreenWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenWidgetView.swift; sourceTree = "<group>"; };
+		BCA0000D00000000BCAA000D /* SharedSurfData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedSurfData.swift; sourceTree = "<group>"; };
+		BCA0000E00000000BCAA000E /* LocationEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationEntity.swift; sourceTree = "<group>"; };
+		BCA0000F00000000BCAA000F /* SurfIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurfIntents.swift; sourceTree = "<group>"; };
+		BCA0001100000000BCAA0011 /* ConditionsSnippetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConditionsSnippetView.swift; sourceTree = "<group>"; };
+		BCA0001200000000BCAA0012 /* AppShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShortcuts.swift; sourceTree = "<group>"; };
 		CC12DBF19383548FB227A290 /* Pods_RunnerTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RunnerTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -181,6 +192,7 @@
 			children = (
 				9740EEB11CF90186004384FC /* Flutter */,
 				97C146F01CF9000F007C117D /* Runner */,
+				BCG0000200000000BCCC0002 /* Shared */,
 				97C146EF1CF9000F007C117D /* Products */,
 				331C8082294A63A400263BE5 /* RunnerTests */,
 				BCG0000100000000BCCC0001 /* BoardcastWidget */,
@@ -213,8 +225,20 @@
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 				BCA0000800000000BCAA0008 /* Runner.entitlements */,
 				BCA0000A00000000BCAA000A /* PrivacyInfo.xcprivacy */,
+				BCA0000E00000000BCAA000E /* LocationEntity.swift */,
+				BCA0000F00000000BCAA000F /* SurfIntents.swift */,
+				BCA0001100000000BCAA0011 /* ConditionsSnippetView.swift */,
+				BCA0001200000000BCAA0012 /* AppShortcuts.swift */,
 			);
 			path = Runner;
+			sourceTree = "<group>";
+		};
+		BCG0000200000000BCCC0002 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				BCA0000D00000000BCAA000D /* SharedSurfData.swift */,
+			);
+			path = Shared;
 			sourceTree = "<group>";
 		};
 		BCG0000100000000BCCC0001 /* BoardcastWidget */ = {
@@ -481,6 +505,11 @@
 				74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */,
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 				7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */,
+				BCB0001000000000BCBB0010 /* SharedSurfData.swift in Sources */,
+				BCB0001200000000BCBB0012 /* LocationEntity.swift in Sources */,
+				BCB0001300000000BCBB0013 /* SurfIntents.swift in Sources */,
+				BCB0001400000000BCBB0014 /* ConditionsSnippetView.swift in Sources */,
+				BCB0001500000000BCBB0015 /* AppShortcuts.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -488,6 +517,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BCB0001100000000BCBB0011 /* SharedSurfData.swift in Sources */,
 				BCB0000100000000BCBB0001 /* BoardcastWidget.swift in Sources */,
 				BCB0000200000000BCBB0002 /* MediumWidgetView.swift in Sources */,
 				BCB0000300000000BCBB0003 /* BoardcastWidgetBundle.swift in Sources */,
@@ -574,7 +604,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = iphoneos;
@@ -705,7 +735,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -756,7 +786,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 14.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.4;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = iphoneos;
