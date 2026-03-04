@@ -148,13 +148,16 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final currentHour = nowIdx >= 0 && nowIdx < data.hourly.length
         ? data.hourly[nowIdx]
         : null;
-    final score = computeMatchScore(currentHour, prefs, location);
+    final tideRange = TideRange.fromHourlyData(data.hourly);
+    final score = computeMatchScore(currentHour, prefs, location,
+        tideRange: tideRange);
 
     // Find best window for today
     final today = DateTime.now().toIso8601String().split('T')[0];
     final todayHours =
         data.hourly.where((h) => h.time.startsWith(today)).toList();
-    final bestWindow = findBestWindow(data.hourly, prefs, location);
+    final bestWindow = findBestWindow(data.hourly, prefs, location,
+        tideRange: tideRange);
 
     // Sparkline data: next 6 hours
     final next6 = getNextNHours(data.hourly, nowIdx, 6);

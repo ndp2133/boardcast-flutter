@@ -27,7 +27,11 @@ dependencies:
   # Home screen widgets
   home_widget: ^0.7.0
 
-  # Push notifications
+  # Firebase
+  firebase_core: ^3.12.1
+  firebase_messaging: ^15.2.4
+
+  # Local notifications
   flutter_local_notifications: ^18.0.1
 
   # Location detection
@@ -44,6 +48,9 @@ dependencies:
 
   # URL launcher
   url_launcher: ^6.3.1
+
+  # Deep links (Strava OAuth callback)
+  app_links: ^6.4.0
 
   # Timezone
   timezone: ^0.10.0
@@ -64,6 +71,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/images/
 
   fonts:
     - family: DMMono

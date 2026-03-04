@@ -1,7 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:app_links/app_links.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'services/supabase_service.dart';
 import 'services/cache_service.dart';
 import 'services/store_service.dart';
@@ -10,6 +14,7 @@ import 'services/widget_service.dart';
 import 'services/live_activity_service.dart';
 import 'services/subscription_service.dart';
 import 'services/analytics_service.dart';
+import 'services/push_notification_service.dart';
 import 'state/conditions_provider.dart';
 import 'state/store_provider.dart';
 import 'state/auth_provider.dart';
@@ -18,9 +23,11 @@ import 'state/widget_provider.dart';
 import 'state/live_activity_provider.dart';
 import 'state/subscription_provider.dart';
 import 'state/analytics_provider.dart';
+import 'state/push_provider.dart';
 import 'theme/app_theme.dart';
 import 'theme/tokens.dart';
 import 'theme/transitions.dart';
+import 'state/strava_import_provider.dart';
 import 'views/shell_screen.dart';
 import 'views/onboarding_screen.dart';
 import 'views/feature_tour_screen.dart';
@@ -45,6 +52,15 @@ Future<void> main() async {
   // Initialize Live Activity service
   final liveActivityService = LiveActivityService();
 
+  // Initialize Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // Initialize push notifications
+  final pushService = PushNotificationService();
+  await pushService.init();
+
   // Initialize Supabase
   await initSupabase();
 
@@ -65,6 +81,14 @@ Future<void> main() async {
     supabase: supabase,
     getUserId: () => authService.userId,
     isGuest: () => authService.isGuest,
+  );
+
+  // Wire push service to auth + supabase
+  pushService.configure(
+    supabase: supabase,
+    getUserId: () => authService.userId,
+    isGuest: () => authService.isGuest,
+    getLocationId: () => storeService.getSelectedLocationId(),
   );
 
   // Sync on auth change
@@ -94,6 +118,7 @@ Future<void> main() async {
         liveActivityServiceProvider.overrideWithValue(liveActivityService),
         subscriptionServiceProvider.overrideWithValue(subscriptionService),
         analyticsProvider.overrideWithValue(analyticsService),
+        pushServiceProvider.overrideWithValue(pushService),
       ],
       child: const BoardcastApp(),
     ),
@@ -127,6 +152,38 @@ class _OnboardingGate extends ConsumerStatefulWidget {
 }
 
 class _OnboardingGateState extends ConsumerState<_OnboardingGate> {
+  late final AppLinks _appLinks;
+  StreamSubscription<Uri>? _linkSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _appLinks = AppLinks();
+    _linkSub = _appLinks.uriLinkStream.listen(_handleDeepLink);
+    // Check if app was opened via deep link
+    _appLinks.getInitialLink().then((uri) {
+      if (uri != null) _handleDeepLink(uri);
+    });
+  }
+
+  @override
+  void dispose() {
+    _linkSub?.cancel();
+    super.dispose();
+  }
+
+  void _handleDeepLink(Uri uri) {
+    // Strava OAuth callback: com.boardcast.app://strava-callback?code=...
+    if (uri.host == 'strava-callback') {
+      final code = uri.queryParameters['code'];
+      if (code != null) {
+        ref.read(stravaImportProvider.notifier).handleCallback(code);
+      }
+      return;
+    }
+    // Other deep links (Supabase auth, etc.) are handled by their own listeners
+  }
+
   @override
   Widget build(BuildContext context) {
     // Watch auth state — rebuilds on sign in/out (incl. account deletion)

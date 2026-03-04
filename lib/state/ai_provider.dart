@@ -57,10 +57,12 @@ class SurfTipNotifier extends Notifier<AiState> {
       final ai = ref.read(aiServiceProvider);
 
       final current = data.current;
+      final tideRange = TideRange.fromHourlyData(data.hourly);
       final score = computeMatchScore(
         data.hourly.isNotEmpty ? data.hourly.first : null,
         prefs,
         location,
+        tideRange: tideRange,
       );
       final condLabel = getConditionLabel(score);
 

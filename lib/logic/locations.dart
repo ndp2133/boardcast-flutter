@@ -82,6 +82,7 @@ const locations = <Location>[
     onshoreMin: 135,
     onshoreMax: 225,
     noaaStation: '9413745',
+    breakType: 'point',
   ),
   Location(
     id: 'oceanbeach',

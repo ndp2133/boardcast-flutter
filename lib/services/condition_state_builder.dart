@@ -44,7 +44,9 @@ ConditionState buildConditionState({
   }).toList();
 
   final currentData = currentHour.isNotEmpty ? currentHour.first : null;
-  final score = computeMatchScore(currentData, prefs, location);
+  final tideRange = TideRange.fromHourlyData(conditions.hourly);
+  final score = computeMatchScore(currentData, prefs, location,
+      tideRange: tideRange);
   final label = getConditionLabel(score);
   final scoreInt = (score * 100).round();
 
@@ -61,7 +63,8 @@ ConditionState buildConditionState({
               : 'cross')
       : '';
 
-  final bestWindow = findBestWindow(conditions.hourly, prefs, location);
+  final bestWindow = findBestWindow(conditions.hourly, prefs, location,
+      tideRange: tideRange);
   String bestWindowRange = '';
   String bestWindowLabel = '';
   if (bestWindow != null) {

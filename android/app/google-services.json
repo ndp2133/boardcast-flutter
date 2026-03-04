@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "169704801434",
+    "project_id": "boardcastsurf",
+    "storage_bucket": "boardcastsurf.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:169704801434:android:d4d49f1361609bc87b8b23",
+        "android_client_info": {
+          "package_name": "com.boardcast.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAB7gHJeTXGlCLoILail7YNL9Jv19nEnHM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

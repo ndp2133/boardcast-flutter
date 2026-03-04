@@ -25,8 +25,10 @@ class ConditionBar extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    final tideRange = TideRange.fromHourlyData(hourlyData);
     final scores = hourlyData
-        .map((h) => computeMatchScore(h, prefs, location!))
+        .map((h) => computeMatchScore(h, prefs, location!,
+            tideRange: tideRange))
         .toList();
 
     return ClipRRect(

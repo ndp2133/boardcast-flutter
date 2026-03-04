@@ -10,6 +10,7 @@ class Location {
   final double onshoreMin;
   final double onshoreMax;
   final String noaaStation;
+  final String breakType; // 'beach', 'point', 'reef'
 
   const Location({
     required this.id,
@@ -23,6 +24,7 @@ class Location {
     required this.onshoreMin,
     required this.onshoreMax,
     required this.noaaStation,
+    this.breakType = 'beach',
   });
 
   factory Location.fromJson(Map<String, dynamic> json) => Location(
@@ -37,6 +39,7 @@ class Location {
         onshoreMin: (json['onshoreMin'] as num).toDouble(),
         onshoreMax: (json['onshoreMax'] as num).toDouble(),
         noaaStation: json['noaaStation'] as String,
+        breakType: json['breakType'] as String? ?? 'beach',
       );
 
   Map<String, dynamic> toJson() => {
@@ -51,5 +54,6 @@ class Location {
         'onshoreMin': onshoreMin,
         'onshoreMax': onshoreMax,
         'noaaStation': noaaStation,
+        'breakType': breakType,
       };
 }

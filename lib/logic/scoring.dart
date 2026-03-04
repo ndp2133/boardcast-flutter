@@ -4,15 +4,40 @@ import 'dart:math';
 import '../models/hourly_data.dart';
 import '../models/location.dart';
 import '../models/user_prefs.dart';
-import 'units.dart';
-import 'time_utils.dart';
 
 // Surfable daylight hours — shared constant
 const daylightStart = 6; // 6 AM
 const daylightEnd = 21; // 9 PM
 
 // Scoring weights (must sum to 1.0)
-const _scoreWeights = (wave: 0.40, wind: 0.30, windDir: 0.15, swellDir: 0.15);
+const _scoreWeights = {
+  'wave': 0.30,
+  'wind': 0.25,
+  'windDir': 0.15,
+  'swellDir': 0.10,
+  'swellPeriod': 0.10,
+  'tide': 0.10,
+};
+
+// Weight adjustments by break type (deltas from base weights)
+const _breakAdjustments = {
+  'beach': <String, double>{},
+  'point': {'swellPeriod': 0.05, 'wave': -0.05},
+  'reef': {'tide': 0.10, 'swellPeriod': 0.05, 'wave': -0.10, 'wind': -0.05},
+};
+
+/// Get effective scoring weights adjusted for location's break type
+Map<String, double> getEffectiveWeights(Location location) {
+  final adjustments = _breakAdjustments[location.breakType];
+  if (adjustments == null || adjustments.isEmpty) {
+    return Map.of(_scoreWeights);
+  }
+  final weights = Map.of(_scoreWeights);
+  for (final entry in adjustments.entries) {
+    weights[entry.key] = (weights[entry.key] ?? 0) + entry.value;
+  }
+  return weights;
+}
 
 // Condition label thresholds
 const _epicThreshold = 0.8;
@@ -34,24 +59,118 @@ bool isOnshoreWind(double windDegrees, Location location) {
   return _inWindRange(windDegrees, location.onshoreMin, location.onshoreMax);
 }
 
+// --- Wind direction gradient scoring ---
+
+/// Center angle of a min/max range (handles wrap-around at 360)
+double rangeCenterAngle(double min, double max) {
+  if (min <= max) return (min + max) / 2;
+  // Wraps around 0 (e.g., 315-45) — unwrap, average, re-mod
+  return ((min + max + 360) / 2) % 360;
+}
+
+/// Shortest angular distance between two bearings (0-180)
+double angularDistance(double a, double b) {
+  final diff = (a - b).abs() % 360;
+  return diff > 180 ? 360 - diff : diff;
+}
+
+/// Smooth wind direction score: cosine falloff from ideal center
+/// 0 deg from ideal -> 1.0, 90 deg -> 0.6, 180 deg -> 0.2
+double scoreWindDirection(
+    double? windDeg, UserPrefs prefs, Location location) {
+  if (windDeg == null ||
+      prefs.preferredWindDir == null ||
+      prefs.preferredWindDir == 'any') return 1.0;
+
+  double idealCenter;
+  if (prefs.preferredWindDir == 'offshore') {
+    idealCenter =
+        rangeCenterAngle(location.offshoreMin, location.offshoreMax);
+  } else {
+    idealCenter =
+        rangeCenterAngle(location.onshoreMin, location.onshoreMax);
+  }
+
+  final dist = angularDistance(windDeg, idealCenter);
+  final distRad = dist * pi / 180;
+  return 0.6 + 0.4 * cos(distRad);
+}
+
+// --- Swell period scoring (longer is always better) ---
+
+double scoreSwellPeriod(double? periodSeconds) {
+  if (periodSeconds == null) return 0.5;
+  if (periodSeconds >= 14) return 1.0;
+  if (periodSeconds >= 12) return 0.9;
+  if (periodSeconds >= 10) return 0.75;
+  if (periodSeconds >= 8) return 0.5;
+  if (periodSeconds >= 6) return 0.25;
+  return 0.1;
+}
+
+// --- Tide scoring ---
+
+/// Tide range for normalization
+class TideRange {
+  final double min;
+  final double max;
+  const TideRange(this.min, this.max);
+
+  /// Compute tide range from hourly data (min/max of all tide heights)
+  static TideRange? fromHourlyData(List<HourlyData> hourly) {
+    final heights = hourly
+        .map((h) => h.tideHeight)
+        .whereType<double>()
+        .toList();
+    if (heights.isEmpty) return null;
+    return TideRange(
+      heights.reduce((a, b) => a < b ? a : b),
+      heights.reduce((a, b) => a > b ? a : b),
+    );
+  }
+}
+
+/// Score tide based on user's preferred tide and normalized position
+double scoreTide(double? tideHeight, String? preferredTide, TideRange? range) {
+  if (preferredTide == null || preferredTide == 'any') return 1.0;
+  if (range == null || tideHeight == null) return 0.5;
+
+  final span = range.max - range.min;
+  if (span == 0) return 0.5;
+
+  // Normalize to 0-1 (0 = low tide, 1 = high tide)
+  final n = (tideHeight - range.min) / span;
+
+  if (preferredTide == 'low') return 1.0 - 0.7 * n;
+  if (preferredTide == 'high') return 0.3 + 0.7 * n;
+  // 'mid' — quadratic: 1.0 at mid-tide, 0.5 at extremes
+  return 1.0 - 2.0 * pow(n - 0.5, 2);
+}
+
 /// Compute match score (0-1) for an hour of conditions against user preferences.
 /// [location] is passed explicitly to keep this function pure.
+/// [tideRange] is the min/max tide heights for normalization (from cached API data).
 double computeMatchScore(
-    HourlyData? hourData, UserPrefs? prefs, Location location) {
+  HourlyData? hourData,
+  UserPrefs? prefs,
+  Location location, {
+  TideRange? tideRange,
+}) {
   if (hourData == null || prefs == null) return 0;
 
+  final weights = getEffectiveWeights(location);
   var score = 0.0;
 
   // Wave height score
   final wh = hourData.waveHeight;
   if (wh != null && prefs.minWaveHeight != null && prefs.maxWaveHeight != null) {
     if (wh >= prefs.minWaveHeight! && wh <= prefs.maxWaveHeight!) {
-      score += _scoreWeights.wave * 1.0;
+      score += weights['wave']! * 1.0;
     } else {
       final dist = wh < prefs.minWaveHeight!
           ? prefs.minWaveHeight! - wh
           : wh - prefs.maxWaveHeight!;
-      score += _scoreWeights.wave *
+      score += weights['wave']! *
           max(0.0, 1 - dist / prefs.maxWaveHeight!);
     }
   }
@@ -60,39 +179,34 @@ double computeMatchScore(
   final ws = hourData.windSpeed;
   if (ws != null && prefs.maxWindSpeed != null) {
     if (ws <= prefs.maxWindSpeed!) {
-      score += _scoreWeights.wind * 1.0;
+      score += weights['wind']! * 1.0;
     } else {
-      score += _scoreWeights.wind *
+      score += weights['wind']! *
           max(0.0, 1 - (ws - prefs.maxWindSpeed!) / prefs.maxWindSpeed!);
     }
   }
 
-  // Wind direction score
-  final wd = hourData.windDirection;
-  if (wd != null &&
-      prefs.preferredWindDir != null &&
-      prefs.preferredWindDir != 'any') {
-    if (prefs.preferredWindDir == 'offshore') {
-      score +=
-          _scoreWeights.windDir * (isOffshoreWind(wd, location) ? 1.0 : 0.3);
-    } else if (prefs.preferredWindDir == 'onshore') {
-      score +=
-          _scoreWeights.windDir * (isOnshoreWind(wd, location) ? 1.0 : 0.3);
-    }
-  } else {
-    score += _scoreWeights.windDir;
-  }
+  // Wind direction score (smooth cosine gradient)
+  score +=
+      weights['windDir']! * scoreWindDirection(hourData.windDirection, prefs, location);
 
-  // Swell direction score
+  // Swell direction score — how well does swell angle hit the beach?
   final sd = hourData.swellDirection;
   if (sd != null) {
     var diff = (sd - location.beachFacing).abs();
     if (diff > 180) diff = 360 - diff;
     final diffRad = diff * pi / 180;
-    score += _scoreWeights.swellDir * max(0.0, cos(diffRad));
+    score += weights['swellDir']! * max(0.0, cos(diffRad));
   } else {
-    score += _scoreWeights.swellDir * 0.5;
+    score += weights['swellDir']! * 0.5;
   }
+
+  // Swell period score (longer period = better quality waves)
+  score += weights['swellPeriod']! * scoreSwellPeriod(hourData.swellPeriod);
+
+  // Tide score (based on user preference)
+  score += weights['tide']! *
+      scoreTide(hourData.tideHeight, prefs.preferredTide, tideRange);
 
   return min(1.0, max(0.0, score));
 }
@@ -130,14 +244,16 @@ BestHourResult? findBestHours(
   List<HourlyData> hourlyData,
   UserPrefs prefs,
   Location location,
-  String date,
-) {
+  String date, {
+  TideRange? tideRange,
+}) {
   final dayHours = hourlyData.where((h) => h.time.startsWith(date)).toList();
   var bestScore = 0.0;
   HourlyData? bestHour;
 
   for (final hour in dayHours) {
-    final score = computeMatchScore(hour, prefs, location);
+    final score =
+        computeMatchScore(hour, prefs, location, tideRange: tideRange);
     if (score > bestScore) {
       bestScore = score;
       bestHour = hour;
@@ -164,6 +280,7 @@ List<MatchingWindow> findMatchingWindows(
   UserPrefs prefs,
   Location location, {
   double minScore = 0.6,
+  TideRange? tideRange,
 }) {
   final windows = <MatchingWindow>[];
   String? currentStart;
@@ -172,7 +289,8 @@ List<MatchingWindow> findMatchingWindows(
   int currentCount = 0;
 
   for (final hour in hourlyData) {
-    final score = computeMatchScore(hour, prefs, location);
+    final score =
+        computeMatchScore(hour, prefs, location, tideRange: tideRange);
     if (score >= minScore) {
       if (currentStart == null) {
         currentStart = hour.time;
@@ -226,6 +344,7 @@ List<TopWindow> findTopWindows(
   UserPrefs prefs,
   Location location, {
   int count = 3,
+  TideRange? tideRange,
 }) {
   if (hourlyData.isEmpty) return [];
 
@@ -243,7 +362,8 @@ List<TopWindow> findTopWindows(
     _RawWindow? currentWindow;
 
     for (final h in entry.value) {
-      final score = computeMatchScore(h, prefs, location);
+      final score =
+          computeMatchScore(h, prefs, location, tideRange: tideRange);
       if (score >= 0.5) {
         if (currentWindow == null) {
           currentWindow = _RawWindow(
@@ -345,9 +465,11 @@ BestWindowIndices? findBestWindowIndices(List<double> matchScores,
 TopWindow? findBestWindow(
   List<HourlyData> hourlyData,
   UserPrefs prefs,
-  Location location,
-) {
-  final windows = findTopWindows(hourlyData, prefs, location, count: 1);
+  Location location, {
+  TideRange? tideRange,
+}) {
+  final windows = findTopWindows(hourlyData, prefs, location,
+      count: 1, tideRange: tideRange);
   return windows.isNotEmpty ? windows.first : null;
 }
 

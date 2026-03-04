@@ -38,6 +38,9 @@ class ForecastChart extends StatelessWidget {
     final waveData = <_ChartPoint>[];
     final windData = <_ChartPoint>[];
     final matchScores = <double>[];
+    final tideRange = (prefs != null && location != null)
+        ? TideRange.fromHourlyData(hourlyData)
+        : null;
 
     for (var i = 0; i < hourlyData.length; i++) {
       final h = hourlyData[i];
@@ -48,7 +51,8 @@ class ForecastChart extends StatelessWidget {
       windData.add(_ChartPoint(i, wind, label));
 
       if (prefs != null && location != null) {
-        matchScores.add(computeMatchScore(h, prefs, location!));
+        matchScores.add(computeMatchScore(h, prefs, location!,
+            tideRange: tideRange));
       }
     }
 

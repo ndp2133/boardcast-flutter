@@ -33,12 +33,13 @@ class WidgetService {
     // Build 18-hour score timeline starting from current hour
     // Each entry: { "h": hour (0-23), "s": score (0-100 int), "c": condition index (0-3) }
     final now = DateTime.now();
+    final tideRange = TideRange.fromHourlyData(conditions.hourly);
     final hourlyScores = <Map<String, dynamic>>[];
     for (var i = 0; i < conditions.hourly.length && hourlyScores.length < 18; i++) {
       final h = conditions.hourly[i];
       final t = DateTime.parse(h.time);
       if (t.isBefore(now.subtract(const Duration(hours: 1)))) continue;
-      final s = computeMatchScore(h, prefs, location);
+      final s = computeMatchScore(h, prefs, location, tideRange: tideRange);
       final scoreInt = (s * 100).round();
       // Condition index: 0=epic, 1=good, 2=fair, 3=poor
       final cIdx = s >= 0.8 ? 0 : s >= 0.6 ? 1 : s >= 0.4 ? 2 : 3;
@@ -46,7 +47,8 @@ class WidgetService {
     }
 
     // Best window raw times for widget (ISO format)
-    final bestWindow = findBestWindow(conditions.hourly, prefs, location);
+    final bestWindow = findBestWindow(conditions.hourly, prefs, location,
+        tideRange: tideRange);
 
     // Write all keys (including selectedLocationId for Siri Shortcuts)
     await Future.wait([
@@ -78,9 +80,15 @@ class WidgetService {
       ),
     ]);
 
-    // Tell WidgetKit to reload timelines for all widget kinds
-    await HomeWidget.updateWidget(iOSName: _iOSWidgetName);
-    await HomeWidget.updateWidget(iOSName: 'BoardcastSmallWidget');
+    // Tell native widgets to reload (iOS WidgetKit + Android AppWidgetManager)
+    await HomeWidget.updateWidget(
+      iOSName: _iOSWidgetName,
+      androidName: 'MediumWidgetReceiver',
+    );
+    await HomeWidget.updateWidget(
+      iOSName: 'BoardcastSmallWidget',
+      androidName: 'SmallWidgetReceiver',
+    );
     await HomeWidget.updateWidget(iOSName: 'BoardcastLockScreenWidget');
     await HomeWidget.updateWidget(iOSName: 'BoardcastLockScreenCircularWidget');
   }

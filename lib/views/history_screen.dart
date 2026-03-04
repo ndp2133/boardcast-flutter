@@ -11,12 +11,16 @@ import '../state/preferences_provider.dart';
 import '../state/theme_provider.dart';
 import '../state/store_provider.dart';
 import '../state/subscription_provider.dart';
+import '../state/push_provider.dart';
+import '../state/location_provider.dart';
+import '../logic/locations.dart';
 import '../components/paywall.dart';
 import '../components/preferences_editor.dart';
 import '../components/board_modal.dart';
 import '../components/empty_state.dart';
 import '../components/auth_modal.dart';
 import '../components/health_import_modal.dart';
+import '../components/strava_import_modal.dart';
 import '../components/surf_iq_card.dart';
 import '../components/session_history_list.dart';
 import '../components/surf_wrapped.dart';
@@ -105,6 +109,10 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
           // Theme toggle
           _buildThemeToggle(ref, themeMode, isDark, textColor),
+          const SizedBox(height: AppSpacing.s3),
+
+          // Surf Alerts toggle
+          _buildPushToggle(context, ref, isGuest, isDark, textColor),
           const SizedBox(height: AppSpacing.s5),
 
           // Feature Tour replay
@@ -137,20 +145,35 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             subColor: subColor,
           ),
 
-          // Import from Health + Share Surf Wrapped
+          // Import from Health / Strava + Share Surf Wrapped
           const SizedBox(height: AppSpacing.s3),
-          Center(
-            child: TextButton.icon(
-              onPressed: () => showHealthImport(context, ref),
-              icon: Icon(Icons.favorite_border, size: AppIconSize.base, color: AppColors.accent),
-              label: Text(
-                'Import from Health',
-                style: TextStyle(
-                  fontSize: AppTypography.textSm,
-                  color: AppColors.accent,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextButton.icon(
+                onPressed: () => showHealthImport(context, ref),
+                icon: Icon(Icons.favorite_border, size: AppIconSize.base, color: AppColors.accent),
+                label: Text(
+                  'Health',
+                  style: TextStyle(
+                    fontSize: AppTypography.textSm,
+                    color: AppColors.accent,
+                  ),
                 ),
               ),
-            ),
+              Text(' · ', style: TextStyle(color: isDark ? AppColorsDark.textTertiary : AppColors.textTertiary)),
+              TextButton.icon(
+                onPressed: () => showStravaImport(context, ref),
+                icon: Icon(Icons.directions_bike, size: AppIconSize.base, color: const Color(0xFFFC5200)),
+                label: Text(
+                  'Strava',
+                  style: TextStyle(
+                    fontSize: AppTypography.textSm,
+                    color: const Color(0xFFFC5200),
+                  ),
+                ),
+              ),
+            ],
           ),
           if (completed.isNotEmpty) ...[
             Center(
@@ -414,6 +437,77 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             onChanged: (_) =>
                 ref.read(themeModeProvider.notifier).toggle(),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPushToggle(BuildContext context, WidgetRef ref,
+      bool isGuest, bool isDark, Color textColor) {
+    final pushEnabled = ref.watch(pushEnabledProvider);
+    final locationId = ref.watch(selectedLocationIdProvider);
+    final location = getLocationById(locationId);
+    final subColor =
+        isDark ? AppColorsDark.textTertiary : AppColors.textTertiary;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.s3, vertical: AppSpacing.s2),
+      decoration: BoxDecoration(
+        color: isDark ? AppColorsDark.bgSecondary : AppColors.bgSecondary,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                pushEnabled
+                    ? Icons.notifications_active
+                    : Icons.notifications_none,
+                color: AppColors.accent,
+                size: AppIconSize.lg,
+              ),
+              const SizedBox(width: AppSpacing.s3),
+              Expanded(
+                child: Text(
+                  'Surf Alerts',
+                  style: TextStyle(
+                    fontSize: AppTypography.textSm,
+                    color: textColor,
+                  ),
+                ),
+              ),
+              Switch(
+                value: pushEnabled,
+                activeThumbColor: AppColors.accent,
+                onChanged: (_) async {
+                  if (isGuest) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Sign in to enable surf alerts')),
+                    );
+                    return;
+                  }
+                  await ref.read(pushEnabledProvider.notifier).toggle();
+                },
+              ),
+            ],
+          ),
+          if (pushEnabled)
+            Padding(
+              padding: const EdgeInsets.only(
+                  left: AppSpacing.s3 + AppSpacing.s3 + 24,
+                  bottom: AppSpacing.s2),
+              child: Text(
+                'Alerts for: ${location.name}',
+                style: TextStyle(
+                  fontSize: AppTypography.textXs,
+                  color: subColor,
+                ),
+              ),
+            ),
         ],
       ),
     );
