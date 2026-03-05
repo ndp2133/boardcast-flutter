@@ -27,6 +27,7 @@
 		BCB0000700000000BCBB0007 /* DMMono-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = BCA0000700000000BCAA0007 /* DMMono-Medium.ttf */; };
 		BCB0000900000000BCBB0009 /* BoardcastWidgetExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = BCA0000900000000BCAA0009 /* BoardcastWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		BCB0001000000000BCBB0010 /* SharedSurfData.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0000D00000000BCAA000D /* SharedSurfData.swift */; };
+		BCB0002200000000BCBB0022 /* LargeWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0001800000000BCAA0018 /* LargeWidgetView.swift */; };
 		BCB0001100000000BCBB0011 /* SharedSurfData.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0000D00000000BCAA000D /* SharedSurfData.swift */; };
 		BCB0001200000000BCBB0012 /* LocationEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0000E00000000BCAA000E /* LocationEntity.swift */; };
 		BCB0001300000000BCBB0013 /* SurfIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0000F00000000BCAA000F /* SurfIntents.swift */; };
@@ -120,6 +121,7 @@
 		BCA0000D00000000BCAA000D /* SharedSurfData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedSurfData.swift; sourceTree = "<group>"; };
 		BCA0000E00000000BCAA000E /* LocationEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationEntity.swift; sourceTree = "<group>"; };
 		BCA0000F00000000BCAA000F /* SurfIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurfIntents.swift; sourceTree = "<group>"; };
+		BCA0001800000000BCAA0018 /* LargeWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LargeWidgetView.swift; sourceTree = "<group>"; };
 		BCA0001100000000BCAA0011 /* ConditionsSnippetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConditionsSnippetView.swift; sourceTree = "<group>"; };
 		BCA0001200000000BCAA0012 /* AppShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShortcuts.swift; sourceTree = "<group>"; };
 		BCA0001300000000BCAA0013 /* BestTimeSnippetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BestTimeSnippetView.swift; sourceTree = "<group>"; };
@@ -247,15 +249,6 @@
 			path = Runner;
 			sourceTree = "<group>";
 		};
-		BCG0000200000000BCCC0002 /* Shared */ = {
-			isa = PBXGroup;
-			children = (
-				BCA0000D00000000BCAA000D /* SharedSurfData.swift */,
-				BCA0001600000000BCAA0016 /* SurfActivityAttributes.swift */,
-			);
-			path = Shared;
-			sourceTree = "<group>";
-		};
 		BCG0000100000000BCCC0001 /* BoardcastWidget */ = {
 			isa = PBXGroup;
 			children = (
@@ -264,6 +257,7 @@
 				BCA0000200000000BCAA0002 /* MediumWidgetView.swift */,
 				BCA0000B00000000BCAA000B /* SmallWidgetView.swift */,
 				BCA0000C00000000BCAA000C /* LockScreenWidgetView.swift */,
+				BCA0001800000000BCAA0018 /* LargeWidgetView.swift */,
 				BCA0001700000000BCAA0017 /* SurfLiveActivityView.swift */,
 				BCA0000400000000BCAA0004 /* Info.plist */,
 				BCA0000500000000BCAA0005 /* BoardcastWidget.entitlements */,
@@ -271,6 +265,15 @@
 				BCA0000700000000BCAA0007 /* DMMono-Medium.ttf */,
 			);
 			path = BoardcastWidget;
+			sourceTree = "<group>";
+		};
+		BCG0000200000000BCCC0002 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				BCA0000D00000000BCAA000D /* SharedSurfData.swift */,
+				BCA0001600000000BCAA0016 /* SurfActivityAttributes.swift */,
+			);
+			path = Shared;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -308,6 +311,7 @@
 				BCE0000100000000BCEE0001 /* Embed App Extensions */,
 				36A0680D90D41D94B157D398 /* [CP] Embed Pods Frameworks */,
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
+				6032B2D853326B608C4BA357 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -444,6 +448,23 @@
 			shellPath = /bin/sh;
 			shellScript = "/bin/sh \"$FLUTTER_ROOT/packages/flutter_tools/bin/xcode_backend.sh\" embed_and_thin";
 		};
+		6032B2D853326B608C4BA357 /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Copy Pods Resources";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
 		85C3478ACEEA5938F0EAB1B4 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -543,6 +564,7 @@
 				BCB0000300000000BCBB0003 /* BoardcastWidgetBundle.swift in Sources */,
 				BCB0000400000000BCBB0004 /* SmallWidgetView.swift in Sources */,
 				BCB0000500000000BCBB0005 /* LockScreenWidgetView.swift in Sources */,
+				BCB0002200000000BCBB0022 /* LargeWidgetView.swift in Sources */,
 				BCB0002000000000BCBB0020 /* SurfActivityAttributes.swift in Sources */,
 				BCB0002100000000BCBB0021 /* SurfLiveActivityView.swift in Sources */,
 			);

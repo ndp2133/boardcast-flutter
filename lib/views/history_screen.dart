@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../theme/tokens.dart';
 import '../logic/surf_iq.dart';
+import '../logic/board_recommendation.dart';
 import '../state/auth_provider.dart';
 import '../state/sessions_provider.dart';
 import '../state/boards_provider.dart';
@@ -124,7 +125,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           const SizedBox(height: AppSpacing.s5),
 
           // Board quiver
-          _buildQuiverSection(context, ref, boards, isDark, textColor, subColor),
+          _buildQuiverSection(context, ref, boards, sessions, isDark, textColor, subColor),
           const SizedBox(height: AppSpacing.s5),
 
           // Surf IQ
@@ -602,7 +603,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   }
 
   Widget _buildQuiverSection(BuildContext context, WidgetRef ref,
-      List boards, bool isDark, Color textColor, Color subColor) {
+      List boards, List sessions, bool isDark, Color textColor, Color subColor) {
+    final boardStats = aggregateBoardStats(sessions.cast(), boards.cast());
     return Container(
       padding: const EdgeInsets.all(AppSpacing.s3),
       decoration: BoxDecoration(
@@ -637,43 +639,68 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               subtitle: 'Add your first board to track which shapes work best.',
             )
           else
-            ...boards.map((b) => Padding(
-                  padding: const EdgeInsets.only(top: AppSpacing.s2),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          b.name,
-                          style: TextStyle(
-                            fontSize: AppTypography.textSm,
-                            color: textColor,
+            ...boards.map((b) {
+              final stats = boardStats[b.id];
+              return Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.s2),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            b.name,
+                            style: TextStyle(
+                              fontSize: AppTypography.textSm,
+                              color: textColor,
+                            ),
                           ),
-                        ),
+                          if (stats != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(
+                                [
+                                  '${stats.count} session${stats.count != 1 ? 's' : ''}',
+                                  if (stats.avgRating != null)
+                                    '${stats.avgRating!.toStringAsFixed(1)}\u2605 avg',
+                                  if (stats.bestRange != null)
+                                    'Best in ${stats.bestRange}',
+                                ].join(' \u00b7 '),
+                                style: TextStyle(
+                                  fontSize: AppTypography.textXs,
+                                  color: subColor,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
-                      Text(
-                        b.type,
-                        style: TextStyle(
-                          fontSize: AppTypography.textXs,
-                          color: subColor,
-                        ),
+                    ),
+                    Text(
+                      b.type,
+                      style: TextStyle(
+                        fontSize: AppTypography.textXs,
+                        color: subColor,
                       ),
-                      const SizedBox(width: AppSpacing.s2),
-                      GestureDetector(
-                        onTap: () =>
-                            showBoardModal(context, ref, existing: b),
-                        child: Icon(Icons.edit, size: AppIconSize.base, color: subColor),
-                      ),
-                      const SizedBox(width: AppSpacing.s1),
-                      GestureDetector(
-                        onTap: () => ref
-                            .read(boardsProvider.notifier)
-                            .delete(b.id),
-                        child: Icon(Icons.delete_outline,
-                            size: AppIconSize.base, color: AppColors.conditionPoor),
-                      ),
-                    ],
-                  ),
-                )),
+                    ),
+                    const SizedBox(width: AppSpacing.s2),
+                    GestureDetector(
+                      onTap: () =>
+                          showBoardModal(context, ref, existing: b),
+                      child: Icon(Icons.edit, size: AppIconSize.base, color: subColor),
+                    ),
+                    const SizedBox(width: AppSpacing.s1),
+                    GestureDetector(
+                      onTap: () => ref
+                          .read(boardsProvider.notifier)
+                          .delete(b.id),
+                      child: Icon(Icons.delete_outline,
+                          size: AppIconSize.base, color: AppColors.conditionPoor),
+                    ),
+                  ],
+                ),
+              );
+            }),
         ],
       ),
     );

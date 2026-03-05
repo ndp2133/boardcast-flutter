@@ -6,6 +6,7 @@ struct BoardcastWidgetBundle: WidgetBundle {
     var body: some Widget {
         BoardcastMediumWidget()
         BoardcastSmallWidget()
+        BoardcastLargeWidget()
         BoardcastLockScreenWidget()
         BoardcastLockScreenCircularWidget()
         SurfLiveActivityWidget()
@@ -35,6 +36,19 @@ struct BoardcastSmallWidget: Widget {
         .configurationDisplayName("Surf Score")
         .description("Your current surf score at a glance.")
         .supportedFamilies([.systemSmall])
+    }
+}
+
+struct BoardcastLargeWidget: Widget {
+    let kind = "BoardcastLargeWidget"
+
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: kind, provider: BoardcastTimelineProvider()) { entry in
+            LargeWidgetView(data: entry.data)
+        }
+        .configurationDisplayName("Surf Dashboard")
+        .description("Full surf dashboard with timeline, waves, tides, and upcoming windows.")
+        .supportedFamilies([.systemLarge])
     }
 }
 

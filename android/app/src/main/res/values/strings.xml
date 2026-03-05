@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="small_widget_description">Current surf score and conditions</string>
+    <string name="medium_widget_description">Surf score with hourly forecast chart</string>
+    <string name="large_widget_description">Full surf dashboard with timeline, waves, and upcoming windows</string>
+</resources>
