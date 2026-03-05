@@ -82,3 +82,4 @@
 - FIX: Xcode build cycle — reordered build phases (Embed App Extensions before Thin Binary)
 - Session 16: P0 polish — haptics, Dynamic Type, VoiceOver, spring animation, skeletons + 29 new tests
 - Session 17: P1 polish — empty states with personality, dashboard cross-fade + metric number morphing, onboarding animation refinements (animated dots, hero icons, staggered cards, confirm pop), small widget (2×2), lock screen rectangular + circular widgets. 8 new tests (221 total). Plan written for Siri Shortcuts + Live Activities.
+- Session 21: WIDGET-1 small widget redesign (score ring + micro-sparkline + best hour), WIDGET-2 large widget (4×4 dashboard: score timeline, wave/tide chart, best window card, upcoming windows). Android parity for large widget (Jetpack Glance). Unified deploy skill (PWA + TestFlight + Firebase). Fixed pre-existing Dart type error in history_screen. 284 tests. Build 10 deployed to all platforms.
