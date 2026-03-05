@@ -63,6 +63,9 @@
 | Priority | Task | Effort | Status |
 |----------|------|--------|--------|
 | 1 | ~~**BUG-1: Best window overlay not spanning full range**~~ — PlotBand fix shipped Feb 27. | — | Done |
+| 2 | **BUG-3: Keyboard won't dismiss on Complete Session modal** — Tapping outside text field should close keyboard. Android emulator confirmed. | Small | Pending |
+| 3 | **BUG-4: Multiple sessions grouped into one row** — Planning 6AM and 3PM sessions at same location shows as single row "6AM, 3PM" instead of separate entries. | Medium | Pending |
+| 4 | **BUG-5: Scoring too generous — everything is "Epic"** — All sessions showing Epic makes labels useless. Investigate: are thresholds too easy? Are null API values defaulting to high scores? Should missing data penalize instead of skip? Recalibrate so Epic is genuinely rare. | Large | Pending |
 
 ---
 
