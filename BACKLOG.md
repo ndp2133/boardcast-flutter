@@ -39,6 +39,25 @@
 
 ---
 
+## Android
+
+| Priority | Task | Effort | Status |
+|----------|------|--------|--------|
+| 1 | **ANDROID-1: Firebase App Distribution** — Firebase project, CLI login, APK upload, beta tester invited. Build 7 shipped. | Small | **Done** |
+| 2 | **ANDROID-2: Firebase Analytics** — FlutterFire CLI setup, `google-services.json`, Firebase Analytics SDK. Mirror PostHog events (view_switched, location_changed, session_planned, etc.). Consider replacing PostHog with Firebase on Android to avoid dual SDKs. | Medium | Pending |
+| 3 | **ANDROID-3: Push notifications (FCM)** — Firebase Cloud Messaging for Android. "Epic conditions at Rockaway in 2 hours." Pairs with APP-3 (iOS push). | Medium | Pending |
+
+---
+
+## Integrations (Post-Launch)
+
+| Priority | Task | Effort | Status |
+|----------|------|--------|--------|
+| 1 | **INT-1: Strava import** — OAuth2 + Strava API to auto-import surf sessions (duration, GPS, HR). Catches Garmin, Apple Watch, Wahoo users. Feeds Surf IQ without manual logging. Beta tester uses Garmin → Strava workflow. | Large | Pending |
+| 2 | **INT-2: Garmin Connect** — Direct Garmin API if Strava doesn't cover enough. Lower priority since Strava is the common denominator. | Large | Pending |
+
+---
+
 ## Bug Fixes
 
 | Priority | Task | Effort | Status |
@@ -61,3 +80,5 @@
 - APP-2: Home screen widget — WidgetKit medium (4x2) score area-fill timeline, Flutter widget_service + widget_provider, SwiftUI MediumWidgetView, Xcode target setup
 - BUG-2: preferredWindDir typo in history_screen.dart (was preferredWindDirection)
 - FIX: Xcode build cycle — reordered build phases (Embed App Extensions before Thin Binary)
+- Session 16: P0 polish — haptics, Dynamic Type, VoiceOver, spring animation, skeletons + 29 new tests
+- Session 17: P1 polish — empty states with personality, dashboard cross-fade + metric number morphing, onboarding animation refinements (animated dots, hero icons, staggered cards, confirm pop), small widget (2×2), lock screen rectangular + circular widgets. 8 new tests (221 total). Plan written for Siri Shortcuts + Live Activities.

@@ -192,8 +192,33 @@ struct ScoreFillChart: View {
 
     // MARK: - Paths
 
+    /// Dynamic range: scale chart to actual data range so small variations are visible
+    private var scoreRange: (min: CGFloat, max: CGFloat) {
+        let values = scores.map { CGFloat($0.score) }
+        let rawMin = values.min() ?? 0
+        let rawMax = values.max() ?? 100
+        let span = rawMax - rawMin
+        let padding: CGFloat = 15
+        let minSpan: CGFloat = 20
+
+        if span >= minSpan {
+            return (
+                min: max(0, rawMin - padding),
+                max: min(100, rawMax + padding)
+            )
+        }
+        // Enforce minimum span — expand symmetrically
+        let center = (rawMin + rawMax) / 2
+        let halfSpan = max(minSpan, span + padding * 2) / 2
+        return (
+            min: max(0, center - halfSpan),
+            max: min(100, center + halfSpan)
+        )
+    }
+
     private func yForScore(_ score: Int, height: CGFloat) -> CGFloat {
-        let normalized = CGFloat(score) / 100.0
+        let range = scoreRange
+        let normalized = (CGFloat(score) - range.min) / (range.max - range.min)
         return height * (1 - normalized)
     }
 

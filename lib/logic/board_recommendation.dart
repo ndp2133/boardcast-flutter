@@ -1,6 +1,7 @@
-/// Board types and recommendation — direct port of utils/boards.js
+/// Board types, recommendation, and performance stats — port of utils/boards.js
 import 'dart:math';
 import '../models/board.dart';
+import '../models/session.dart';
 import 'units.dart';
 
 class BoardType {
@@ -174,4 +175,66 @@ String _generateReason(BoardType type, double waveHeightFt) {
   if (waveHeightFt <= 3) return 'Perfect conditions for your $name';
   if (waveHeightFt <= 5) return 'Good wave size for a $name';
   return 'Solid swell \u2014 $name will perform';
+}
+
+/// Per-board performance stats aggregated from completed sessions
+class BoardStats {
+  final int count;
+  final double? avgRating;
+  final String? bestRange;
+
+  const BoardStats({required this.count, this.avgRating, this.bestRange});
+}
+
+/// Aggregate per-board performance stats from completed sessions.
+/// Returns Map<boardId, BoardStats?> — null means no sessions for that board.
+Map<String, BoardStats?> aggregateBoardStats(
+    List<Session> sessions, List<Board> boards) {
+  final stats = <String, BoardStats?>{};
+  if (sessions.isEmpty || boards.isEmpty) return stats;
+
+  final completed =
+      sessions.where((s) => s.status == 'completed' && s.boardId != null);
+
+  for (final board in boards) {
+    final boardSessions =
+        completed.where((s) => s.boardId == board.id).toList();
+    if (boardSessions.isEmpty) {
+      stats[board.id] = null;
+      continue;
+    }
+
+    final count = boardSessions.length;
+    final rated = boardSessions.where((s) => s.rating != null).toList();
+    final avgRating = rated.isNotEmpty
+        ? rated.fold<double>(0, (sum, s) => sum + s.rating!) / rated.length
+        : null;
+
+    // Wave height bucketing: 1ft increments, find range with highest avg rating
+    String? bestRange;
+    if (rated.isNotEmpty) {
+      final buckets = <String, (double total, int count)>{};
+      for (final s in rated) {
+        final wh = s.conditions?.waveHeight;
+        if (wh == null) continue;
+        final ft = metersToFeet(wh).floor();
+        final key = '$ft-${ft + 1}ft';
+        final prev = buckets[key] ?? (0.0, 0);
+        buckets[key] = (prev.$1 + s.rating!, prev.$2 + 1);
+      }
+      var bestAvg = 0.0;
+      for (final entry in buckets.entries) {
+        final avg = entry.value.$1 / entry.value.$2;
+        if (avg > bestAvg) {
+          bestAvg = avg;
+          bestRange = entry.key;
+        }
+      }
+    }
+
+    stats[board.id] = BoardStats(
+        count: count, avgRating: avgRating, bestRange: bestRange);
+  }
+
+  return stats;
 }

@@ -359,12 +359,24 @@ List<TopWindow> findTopWindows(
   final allWindows = <_RawWindow>[];
 
   for (final entry in dayMap.entries) {
-    _RawWindow? currentWindow;
-
+    // Two-pass: compute all scores, then find windows with relative threshold
+    final hourScores = <(HourlyData, double)>[];
     for (final h in entry.value) {
       final score =
           computeMatchScore(h, prefs, location, tideRange: tideRange);
-      if (score >= 0.5) {
+      hourScores.add((h, score));
+    }
+
+    // Relative threshold: adapts to day quality
+    final peakScore = hourScores.isEmpty
+        ? 0.0
+        : hourScores.map((e) => e.$2).reduce((a, b) => a > b ? a : b);
+    final threshold = peakScore > 0.65 ? peakScore - 0.15 : 0.5;
+
+    _RawWindow? currentWindow;
+
+    for (final (h, score) in hourScores) {
+      if (score >= threshold) {
         if (currentWindow == null) {
           currentWindow = _RawWindow(
             date: entry.key,
@@ -394,18 +406,52 @@ List<TopWindow> findTopWindows(
   }).toList()
     ..sort((a, b) => b.avgScore.compareTo(a.avgScore));
 
+  // Narrow oversized windows: if > 5 hours, find best 3-hour sub-window
+  const maxWindowHours = 5;
+  const slidingWindowSize = 3;
+  for (var i = 0; i < scored.length; i++) {
+    final w = scored[i].window;
+    if (w.scores.length > maxWindowHours) {
+      var bestStart = 0;
+      var bestAvg = -1.0;
+      for (var j = 0; j <= w.scores.length - slidingWindowSize; j++) {
+        var sum = 0.0;
+        for (var k = j; k < j + slidingWindowSize; k++) {
+          sum += w.scores[k];
+        }
+        final avg = sum / slidingWindowSize;
+        if (avg > bestAvg) {
+          bestAvg = avg;
+          bestStart = j;
+        }
+      }
+      // Parse start time to compute offset
+      final baseHour = int.parse(w.startTime.split('T')[1].split(':')[0]);
+      final newStartHour = baseHour + bestStart;
+      final newEndHour = newStartHour + slidingWindowSize - 1;
+      final datePart = w.startTime.split('T')[0];
+      w.startTime = '$datePart'
+          'T${newStartHour.toString().padLeft(2, '0')}:00';
+      w.endTime = '$datePart'
+          'T${newEndHour.toString().padLeft(2, '0')}:00';
+      w.scores.replaceRange(
+          0, w.scores.length, w.scores.sublist(bestStart, bestStart + slidingWindowSize));
+    }
+  }
+
   // Deduplicate: max one per day
   final seen = <String>{};
   final result = <TopWindow>[];
   for (final s in scored) {
     if (!seen.contains(s.window.date)) {
       seen.add(s.window.date);
+      final avg = s.window.scores.reduce((a, b) => a + b) / s.window.scores.length;
       result.add(TopWindow(
         date: s.window.date,
         startTime: s.window.startTime,
         endTime: s.window.endTime,
-        avgScore: s.avgScore,
-        hours: s.hours,
+        avgScore: avg,
+        hours: s.window.scores.length,
         waveHeight: s.window.waveHeight,
       ));
       if (result.length >= count) break;
@@ -427,11 +473,15 @@ BestWindowIndices? findBestWindowIndices(List<double> matchScores,
     {double minScore = 0.5}) {
   if (matchScores.isEmpty) return null;
 
+  // Relative threshold: adapts to day quality
+  final peakScore = matchScores.reduce((a, b) => a > b ? a : b);
+  final threshold = peakScore > 0.65 ? peakScore - 0.15 : minScore;
+
   final runs = <(int, int)>[];
   int? runStart;
 
   for (var i = 0; i < matchScores.length; i++) {
-    if (matchScores[i] >= minScore) {
+    if (matchScores[i] >= threshold) {
       runStart ??= i;
     } else {
       if (runStart != null) {
@@ -447,14 +497,34 @@ BestWindowIndices? findBestWindowIndices(List<double> matchScores,
   BestWindowIndices? best;
   var bestAvg = -1.0;
   for (final (start, end) in runs) {
+    // Cap oversized windows: find best 3-hour sub-window
+    var effectiveStart = start;
+    var effectiveEnd = end;
+    if (end - start + 1 > 5) {
+      const slideSize = 3;
+      var slideBestAvg = -1.0;
+      for (var j = start; j <= end - slideSize + 1; j++) {
+        var sum = 0.0;
+        for (var k = j; k < j + slideSize; k++) {
+          sum += matchScores[k];
+        }
+        final avg = sum / slideSize;
+        if (avg > slideBestAvg) {
+          slideBestAvg = avg;
+          effectiveStart = j;
+          effectiveEnd = j + slideSize - 1;
+        }
+      }
+    }
+
     var sum = 0.0;
-    for (var i = start; i <= end; i++) {
+    for (var i = effectiveStart; i <= effectiveEnd; i++) {
       sum += matchScores[i];
     }
-    final avg = sum / (end - start + 1);
+    final avg = sum / (effectiveEnd - effectiveStart + 1);
     if (avg > bestAvg) {
       bestAvg = avg;
-      best = BestWindowIndices(start, end, avg);
+      best = BestWindowIndices(effectiveStart, effectiveEnd, avg);
     }
   }
 
@@ -476,7 +546,7 @@ TopWindow? findBestWindow(
 // Internal mutable helper for building windows
 class _RawWindow {
   final String date;
-  final String startTime;
+  String startTime;
   String endTime;
   final List<double> scores;
   final double? waveHeight;

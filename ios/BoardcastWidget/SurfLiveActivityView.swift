@@ -60,10 +60,10 @@ struct SurfLiveActivityWidget: Widget {
                     .font(.system(size: 16, weight: .bold, design: .monospaced))
                     .foregroundColor(conditionColor(context.state.conditionLabel))
             } compactTrailing: {
-                // Compact trailing: colored condition dot
-                Circle()
-                    .fill(conditionColor(context.state.conditionLabel))
-                    .frame(width: 10, height: 10)
+                // Compact trailing: wave height, color-coded
+                Text("\(context.state.waveHeight)ft")
+                    .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                    .foregroundColor(conditionColor(context.state.conditionLabel))
             } minimal: {
                 // Minimal: score number only
                 Text("\(context.state.score)")

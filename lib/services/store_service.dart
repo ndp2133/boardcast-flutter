@@ -343,6 +343,9 @@ class StoreService {
   // Location
   // ---------------------------------------------------------------------------
 
+  /// Whether the user has ever explicitly set a location.
+  bool hasExplicitLocation() => _box.get(_keyLocation) != null;
+
   String getSelectedLocationId() {
     return _box.get(_keyLocation) ?? defaultLocationId;
   }

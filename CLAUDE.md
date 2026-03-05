@@ -1,6 +1,6 @@
 # Boardcast Flutter
 
-Flutter port of the Boardcast PWA surf conditions tracker. Native iOS + Android with home screen widgets.
+Flutter port of the Boardcast PWA surf conditions tracker. Native iOS + Android with home screen widgets, Siri Shortcuts, and Live Activities.
 
 ## Commands
 
@@ -139,23 +139,23 @@ Flutter-side architecture:
 - Theme mode persisted via `themeModeProvider` → `StoreService` → Hive. Supports dark/light/system.
 - Onboarding gate in `main.dart`: shows onboarding if `!store.isOnboarded`, then transitions to shell.
 
-## Home Screen Widget (iOS)
+## Home Screen Widgets
 
-Native WidgetKit extension in `ios/BoardcastWidget/`. Medium widget (4x2) showing surf score area-fill timeline.
+### iOS (WidgetKit)
+Native WidgetKit extension in `ios/BoardcastWidget/`. 4 widget families: medium (4x2 area-fill timeline), small (2x2 score dominant), lock screen rectangular (2-line summary), lock screen circular (gauge).
+
+### Android (Jetpack Glance)
+Kotlin Glance widgets in `android/app/src/main/kotlin/com/boardcast/boardcast_flutter/`. 2 sizes: small (2x2 score + condition), medium (4x2 with hourly bar chart + best window).
 
 ### Architecture
-- **Flutter side**: `lib/services/widget_service.dart` pre-computes hourly scores and writes to shared UserDefaults via `home_widget` package. `lib/state/widget_provider.dart` auto-triggers updates when conditions change.
-- **iOS side**: `ios/BoardcastWidget/` contains SwiftUI widget with `StaticConfiguration`, `TimelineProvider` (15-min refresh), and `MediumWidgetView` with a custom `ScoreFillChart`.
-- **Data flow**: Flutter app → `HomeWidget.saveWidgetData()` → App Groups UserDefaults → WidgetKit reads on timeline reload.
-- **App Group ID**: `group.com.boardcast.app`
-- **Widget kind**: `BoardcastWidget`
+- **Flutter side**: `lib/services/widget_service.dart` pre-computes hourly scores and writes via `home_widget` package. `lib/state/widget_provider.dart` auto-triggers updates when conditions change.
+- **iOS side**: SwiftUI widgets read from App Groups UserDefaults (`group.com.boardcast.app`).
+- **Android side**: Glance widgets read from SharedPreferences via `HomeWidgetGlanceStateDefinition`.
+- **Data flow**: Flutter → `HomeWidget.saveWidgetData()` → native widgets read on reload.
 
-### Xcode Setup Required
-See `ios/BoardcastWidget/XCODE_SETUP.md` for step-by-step instructions to add the widget extension target, configure App Groups, and include DM Mono fonts.
-
-### Widget Data Keys (UserDefaults)
+### Widget Data Keys (shared across platforms)
 `score` (int 0-100), `conditionLabel`, `locationName`, `waveHeight`, `windSpeed`, `windDir`, `windContext`, `fetchedAt`, `hourlyScores` (JSON array of `{h, s, c}`), `bestWindowStart`, `bestWindowEnd`, `bestWindowScore`, `bestWindowLabel`
 
 ## Current Status
 
-Phase 7 complete + widget running on simulator. 171 passing tests. 93% feature parity with PWA (6 gaps in BACKLOG.md). Xcode installed, CocoaPods installed, full workspace builds on iOS Simulator. Widget extension target configured in pbxproj (signing still needed for device). Next: Apple Developer enrollment, subscription paywall (RevenueCat), account deletion, privacy updates, TestFlight, App Store submission. See BACKLOG.md for full plan.
+235 passing tests. Full feature parity with PWA. App Store Connect listing populated, 6 TestFlight builds, RevenueCat production key active. Siri Shortcuts (CheckConditions + GetBestTime), Live Activities (lock screen + Dynamic Island), feature tour, custom paywall with 14-day trial. Android: first APK on Firebase App Distribution (build 7), 2 Glance home screen widgets. Pending: App Store submission (APP-6), Google Play submission.

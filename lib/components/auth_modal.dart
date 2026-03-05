@@ -26,44 +26,85 @@ void showAuthModal(BuildContext context, WidgetRef ref) {
 void showDeleteAccountDialog(BuildContext context, WidgetRef ref) {
   showDialog(
     context: context,
-    builder: (ctx) => AlertDialog(
-      title: const Text('Delete Account'),
-      content: const Text(
-        'This will permanently delete your account and all associated data. '
-        'This action cannot be undone.',
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(ctx).pop(),
-          child: const Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: () async {
-            Navigator.of(ctx).pop();
-            final auth = ref.read(authServiceProvider);
-            final store = ref.read(storeServiceProvider);
-            final error = await auth.deleteAccount();
-            if (error != null && context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Error: $error')),
-              );
-            } else {
-              await store.clearAll();
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Account deleted')),
-                );
-              }
-            }
-          },
-          child: Text(
-            'Delete',
-            style: TextStyle(color: AppColors.conditionPoor),
-          ),
-        ),
-      ],
-    ),
+    barrierDismissible: false,
+    builder: (ctx) => _DeleteAccountDialog(ref: ref),
   );
+}
+
+class _DeleteAccountDialog extends StatefulWidget {
+  final WidgetRef ref;
+  const _DeleteAccountDialog({required this.ref});
+
+  @override
+  State<_DeleteAccountDialog> createState() => _DeleteAccountDialogState();
+}
+
+class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
+  bool _deleting = false;
+
+  Future<void> _delete() async {
+    setState(() => _deleting = true);
+
+    final auth = widget.ref.read(authServiceProvider);
+    final store = widget.ref.read(storeServiceProvider);
+
+    // 1. Delete remote data while still authenticated (RLS requires auth)
+    await store.deleteRemoteData();
+
+    // 2. Delete auth account (tries RPC, falls back to sign-out)
+    final error = await auth.deleteAccount();
+
+    // 3. Clear all local data (Hive)
+    await store.clearAll();
+
+    if (!mounted) return;
+    Navigator.of(context).pop();
+
+    if (error != null && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $error')),
+      );
+    }
+    // Auth state change to null triggers _OnboardingGate rebuild → onboarding
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Delete Account'),
+      content: _deleting
+          ? const Row(
+              children: [
+                SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                SizedBox(width: 16),
+                Text('Deleting account...'),
+              ],
+            )
+          : const Text(
+              'This will permanently delete your account, sessions, preferences, '
+              'and boards. This action cannot be undone.',
+            ),
+      actions: _deleting
+          ? null
+          : [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: _delete,
+                child: Text(
+                  'Delete Everything',
+                  style: TextStyle(color: AppColors.conditionPoor),
+                ),
+              ),
+            ],
+    );
+  }
 }
 
 class AuthModalContent extends StatefulWidget {

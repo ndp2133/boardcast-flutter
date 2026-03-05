@@ -1,4 +1,5 @@
 // Post-onboarding feature tour — 4 animated slides showcasing key differentiators
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -361,16 +362,91 @@ class _FeatureTourScreenState extends ConsumerState<FeatureTourScreen> {
   // ---------------------------------------------------------------------------
 
   Widget _buildSlide4(Color textColor, Color subColor, bool isDark) {
+    final isIOS = Platform.isIOS;
     return _slideLayout(
       hero: _slideVisible[3]
-          ? _buildWidgetSiriDemo(isDark)
+          ? (isIOS ? _buildWidgetSiriDemo(isDark) : _buildWidgetOnlyDemo(isDark))
           : const SizedBox(height: 120),
       title: 'Always Within Reach',
-      subtitle: 'Check conditions from your home screen or just ask Siri.',
-      badge: 'Widget + Siri',
+      subtitle: isIOS
+          ? 'Check conditions from your home screen or just ask Siri.'
+          : 'Check conditions right from your home screen.',
+      badge: isIOS ? 'Widget + Siri' : 'Widget',
       textColor: textColor,
       subColor: subColor,
       isDark: isDark,
+    );
+  }
+
+  /// Android-only: single centered widget card (no Siri bubble).
+  Widget _buildWidgetOnlyDemo(bool isDark) {
+    return AnimatedSlide(
+      duration: AppDurations.slow,
+      curve: Curves.easeOut,
+      offset: _slideVisible[3] ? Offset.zero : const Offset(0, 0.3),
+      child: AnimatedOpacity(
+        duration: AppDurations.slow,
+        opacity: _slideVisible[3] ? 1.0 : 0.0,
+        child: Container(
+          width: 160,
+          padding: const EdgeInsets.all(AppSpacing.s3),
+          decoration: BoxDecoration(
+            color: isDark ? AppColorsDark.bgSecondary : AppColors.bgSecondary,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            boxShadow: AppShadows.lg,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.waves, size: AppIconSize.sm, color: AppColors.accent),
+                  const SizedBox(width: AppSpacing.s1),
+                  Text(
+                    'Boardcast',
+                    style: TextStyle(
+                      fontSize: AppTypography.textXxs,
+                      fontWeight: AppTypography.weightSemibold,
+                      color: isDark
+                          ? AppColorsDark.textSecondary
+                          : AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.s2),
+              Text(
+                '72',
+                style: TextStyle(
+                  fontFamily: AppTypography.fontMono,
+                  fontSize: AppTypography.textXl,
+                  fontWeight: AppTypography.weightBold,
+                  color: AppColors.conditionGood,
+                ),
+              ),
+              Text(
+                'Good',
+                style: TextStyle(
+                  fontSize: AppTypography.textSm,
+                  fontWeight: AppTypography.weightMedium,
+                  color: AppColors.conditionGood,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.s1),
+              Text(
+                '3-4 ft \u2022 Offshore',
+                style: TextStyle(
+                  fontSize: AppTypography.textXxs,
+                  color: isDark
+                      ? AppColorsDark.textTertiary
+                      : AppColors.textTertiary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

@@ -34,6 +34,9 @@ String generateForecastSummary(
   final avgWindMph = daylightHours.fold<double>(
           0, (s, h) => s + kmhToMph(h.windSpeed ?? 0)) /
       daylightHours.length;
+  final avgSwellPeriod = daylightHours.fold<double>(
+          0, (s, h) => s + (h.swellPeriod ?? 0)) /
+      daylightHours.length;
 
   // Dominant wind direction (most common hourly value)
   final dirCounts = <int, int>{};
@@ -125,5 +128,15 @@ String generateForecastSummary(
     }
   }
 
-  return '$waveSize $range waves, $windQuality winds.${timeAdvice.isNotEmpty ? ' $timeAdvice' : ''}';
+  // Swell quality descriptor
+  String swellDesc = '';
+  if (avgSwellPeriod >= 12) {
+    swellDesc = ' Clean groundswell.';
+  } else if (avgSwellPeriod >= 8) {
+    swellDesc = ' Mixed swell.';
+  } else if (avgSwellPeriod > 0) {
+    swellDesc = ' Short-period windswell.';
+  }
+
+  return '$waveSize $range waves, $windQuality winds.$swellDesc${timeAdvice.isNotEmpty ? ' $timeAdvice' : ''}';
 }

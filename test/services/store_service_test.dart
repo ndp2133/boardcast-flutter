@@ -194,6 +194,14 @@ void main() {
     });
   });
 
+  group('deleteRemoteData', () {
+    test('completes without error when guest (no supabase)', () async {
+      // No configure() called — guest mode, no supabase client
+      await store.deleteRemoteData();
+      // Should not throw — graceful no-op for guests
+    });
+  });
+
   group('skillDefaults', () {
     test('has three skill levels', () {
       expect(skillDefaults.keys, containsAll(['beginner', 'intermediate', 'advanced']));

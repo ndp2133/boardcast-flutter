@@ -109,6 +109,8 @@ class SessionStatsGrid extends StatelessWidget {
         ? ((aboutRight / calibrated.length) * 100).round()
         : 0;
 
+    final streaks = _calculateStreaks(completed);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -132,8 +134,65 @@ class SessionStatsGrid extends StatelessWidget {
                 calibrated.isNotEmpty ? '$accuracy%' : '\u2014'),
           ],
         ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            _statCell('\ud83d\udd25 Streak',
+                streaks.current > 0 ? '${streaks.current}' : '\u2014'),
+            _statCell('Best Streak',
+                streaks.longest > 0 ? '${streaks.longest}' : '\u2014'),
+            const Spacer(),
+            const Spacer(),
+          ],
+        ),
       ],
     );
+  }
+
+  static ({int current, int longest}) _calculateStreaks(
+      List<Session> completed) {
+    if (completed.isEmpty) return (current: 0, longest: 0);
+
+    final dates = completed
+        .map((s) => s.date.split('T')[0])
+        .toSet()
+        .toList()
+      ..sort()
+      ..reversed;
+
+    if (dates.isEmpty) return (current: 0, longest: 0);
+
+    // Current streak: consecutive days backwards from today
+    final today = DateTime.now().toIso8601String().split('T')[0];
+    var current = 0;
+    var checkDate = today;
+    for (final date in dates.reversed) {
+      if (date == checkDate) {
+        current++;
+        final prev = DateTime.parse('${checkDate}T00:00:00')
+            .subtract(const Duration(days: 1));
+        checkDate = prev.toIso8601String().split('T')[0];
+      } else if (date.compareTo(checkDate) < 0) {
+        break;
+      }
+    }
+
+    // Longest streak
+    var longest = dates.length > 0 ? 1 : 0;
+    var run = 1;
+    final sorted = List<String>.from(dates)..sort();
+    for (var i = 1; i < sorted.length; i++) {
+      final prev = DateTime.parse('${sorted[i - 1]}T00:00:00');
+      final next = DateTime.parse('${sorted[i]}T00:00:00');
+      if (next.difference(prev).inDays == 1) {
+        run++;
+        if (run > longest) longest = run;
+      } else {
+        run = 1;
+      }
+    }
+
+    return (current: current, longest: longest);
   }
 
   Widget _statCell(String label, String value) {

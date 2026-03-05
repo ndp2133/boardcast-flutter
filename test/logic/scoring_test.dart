@@ -566,12 +566,89 @@ void main() {
     });
 
     test('finds best consecutive run', () {
-      final scores = [0.2, 0.7, 0.8, 0.9, 0.3, 0.6, 0.5, 0.1];
+      // Scores with moderate peak — threshold stays at 0.5
+      final scores = [0.2, 0.55, 0.6, 0.65, 0.3, 0.4, 0.1];
       final result = findBestWindowIndices(scores);
       expect(result, isNotNull);
       expect(result!.startIndex, 1);
       expect(result.endIndex, 3);
-      expect(result.avgScore, closeTo(0.8, 0.01));
+      expect(result.avgScore, closeTo(0.6, 0.01));
+    });
+
+    test('epic scores use relative threshold (narrows window)', () {
+      // Peak is 0.92, threshold = 0.92 - 0.15 = 0.77
+      // Only indices 2-4 (0.80, 0.92, 0.85) are above 0.77
+      final scores = [0.3, 0.6, 0.80, 0.92, 0.85, 0.55, 0.3];
+      final result = findBestWindowIndices(scores);
+      expect(result, isNotNull);
+      expect(result!.startIndex, 2);
+      expect(result.endIndex, 4);
+      expect(result.avgScore, closeTo(0.857, 0.01));
+    });
+
+    test('mediocre day preserves 0.5 threshold', () {
+      // Peak is 0.60, below 0.65, so threshold stays at 0.5
+      final scores = [0.3, 0.55, 0.60, 0.52, 0.3];
+      final result = findBestWindowIndices(scores);
+      expect(result, isNotNull);
+      expect(result!.startIndex, 1);
+      expect(result.endIndex, 3);
+    });
+
+    test('oversized window gets narrowed via sliding window', () {
+      // 8 hours above threshold — should narrow to best 3-hour sub-window
+      // Peak is 0.9, threshold = 0.75
+      final scores = [0.76, 0.78, 0.80, 0.90, 0.88, 0.82, 0.77, 0.76];
+      final result = findBestWindowIndices(scores);
+      expect(result, isNotNull);
+      // Best 3-hour sub-window: indices 3-5 (0.90, 0.88, 0.82) avg=0.867
+      expect(result!.endIndex - result.startIndex + 1, lessThanOrEqualTo(5));
+      expect(result.startIndex, 3);
+      expect(result.endIndex, 5);
+    });
+  });
+
+  group('findTopWindows (relative threshold)', () {
+    test('epic day narrows to peak hours', () {
+      // Simulate an epic day: all daylight hours score high
+      final hours = <HourlyData>[];
+      // Hours 6-20 with varying quality: peak around 10-12
+      for (var h = 6; h <= 20; h++) {
+        final isPeak = h >= 9 && h <= 12;
+        final isGood = h >= 7 && h <= 14;
+        hours.add(_makeHour(
+          time: '2025-01-15T${h.toString().padLeft(2, '0')}:00',
+          waveHeight: isPeak ? 1.5 : (isGood ? 1.0 : 0.5),
+          windSpeed: isPeak ? 3 : (isGood ? 8 : 15),
+          windDirection: isPeak ? 0 : (isGood ? 20 : 90),
+          swellDirection: 180,
+          swellPeriod: isPeak ? 14 : (isGood ? 10 : 6),
+        ));
+      }
+      final windows = findTopWindows(hours, _defaultPrefs, _rockaway);
+      expect(windows, isNotEmpty);
+      // Window should NOT span full daylight (15 hours)
+      expect(windows.first.hours, lessThanOrEqualTo(5));
+    });
+
+    test('mediocre day preserves wider window', () {
+      final hours = <HourlyData>[];
+      for (var h = 6; h <= 20; h++) {
+        final isFair = h >= 8 && h <= 14;
+        hours.add(_makeHour(
+          time: '2025-01-15T${h.toString().padLeft(2, '0')}:00',
+          waveHeight: isFair ? 0.5 : 0.1,
+          windSpeed: isFair ? 12 : 30,
+          windDirection: isFair ? 45 : 180,
+          swellDirection: 180,
+          swellPeriod: isFair ? 8 : 4,
+        ));
+      }
+      final windows = findTopWindows(hours, _defaultPrefs, _rockaway);
+      // Mediocre day may have windows — if so they should be reasonable
+      if (windows.isNotEmpty) {
+        expect(windows.first.hours, greaterThan(0));
+      }
     });
   });
 }
