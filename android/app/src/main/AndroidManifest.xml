@@ -8,7 +8,7 @@
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
-            android:name=".MainActivity"
+            android:name="com.boardcast.boardcast_flutter.MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
             android:taskAffinity=""
@@ -48,7 +48,7 @@
         <activity-alias
             android:name="ViewPermissionUsageActivity"
             android:exported="true"
-            android:targetActivity=".MainActivity"
+            android:targetActivity="com.boardcast.boardcast_flutter.MainActivity"
             android:permission="android.permission.START_VIEW_PERMISSION_USAGE">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW_PERMISSION_USAGE"/>
@@ -57,7 +57,7 @@
         </activity-alias>
 
         <!-- Small home screen widget (2x2) -->
-        <receiver android:name=".SmallWidgetReceiver" android:exported="true">
+        <receiver android:name="com.boardcast.boardcast_flutter.SmallWidgetReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
             </intent-filter>
@@ -66,7 +66,7 @@
         </receiver>
 
         <!-- Medium home screen widget (4x2) -->
-        <receiver android:name=".MediumWidgetReceiver" android:exported="true">
+        <receiver android:name="com.boardcast.boardcast_flutter.MediumWidgetReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
             </intent-filter>
@@ -75,7 +75,7 @@
         </receiver>
 
         <!-- Large home screen widget (4x4) -->
-        <receiver android:name=".LargeWidgetReceiver" android:exported="true">
+        <receiver android:name="com.boardcast.boardcast_flutter.LargeWidgetReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
             </intent-filter>
