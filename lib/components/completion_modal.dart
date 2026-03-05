@@ -115,7 +115,10 @@ class _CompletionSheetState extends State<_CompletionSheet> {
       minChildSize: 0.5,
       expand: false,
       builder: (context, scrollController) {
-        return SingleChildScrollView(
+        return GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          behavior: HitTestBehavior.opaque,
+          child: SingleChildScrollView(
           controller: scrollController,
           padding: const EdgeInsets.fromLTRB(
               AppSpacing.s4, AppSpacing.s4, AppSpacing.s4, AppSpacing.s8),
@@ -355,6 +358,7 @@ class _CompletionSheetState extends State<_CompletionSheet> {
               ),
             ],
           ),
+        ),
         );
       },
     ),

@@ -78,9 +78,10 @@ double angularDistance(double a, double b) {
 /// 0 deg from ideal -> 1.0, 90 deg -> 0.6, 180 deg -> 0.2
 double scoreWindDirection(
     double? windDeg, UserPrefs prefs, Location location) {
-  if (windDeg == null ||
-      prefs.preferredWindDir == null ||
-      prefs.preferredWindDir == 'any') return 1.0;
+  // User doesn't care about wind direction → perfect score
+  if (prefs.preferredWindDir == null || prefs.preferredWindDir == 'any') return 1.0;
+  // Missing data → neutral score (not perfect)
+  if (windDeg == null) return 0.5;
 
   double idealCenter;
   if (prefs.preferredWindDir == 'offshore') {

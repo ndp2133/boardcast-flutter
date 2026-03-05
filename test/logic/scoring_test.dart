@@ -116,9 +116,15 @@ void main() {
       expect(score, 1.0);
     });
 
-    test('null wind returns 1.0', () {
+    test('null wind returns 0.5 when user has preference', () {
       final score = scoreWindDirection(
           null, _defaultPrefs, _rockaway);
+      expect(score, 0.5);
+    });
+
+    test('null wind returns 1.0 when no preference', () {
+      final anyPrefs = _defaultPrefs.copyWith(preferredWindDir: 'any');
+      final score = scoreWindDirection(null, anyPrefs, _rockaway);
       expect(score, 1.0);
     });
   });

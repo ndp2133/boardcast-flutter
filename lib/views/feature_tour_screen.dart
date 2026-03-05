@@ -89,7 +89,23 @@ class _FeatureTourScreenState extends ConsumerState<FeatureTourScreen> {
               ),
               child: Row(
                 children: [
-                  const SizedBox(width: 48), // balance skip button
+                  if (_currentPage > 0)
+                    GestureDetector(
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        _pageController.previousPage(
+                          duration: AppDurations.slow,
+                          curve: Curves.easeInOut,
+                        );
+                      },
+                      child: SizedBox(
+                        width: 48,
+                        child: Icon(Icons.arrow_back_ios,
+                            size: 20, color: textColor),
+                      ),
+                    )
+                  else
+                    const SizedBox(width: 48),
                   const Spacer(),
                   Row(
                     mainAxisSize: MainAxisSize.min,
@@ -220,8 +236,8 @@ class _FeatureTourScreenState extends ConsumerState<FeatureTourScreen> {
               curve: Curves.easeOut,
               offset: _slideVisible[1] ? Offset.zero : const Offset(0, 0.3),
               child: Container(
-                width: 48,
-                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: 52,
+                margin: const EdgeInsets.symmetric(horizontal: 2),
                 padding: const EdgeInsets.symmetric(
                     vertical: AppSpacing.s3, horizontal: AppSpacing.s1),
                 decoration: BoxDecoration(

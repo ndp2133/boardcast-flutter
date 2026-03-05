@@ -297,7 +297,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Widget _buildSkillStep(Color textColor, Color subColor, bool isDark) {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
