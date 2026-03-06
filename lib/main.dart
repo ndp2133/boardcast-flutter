@@ -173,11 +173,14 @@ class _OnboardingGateState extends ConsumerState<_OnboardingGate> {
   }
 
   void _handleDeepLink(Uri uri) {
-    // Strava OAuth callback: com.boardcast.app://strava-callback?code=...
+    // Strava OAuth callback: com.boardcast.app://strava-callback?code=...&state=...
     if (uri.host == 'strava-callback') {
       final code = uri.queryParameters['code'];
+      final state = uri.queryParameters['state'];
       if (code != null) {
-        ref.read(stravaImportProvider.notifier).handleCallback(code);
+        ref
+            .read(stravaImportProvider.notifier)
+            .handleCallback(code, state: state);
       }
       return;
     }

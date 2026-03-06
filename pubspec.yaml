@@ -52,6 +52,9 @@ dependencies:
   # Deep links (Strava OAuth callback)
   app_links: ^6.4.0
 
+  # Secure token storage (Strava OAuth)
+  flutter_secure_storage: ^9.2.4
+
   # Timezone
   timezone: ^0.10.0
 

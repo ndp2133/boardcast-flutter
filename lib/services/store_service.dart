@@ -542,23 +542,30 @@ class StoreService {
   }
 
   /// Migrate all local data to Supabase on first sign-in.
+  /// Retries up to 3 times with exponential backoff.
   Future<void> migrateGuestData() async {
     if (_guest) return;
     final userId = _userId;
     if (userId == null) return;
 
-    try {
-      await _supabase!.from('user_data').upsert(
-        {
-          'user_id': userId,
-          'boards': getBoards().map((b) => b.toJson()).toList(),
-          'prefs': getPrefs().toJson(),
-          'settings': _getSettingsObject(),
-          'updated_at': DateTime.now().toIso8601String(),
-        },
-        onConflict: 'user_id',
-      );
-    } catch (_) {}
+    final row = {
+      'user_id': userId,
+      'boards': getBoards().map((b) => b.toJson()).toList(),
+      'prefs': getPrefs().toJson(),
+      'settings': _getSettingsObject(),
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+
+    for (var attempt = 1; attempt <= 3; attempt++) {
+      try {
+        await _supabase!.from('user_data').upsert(row, onConflict: 'user_id');
+        return;
+      } catch (_) {
+        if (attempt < 3) {
+          await Future.delayed(Duration(seconds: attempt));
+        }
+      }
+    }
   }
 
   /// Delete all user data from Supabase tables (sessions + user_data).
@@ -582,7 +589,14 @@ class StoreService {
   }
 
   /// Clear user-scoped data but keep device preferences (theme, location).
+  /// Waits for in-flight syncs to complete before clearing.
   Future<void> clearUserData() async {
+    // Wait for any in-flight syncs to finish (max 3s)
+    final deadline = DateTime.now().add(const Duration(seconds: 3));
+    while ((_syncingSessions || _syncingUserData) &&
+        DateTime.now().isBefore(deadline)) {
+      await Future.delayed(const Duration(milliseconds: 50));
+    }
     final theme = _box.get(_keyTheme);
     final location = _box.get(_keyLocation);
     await _box.clear();

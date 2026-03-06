@@ -1,5 +1,5 @@
-/// Condition scoring engine — v2.1 port of utils/conditions.js
-/// Multiplicative wind model, wave energy, break-specific parameters.
+/// Condition scoring engine — v2.2 port of utils/conditions.js
+/// Multiplicative wind model, multi-swell directional energy, peak period blend, break-specific parameters.
 /// Key difference from JS: Location + TideRange passed explicitly (no global state).
 import 'dart:math';
 import '../models/hourly_data.dart';
@@ -21,17 +21,17 @@ const _breakDefaults = <String, _SpotParams>{
       swellWindowWidth: 120,
       tideSensitivity: 0.3,
       windExposure: 0.8,
-      minWaveEnergy: 2.0),
+      minWaveEnergy: 2.3),
   'point': _SpotParams(
       swellWindowWidth: 60,
       tideSensitivity: 0.5,
       windExposure: 0.5,
-      minWaveEnergy: 4.0),
+      minWaveEnergy: 4.6),
   'reef': _SpotParams(
       swellWindowWidth: 70,
       tideSensitivity: 0.9,
       windExposure: 0.6,
-      minWaveEnergy: 6.0),
+      minWaveEnergy: 7.0),
 };
 
 // Base score component weights (sum to 1.0)
@@ -48,8 +48,8 @@ const _windSensitivity = <String, double>{
 
 // Power thresholds by skill for safety cap (H^2 x T)
 const _powerThreshold = <String, double>{
-  'beginner': 15,
-  'intermediate': 40,
+  'beginner': 18,
+  'intermediate': 46,
   'advanced': double.infinity,
 };
 
@@ -131,12 +131,32 @@ double angularDistance(double a, double b) {
   return diff > 180 ? 360 - diff : diff;
 }
 
-// --- Wave energy proxy (H^2 x T) ---
+// --- Multi-swell directional energy (H^2 x peakPeriod x dirFit) ---
 
-double _computeWaveEnergy(HourlyData hourData) {
-  final h = hourData.swellHeight ?? hourData.waveHeight ?? 0;
-  final t = hourData.swellPeriod ?? hourData.wavePeriod ?? 0;
-  return h * h * t;
+double _effectiveSwellEnergy(
+    HourlyData hourData, Location location, _SpotParams spotParams) {
+  final swells = [
+    (
+      h: hourData.swellHeight,
+      p: hourData.swellPeakPeriod ?? hourData.swellPeriod,
+      d: hourData.swellDirection,
+    ),
+    (
+      h: hourData.secondarySwellHeight,
+      p: hourData.secondarySwellPeakPeriod ?? hourData.secondarySwellPeriod,
+      d: hourData.secondarySwellDirection,
+    ),
+  ];
+  var total = 0.0;
+  for (final s in swells) {
+    if (s.h == null || s.p == null || s.h == 0 || s.p == 0) continue;
+    if (s.h! < 0.25) continue; // guardrail: filter noise
+    final dirFit = s.d != null
+        ? _scoreSwellDirection(s.d, location, spotParams)
+        : 0.5;
+    total += s.h! * s.h! * s.p! * dirFit;
+  }
+  return total;
 }
 
 // --- Component scoring ---
@@ -159,9 +179,16 @@ double _scoreWaveHeight(double? wh, UserPrefs prefs) {
   return max(0.0, 1 - 1.5 * dist / rangeWidth);
 }
 
-/// Swell quality based on period (0-1): longer period = more powerful, better shaped waves
+/// Swell quality based on peak period blend (0-1): longer period = more powerful, better shaped waves
+/// Uses 80% peak period + 20% mean period for quality scoring
 double _scoreSwellQuality(HourlyData hourData) {
-  final period = hourData.swellPeriod ?? hourData.wavePeriod ?? 0;
+  final peak = hourData.swellPeakPeriod ?? hourData.swellPeriod ?? 0;
+  final meanPeriod = hourData.swellPeriod ?? peak;
+  // Ignore peak period when swell is too small to measure reliably
+  final h = hourData.swellHeight ?? hourData.waveHeight ?? 0;
+  final period = (h >= 0.25 && peak > 0 && meanPeriod > 0)
+      ? 0.8 * peak + 0.2 * meanPeriod
+      : (meanPeriod > 0 ? meanPeriod : peak);
   if (period >= 14) return 1.0;
   if (period >= 12) return 0.85;
   if (period >= 10) return 0.65;
@@ -363,7 +390,7 @@ double computeMatchScore(
 
   // --- Hard caps (applied after main calculation) ---
 
-  final energy = _computeWaveEnergy(hourData);
+  final energy = _effectiveSwellEnergy(hourData, location, spotParams);
 
   // Minimum energy: spot isn't "turned on"
   if (energy > 0 && energy < spotParams.minWaveEnergy) {

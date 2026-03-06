@@ -216,7 +216,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
             child: Text(
-              'Your data stays yours. No ads. No tracking. No selling your location to third parties.',
+              'Your data stays yours. No ads. No selling your location to third parties. We use anonymous analytics to improve the app.',
               style: TextStyle(
                 fontSize: AppTypography.textXs,
                 color: subColor,

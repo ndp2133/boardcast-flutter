@@ -41,14 +41,17 @@ Future<Map<String, dynamic>> fetchMarineData(
     'https://marine-api.open-meteo.com/v1/marine?'
     'latitude=${location.lat}&longitude=${location.lon}'
     '&current=wave_height,wave_period,wave_direction,'
-    'swell_wave_height,swell_wave_period,swell_wave_direction,'
-    'sea_surface_temperature'
+    'swell_wave_height,swell_wave_period,swell_wave_peak_period,swell_wave_direction,'
+    'secondary_swell_wave_height,secondary_swell_wave_period,secondary_swell_wave_direction,secondary_swell_wave_peak_period,'
+    'sea_surface_temperature,ocean_current_velocity,ocean_current_direction'
     '&hourly=wave_height,wave_direction,wave_period,'
-    'swell_wave_height,swell_wave_period,swell_wave_direction,'
-    'sea_surface_temperature'
+    'swell_wave_height,swell_wave_period,swell_wave_peak_period,swell_wave_direction,'
+    'secondary_swell_wave_height,secondary_swell_wave_period,secondary_swell_wave_direction,secondary_swell_wave_peak_period,'
+    'sea_surface_temperature,ocean_current_velocity,ocean_current_direction'
     '&daily=wave_height_max,wave_period_max,wave_direction_dominant'
     '&timezone=${location.timezone}'
-    '&forecast_days=$forecastDays',
+    '&forecast_days=$forecastDays'
+    '&cell_selection=sea',
   );
 
   final c = client ?? http.Client();
@@ -143,8 +146,15 @@ _MarineNormalized normalizeMarineData(Map<String, dynamic> data) {
     'waveDirection': (cur['wave_direction'] as num?)?.toDouble(),
     'swellHeight': (cur['swell_wave_height'] as num?)?.toDouble(),
     'swellPeriod': (cur['swell_wave_period'] as num?)?.toDouble(),
+    'swellPeakPeriod': (cur['swell_wave_peak_period'] as num?)?.toDouble(),
     'swellDirection': (cur['swell_wave_direction'] as num?)?.toDouble(),
+    'secondarySwellHeight': (cur['secondary_swell_wave_height'] as num?)?.toDouble(),
+    'secondarySwellPeriod': (cur['secondary_swell_wave_period'] as num?)?.toDouble(),
+    'secondarySwellDirection': (cur['secondary_swell_wave_direction'] as num?)?.toDouble(),
+    'secondarySwellPeakPeriod': (cur['secondary_swell_wave_peak_period'] as num?)?.toDouble(),
     'waterTemp': (cur['sea_surface_temperature'] as num?)?.toDouble(),
+    'oceanCurrentVelocity': (cur['ocean_current_velocity'] as num?)?.toDouble(),
+    'oceanCurrentDirection': (cur['ocean_current_direction'] as num?)?.toDouble(),
   };
 
   final hourlyRaw = data['hourly'] as Map<String, dynamic>? ?? {};
@@ -158,8 +168,15 @@ _MarineNormalized normalizeMarineData(Map<String, dynamic> data) {
       wavePeriod: _numAt(hourlyRaw['wave_period'], i),
       swellHeight: _numAt(hourlyRaw['swell_wave_height'], i),
       swellPeriod: _numAt(hourlyRaw['swell_wave_period'], i),
+      swellPeakPeriod: _numAt(hourlyRaw['swell_wave_peak_period'], i),
       swellDirection: _numAt(hourlyRaw['swell_wave_direction'], i),
+      secondarySwellHeight: _numAt(hourlyRaw['secondary_swell_wave_height'], i),
+      secondarySwellPeriod: _numAt(hourlyRaw['secondary_swell_wave_period'], i),
+      secondarySwellDirection: _numAt(hourlyRaw['secondary_swell_wave_direction'], i),
+      secondarySwellPeakPeriod: _numAt(hourlyRaw['secondary_swell_wave_peak_period'], i),
       seaSurfaceTemp: _numAt(hourlyRaw['sea_surface_temperature'], i),
+      oceanCurrentVelocity: _numAt(hourlyRaw['ocean_current_velocity'], i),
+      oceanCurrentDirection: _numAt(hourlyRaw['ocean_current_direction'], i),
     );
   });
 
@@ -315,8 +332,15 @@ MergedConditions mergeConditions(
       waveDirection: mh.waveDirection,
       swellHeight: mh.swellHeight,
       swellPeriod: mh.swellPeriod,
+      swellPeakPeriod: mh.swellPeakPeriod,
       swellDirection: mh.swellDirection,
+      secondarySwellHeight: mh.secondarySwellHeight,
+      secondarySwellPeriod: mh.secondarySwellPeriod,
+      secondarySwellDirection: mh.secondarySwellDirection,
+      secondarySwellPeakPeriod: mh.secondarySwellPeakPeriod,
       seaSurfaceTemp: mh.seaSurfaceTemp,
+      oceanCurrentVelocity: mh.oceanCurrentVelocity,
+      oceanCurrentDirection: mh.oceanCurrentDirection,
       temperature: wh?['temperature'] as double?,
       windSpeed: wh?['windSpeed'] as double?,
       windDirection: wh?['windDirection'] as double?,

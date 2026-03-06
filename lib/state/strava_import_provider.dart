@@ -59,8 +59,15 @@ class StravaImportNotifier extends Notifier<StravaImportState> {
   final HealthImportService _importService = HealthImportService();
 
   @override
-  StravaImportState build() =>
-      StravaImportState(isConnected: _strava.isConnected);
+  StravaImportState build() {
+    _initConnected();
+    return const StravaImportState();
+  }
+
+  Future<void> _initConnected() async {
+    final connected = await _strava.isConnected;
+    state = state.copyWith(isConnected: connected);
+  }
 
   /// Start Strava OAuth flow (opens browser)
   Future<void> startAuth() async {
@@ -75,10 +82,10 @@ class StravaImportNotifier extends Notifier<StravaImportState> {
   }
 
   /// Handle OAuth callback with authorization code
-  Future<void> handleCallback(String code) async {
-    state = state.copyWith(phase: StravaImportPhase.connecting);
+  Future<void> handleCallback(String code, {String? state}) async {
+    this.state = this.state.copyWith(phase: StravaImportPhase.connecting);
 
-    final success = await _strava.exchangeCode(code);
+    final success = await _strava.exchangeCode(code, state: state);
     if (!success) {
       state = state.copyWith(
         phase: StravaImportPhase.error,
@@ -93,7 +100,8 @@ class StravaImportNotifier extends Notifier<StravaImportState> {
 
   /// Run import on an already-connected account
   Future<void> startImport() async {
-    if (!_strava.isConnected) {
+    final connected = await _strava.isConnected;
+    if (!connected) {
       await startAuth();
       return;
     }
@@ -221,7 +229,8 @@ class StravaImportNotifier extends Notifier<StravaImportState> {
   }
 
   void reset() {
-    state = StravaImportState(isConnected: _strava.isConnected);
+    state = const StravaImportState();
+    _initConnected();
   }
 }
 

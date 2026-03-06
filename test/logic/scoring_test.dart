@@ -255,12 +255,12 @@ void main() {
 
     test('high wind above tolerance penalizes more for beginners', () {
       final hour = _makeHour(
-        waveHeight: 0.5,
+        waveHeight: 0.6,
         windSpeed: 30.0,
         windDirection: 90, // cross-shore
         swellDirection: 180,
         swellPeriod: 8,
-        swellHeight: 0.5,
+        swellHeight: 0.6,
       );
       final beginnerScore =
           computeMatchScore(hour, _beginnerPrefs, _rockaway);

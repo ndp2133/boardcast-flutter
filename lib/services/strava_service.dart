@@ -1,57 +1,77 @@
 // Strava OAuth + API service for importing surf sessions.
 // Handles auth flow, token management, and activity fetching.
+// Token exchange is done server-side via Supabase Edge Function (client secret never ships in app).
 import 'dart:convert';
+import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
-import 'package:hive/hive.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 import 'health_import_service.dart';
 
 const _clientId = '207801';
-const _clientSecret = '827b5d0f127bbab7369221221b4b21ed44058aec';
 const _redirectUri = 'com.boardcast.app://strava-callback';
 const _authUrl = 'https://www.strava.com/oauth/mobile/authorize';
-const _tokenUrl = 'https://www.strava.com/oauth/token';
 const _apiBase = 'https://www.strava.com/api/v3';
 const _revokeUrl = 'https://www.strava.com/oauth/deauthorize';
 
-/// Hive keys for token storage
+/// Secure storage keys for tokens
 const _kAccessToken = 'strava_access_token';
 const _kRefreshToken = 'strava_refresh_token';
 const _kTokenExpiry = 'strava_token_expiry';
+const _kOAuthState = 'strava_oauth_state';
+
+const _secureStorage = FlutterSecureStorage();
 
 class StravaService {
   final http.Client _client;
 
   StravaService({http.Client? client}) : _client = client ?? http.Client();
 
+  /// Generate a cryptographic random state parameter for CSRF protection
+  static String _generateState() {
+    final random = Random.secure();
+    final bytes = List<int>.generate(32, (_) => random.nextInt(256));
+    return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+  }
+
   /// Open Strava authorization page in browser
   Future<bool> startAuth() async {
+    final state = _generateState();
+    await _secureStorage.write(key: _kOAuthState, value: state);
+
     final uri = Uri.parse(_authUrl).replace(queryParameters: {
       'client_id': _clientId,
       'redirect_uri': _redirectUri,
       'response_type': 'code',
       'approval_prompt': 'auto',
       'scope': 'activity:read_all',
+      'state': state,
     });
     return launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
-  /// Exchange authorization code for tokens
-  Future<bool> exchangeCode(String code) async {
+  /// Exchange authorization code for tokens via server-side Edge Function.
+  /// The client secret lives in the Edge Function, never in the app binary.
+  Future<bool> exchangeCode(String code, {String? state}) async {
+    // Verify state parameter to prevent CSRF
+    if (state != null) {
+      final savedState = await _secureStorage.read(key: _kOAuthState);
+      if (savedState == null || savedState != state) {
+        return false; // CSRF protection: state mismatch
+      }
+      await _secureStorage.delete(key: _kOAuthState);
+    }
+
     try {
-      final response = await _client.post(
-        Uri.parse(_tokenUrl),
-        body: {
-          'client_id': _clientId,
-          'client_secret': _clientSecret,
-          'code': code,
-          'grant_type': 'authorization_code',
-        },
+      final response = await Supabase.instance.client.functions.invoke(
+        'strava-token-exchange',
+        body: {'code': code, 'grant_type': 'authorization_code'},
       );
 
-      if (response.statusCode != 200) return false;
+      if (response.status != 200) return false;
 
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final data = response.data as Map<String, dynamic>;
       await _saveTokens(data);
       return true;
     } catch (_) {
@@ -59,25 +79,23 @@ class StravaService {
     }
   }
 
-  /// Refresh expired access token
+  /// Refresh expired access token via server-side Edge Function
   Future<bool> _refreshToken() async {
-    final refreshToken = _getRefreshToken();
+    final refreshToken = await _getRefreshToken();
     if (refreshToken == null) return false;
 
     try {
-      final response = await _client.post(
-        Uri.parse(_tokenUrl),
+      final response = await Supabase.instance.client.functions.invoke(
+        'strava-token-exchange',
         body: {
-          'client_id': _clientId,
-          'client_secret': _clientSecret,
           'refresh_token': refreshToken,
           'grant_type': 'refresh_token',
         },
       );
 
-      if (response.statusCode != 200) return false;
+      if (response.status != 200) return false;
 
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final data = response.data as Map<String, dynamic>;
       await _saveTokens(data);
       return true;
     } catch (_) {
@@ -87,27 +105,26 @@ class StravaService {
 
   /// Get a valid access token, refreshing if needed
   Future<String?> _getValidToken() async {
-    final box = Hive.box('settings');
-    final expiry = box.get(_kTokenExpiry) as int?;
-    final token = box.get(_kAccessToken) as String?;
+    final expiry = await _secureStorage.read(key: _kTokenExpiry);
+    final token = await _secureStorage.read(key: _kAccessToken);
 
     if (token == null) return null;
 
     // Refresh if expired or expiring within 60s
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    if (expiry != null && now >= expiry - 60) {
+    if (expiry != null && now >= int.parse(expiry) - 60) {
       final refreshed = await _refreshToken();
       if (!refreshed) return null;
-      return Hive.box('settings').get(_kAccessToken) as String?;
+      return _secureStorage.read(key: _kAccessToken);
     }
 
     return token;
   }
 
   /// Whether the user has connected Strava
-  bool get isConnected {
-    final box = Hive.box('settings');
-    return box.get(_kAccessToken) != null;
+  Future<bool> get isConnected async {
+    final token = await _secureStorage.read(key: _kAccessToken);
+    return token != null;
   }
 
   /// Fetch surf activities with IDs for fingerprinting and dedup
@@ -175,22 +192,22 @@ class StravaService {
       }
     }
 
-    final box = Hive.box('settings');
-    await box.delete(_kAccessToken);
-    await box.delete(_kRefreshToken);
-    await box.delete(_kTokenExpiry);
+    await _secureStorage.delete(key: _kAccessToken);
+    await _secureStorage.delete(key: _kRefreshToken);
+    await _secureStorage.delete(key: _kTokenExpiry);
   }
 
   Future<void> _saveTokens(Map<String, dynamic> data) async {
-    final box = Hive.box('settings');
-    await box.put(_kAccessToken, data['access_token'] as String);
-    await box.put(_kRefreshToken, data['refresh_token'] as String);
-    await box.put(_kTokenExpiry, data['expires_at'] as int);
+    await _secureStorage.write(
+        key: _kAccessToken, value: data['access_token'] as String);
+    await _secureStorage.write(
+        key: _kRefreshToken, value: data['refresh_token'] as String);
+    await _secureStorage.write(
+        key: _kTokenExpiry, value: '${data['expires_at']}');
   }
 
-  String? _getRefreshToken() {
-    final box = Hive.box('settings');
-    return box.get(_kRefreshToken) as String?;
+  Future<String?> _getRefreshToken() async {
+    return _secureStorage.read(key: _kRefreshToken);
   }
 }
 

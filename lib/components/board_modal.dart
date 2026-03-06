@@ -194,8 +194,10 @@ class _BoardModalSheetState extends State<_BoardModalSheet> {
             // Name field
             TextField(
               controller: _nameController,
+              maxLength: 50,
               decoration: InputDecoration(
                 labelText: 'Board name (optional)',
+                counterText: '',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppRadius.sm),
                 ),
