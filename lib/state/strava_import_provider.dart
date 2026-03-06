@@ -82,10 +82,10 @@ class StravaImportNotifier extends Notifier<StravaImportState> {
   }
 
   /// Handle OAuth callback with authorization code
-  Future<void> handleCallback(String code, {String? state}) async {
-    this.state = this.state.copyWith(phase: StravaImportPhase.connecting);
+  Future<void> handleCallback(String code, {String? oauthState}) async {
+    state = state.copyWith(phase: StravaImportPhase.connecting);
 
-    final success = await _strava.exchangeCode(code, state: state);
+    final success = await _strava.exchangeCode(code, state: oauthState);
     if (!success) {
       state = state.copyWith(
         phase: StravaImportPhase.error,

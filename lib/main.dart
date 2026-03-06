@@ -180,7 +180,7 @@ class _OnboardingGateState extends ConsumerState<_OnboardingGate> {
       if (code != null) {
         ref
             .read(stravaImportProvider.notifier)
-            .handleCallback(code, state: state);
+            .handleCallback(code, oauthState: state);
       }
       return;
     }
