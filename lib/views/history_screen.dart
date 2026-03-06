@@ -559,7 +559,6 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     final waveMin = prefs?.minWaveHeight?.toStringAsFixed(1) ?? '?';
     final waveMax = prefs?.maxWaveHeight?.toStringAsFixed(1) ?? '?';
     final windMax = prefs?.maxWindSpeed?.round().toString() ?? '?';
-    final windDir = prefs?.preferredWindDir ?? 'any';
     final tide = prefs?.preferredTide ?? 'any';
 
     return Container(
@@ -591,7 +590,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           ),
           const SizedBox(height: AppSpacing.s2),
           Text(
-            'Waves $waveMin\u2013${waveMax}ft  \u00b7  Wind <${windMax}mph  \u00b7  $windDir wind  \u00b7  $tide tide',
+            'Waves $waveMin\u2013${waveMax}ft  \u00b7  Wind <${windMax}mph  \u00b7  $tide tide',
             style: TextStyle(
               fontSize: AppTypography.textXs,
               color: subColor,

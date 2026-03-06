@@ -128,17 +128,15 @@ void main() {
 
   group('buildPrefsPayload', () {
     test('converts all fields to imperial', () {
-      final prefs = UserPrefs(
+      const prefs = UserPrefs(
         skillLevel: 'intermediate',
         minWaveHeight: 0.6,   // ~2.0ft
         maxWaveHeight: 2.0,   // ~6.6ft
         maxWindSpeed: 35.0,   // ~22mph
-        preferredWindDir: 'offshore',
       );
 
       final payload = buildPrefsPayload(prefs);
       expect(payload['skillLevel'], 'intermediate');
-      expect(payload['preferredWindDir'], 'offshore');
       expect(double.parse(payload['minWave']), closeTo(2.0, 0.1));
       expect(double.parse(payload['maxWave']), closeTo(6.6, 0.1));
       expect(int.parse(payload['maxWind']), closeTo(22, 1));
@@ -152,7 +150,6 @@ void main() {
       expect(payload['minWave'], isNull);
       expect(payload['maxWave'], isNull);
       expect(payload['maxWind'], isNull);
-      expect(payload['preferredWindDir'], 'any');
     });
   });
 }

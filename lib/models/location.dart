@@ -11,6 +11,12 @@ class Location {
   final double onshoreMax;
   final String noaaStation;
   final String breakType; // 'beach', 'point', 'reef'
+  final String? description; // Spot knowledge for AI coach
+  // Per-spot scoring overrides (null = use break-type defaults)
+  final double? swellWindowWidth;
+  final double? tideSensitivity;
+  final double? windExposure;
+  final double? minWaveEnergy;
 
   const Location({
     required this.id,
@@ -25,6 +31,11 @@ class Location {
     required this.onshoreMax,
     required this.noaaStation,
     this.breakType = 'beach',
+    this.description,
+    this.swellWindowWidth,
+    this.tideSensitivity,
+    this.windExposure,
+    this.minWaveEnergy,
   });
 
   factory Location.fromJson(Map<String, dynamic> json) => Location(
@@ -40,6 +51,11 @@ class Location {
         onshoreMax: (json['onshoreMax'] as num).toDouble(),
         noaaStation: json['noaaStation'] as String,
         breakType: json['breakType'] as String? ?? 'beach',
+        description: json['description'] as String?,
+        swellWindowWidth: (json['swellWindowWidth'] as num?)?.toDouble(),
+        tideSensitivity: (json['tideSensitivity'] as num?)?.toDouble(),
+        windExposure: (json['windExposure'] as num?)?.toDouble(),
+        minWaveEnergy: (json['minWaveEnergy'] as num?)?.toDouble(),
       );
 
   Map<String, dynamic> toJson() => {
@@ -55,5 +71,10 @@ class Location {
         'onshoreMax': onshoreMax,
         'noaaStation': noaaStation,
         'breakType': breakType,
+        if (description != null) 'description': description,
+        if (swellWindowWidth != null) 'swellWindowWidth': swellWindowWidth,
+        if (tideSensitivity != null) 'tideSensitivity': tideSensitivity,
+        if (windExposure != null) 'windExposure': windExposure,
+        if (minWaveEnergy != null) 'minWaveEnergy': minWaveEnergy,
       };
 }

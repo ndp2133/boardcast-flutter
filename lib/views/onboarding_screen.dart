@@ -29,7 +29,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   double _minWave = 0.3;
   double _maxWave = 1.0;
   double _maxWind = 20.0;
-  String _windDir = 'offshore';
   String _tide = 'mid';
 
   bool _skillCardsVisible = false;
@@ -75,7 +74,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       _minWave = defaults.minWaveHeight ?? 0.3;
       _maxWave = defaults.maxWaveHeight ?? 1.0;
       _maxWind = defaults.maxWindSpeed ?? 20.0;
-      _windDir = defaults.preferredWindDir ?? 'offshore';
       _tide = defaults.preferredTide ?? 'mid';
     });
   }
@@ -92,7 +90,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       if (p.minWaveHeight != null) _minWave = p.minWaveHeight!;
       if (p.maxWaveHeight != null) _maxWave = p.maxWaveHeight!;
       if (p.maxWindSpeed != null) _maxWind = p.maxWindSpeed!;
-      if (p.preferredWindDir != null) _windDir = p.preferredWindDir!;
       if (p.preferredTide != null) _tide = p.preferredTide!;
     });
   }
@@ -127,7 +124,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       minWaveHeight: _minWave,
       maxWaveHeight: _maxWave,
       maxWindSpeed: _maxWind,
-      preferredWindDir: _windDir,
       preferredTide: _tide,
     );
     await ref.read(preferencesProvider.notifier).update(prefs);
@@ -494,17 +490,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           ),
           const SizedBox(height: AppSpacing.s5),
 
-          // Wind direction
-          _chipGroup(
-            label: 'Wind Direction',
-            options: const ['offshore', 'onshore', 'any'],
-            display: const ['Offshore', 'Onshore', 'Any'],
-            selected: _windDir,
-            textColor: textColor,
-            onSelected: (v) => setState(() => _windDir = v),
-          ),
-          const SizedBox(height: AppSpacing.s4),
-
           // Tide
           _chipGroup(
             label: 'Tide',
@@ -667,15 +652,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               subColor),
           _summaryRow('Max Wind', '${formatWindSpeed(_maxWind)} mph',
               textColor, subColor),
-          _summaryRow(
-              'Wind Direction',
-              _windDir == 'any'
-                  ? 'Any'
-                  : _windDir == 'offshore'
-                      ? 'Offshore'
-                      : 'Onshore',
-              textColor,
-              subColor),
           _summaryRow(
               'Tide',
               _tide == 'any'

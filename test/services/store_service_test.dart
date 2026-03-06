@@ -32,7 +32,6 @@ void main() {
         minWaveHeight: 0.5,
         maxWaveHeight: 3.0,
         maxWindSpeed: 40,
-        preferredWindDir: 'any',
         skillLevel: 'advanced',
       );
       await store.savePrefs(prefs);

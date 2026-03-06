@@ -11,18 +11,22 @@ class AiService {
   Future<String> fetchSurfTip({
     required Map<String, dynamic> conditions,
     required Map<String, dynamic> prefs,
-    required String locationName,
+    required Map<String, dynamic> location,
     required double matchScore,
     required String conditionLabel,
+    required int proScore,
+    required String proCondition,
   }) async {
     final response = await _supabase.functions.invoke(
       'surf-coach',
       body: {
         'conditions': conditions,
         'prefs': prefs,
-        'location': locationName,
+        'location': location,
         'matchScore': matchScore,
         'conditionLabel': conditionLabel,
+        'proScore': proScore,
+        'proCondition': proCondition,
       },
     );
 
@@ -37,8 +41,10 @@ class AiService {
     required String current,
     required String dailySummaries,
     Map<String, dynamic>? prefs,
-    required String locationName,
+    required Map<String, dynamic> location,
     required String topWindows,
+    required int proScore,
+    required String proCondition,
   }) async {
     final response = await _supabase.functions.invoke(
       'surf-query',
@@ -47,8 +53,10 @@ class AiService {
         'current': current,
         'dailySummaries': dailySummaries,
         'prefs': prefs,
-        'location': {'name': locationName},
+        'location': location,
         'topWindows': topWindows,
+        'proScore': proScore,
+        'proCondition': proCondition,
       },
     );
 
@@ -63,9 +71,11 @@ class AiService {
     required String current,
     required String daily,
     Map<String, dynamic>? prefs,
-    required String locationName,
+    required Map<String, dynamic> location,
     required String ruleBased,
     String? bestWindow,
+    required int proScore,
+    required String proCondition,
   }) async {
     try {
       final response = await _supabase.functions.invoke(
@@ -74,9 +84,11 @@ class AiService {
           'current': current,
           'daily': daily,
           'prefs': prefs,
-          'location': {'name': locationName},
+          'location': location,
           'ruleBased': ruleBased,
           if (bestWindow != null) 'bestWindow': bestWindow,
+          'proScore': proScore,
+          'proCondition': proCondition,
         },
       );
 

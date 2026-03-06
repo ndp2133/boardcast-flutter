@@ -30,7 +30,6 @@ class _PreferencesEditorSheetState extends State<_PreferencesEditorSheet> {
   late double _minWave;
   late double _maxWave;
   late double _maxWind;
-  late String _windDir;
   late String _tide;
 
   @override
@@ -40,7 +39,6 @@ class _PreferencesEditorSheetState extends State<_PreferencesEditorSheet> {
     _minWave = prefs.minWaveHeight ?? 0.3;
     _maxWave = prefs.maxWaveHeight ?? 2.0;
     _maxWind = prefs.maxWindSpeed ?? 25.0;
-    _windDir = prefs.preferredWindDir ?? 'any';
     _tide = prefs.preferredTide ?? 'any';
   }
 
@@ -135,17 +133,6 @@ class _PreferencesEditorSheetState extends State<_PreferencesEditorSheet> {
               onChanged: (v) => setState(() => _maxWind = v),
             ),
             const SizedBox(height: AppSpacing.s5),
-
-            // Wind direction chips
-            _buildChipGroup(
-              label: 'Wind Direction',
-              options: const ['offshore', 'onshore', 'any'],
-              displayLabels: const ['Offshore', 'Onshore', 'Any'],
-              selected: _windDir,
-              textColor: textColor,
-              onSelected: (v) => setState(() => _windDir = v),
-            ),
-            const SizedBox(height: AppSpacing.s4),
 
             // Tide preference chips
             _buildChipGroup(
@@ -293,7 +280,6 @@ class _PreferencesEditorSheetState extends State<_PreferencesEditorSheet> {
             minWaveHeight: _minWave,
             maxWaveHeight: _maxWave,
             maxWindSpeed: _maxWind,
-            preferredWindDir: _windDir,
             preferredTide: _tide,
           ),
         );

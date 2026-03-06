@@ -83,7 +83,6 @@ void main() {
       expect(result!.prefs.minWaveHeight, isNotNull);
       expect(result.prefs.maxWaveHeight, isNotNull);
       expect(result.prefs.maxWindSpeed, isNotNull);
-      expect(result.prefs.preferredWindDir, isNotNull);
       expect(result.prefs.preferredTide, 'any');
       expect(result.confidence, greaterThanOrEqualTo(0.25));
     });
@@ -118,32 +117,6 @@ void main() {
       );
       final result = inferPrefsFromSessions(sessions);
       expect(result!.confidence, equals(1.0));
-    });
-
-    test('wind direction inferred as offshore when majority offshore', () {
-      // Rockaway faces south (180°), offshore = 315-45
-      final sessions = List.generate(
-        6,
-        (i) => _makeSession(
-          waveHeight: 1.5,
-          windSpeed: 15,
-          windDirection: 0, // N wind = offshore at Rockaway
-        ),
-      );
-      final result = inferPrefsFromSessions(sessions);
-      expect(result!.prefs.preferredWindDir, 'offshore');
-    });
-
-    test('wind direction inferred as any when mixed', () {
-      final sessions = [
-        _makeSession(waveHeight: 1.5, windSpeed: 15, windDirection: 0),
-        _makeSession(waveHeight: 1.5, windSpeed: 15, windDirection: 90),
-        _makeSession(waveHeight: 1.5, windSpeed: 15, windDirection: 180),
-        _makeSession(waveHeight: 1.5, windSpeed: 15, windDirection: 270),
-        _makeSession(waveHeight: 1.5, windSpeed: 15, windDirection: 45),
-      ];
-      final result = inferPrefsFromSessions(sessions);
-      expect(result!.prefs.preferredWindDir, 'any');
     });
   });
 }

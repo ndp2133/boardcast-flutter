@@ -50,6 +50,10 @@ test/
 - **Syncfusion charts** (free community license) for dual-axis forecast charts
 - All business logic is identical to the PWA (same weights, thresholds, constants)
 
+## Dual-Codebase Parity (CRITICAL)
+
+This Flutter app shares business logic with `../boardcast/` (PWA). Any change to scoring, locations, skill defaults, or AI payloads MUST be mirrored in the PWA. See `../shared/` for canonical config and `.claude/rules/parity.md` for details.
+
 ## Data Sources
 
 Same as PWA:

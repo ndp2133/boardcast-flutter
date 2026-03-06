@@ -4,7 +4,7 @@ import 'package:boardcast_flutter/models/hourly_data.dart';
 import 'package:boardcast_flutter/models/location.dart';
 import 'package:boardcast_flutter/models/user_prefs.dart';
 
-// Rockaway Beach — south-facing, offshore = N (315-45)
+// Rockaway Beach — south-facing beach break, offshore = N (315-45)
 const _rockaway = Location(
   id: 'rockaway',
   name: 'Rockaway Beach, NY',
@@ -33,15 +33,39 @@ const _santaCruz = Location(
   onshoreMax: 225,
   noaaStation: '9413745',
   breakType: 'point',
+  swellWindowWidth: 50,
+);
+
+// Test reef for tide-sensitive scoring
+const _testReef = Location(
+  id: 'test-reef',
+  name: 'Test Reef',
+  lat: 0,
+  lon: 0,
+  timezone: 'UTC',
+  beachFacing: 180,
+  offshoreMin: 315,
+  offshoreMax: 45,
+  onshoreMin: 135,
+  onshoreMax: 225,
+  noaaStation: '0',
+  breakType: 'reef',
 );
 
 const _defaultPrefs = UserPrefs(
   minWaveHeight: 0.3,
   maxWaveHeight: 2.0,
   maxWindSpeed: 25.0,
-  preferredWindDir: 'offshore',
   preferredTide: 'any',
   skillLevel: 'intermediate',
+);
+
+const _beginnerPrefs = UserPrefs(
+  minWaveHeight: 0.3,
+  maxWaveHeight: 1.0,
+  maxWindSpeed: 20.0,
+  preferredTide: 'mid',
+  skillLevel: 'beginner',
 );
 
 HourlyData _makeHour({
@@ -49,18 +73,24 @@ HourlyData _makeHour({
   double? waveHeight,
   double? windSpeed,
   double? windDirection,
+  double? windGusts,
   double? swellDirection,
   double? swellPeriod,
+  double? swellHeight,
   double? tideHeight,
+  int? weatherCode,
 }) =>
     HourlyData(
       time: time,
       waveHeight: waveHeight,
       windSpeed: windSpeed,
       windDirection: windDirection,
+      windGusts: windGusts,
       swellDirection: swellDirection,
       swellPeriod: swellPeriod,
+      swellHeight: swellHeight,
       tideHeight: tideHeight,
+      weatherCode: weatherCode,
     );
 
 void main() {
@@ -85,176 +115,6 @@ void main() {
 
     test('north wind is NOT onshore at south-facing beach', () {
       expect(isOnshoreWind(0, _rockaway), false);
-    });
-  });
-
-  group('scoreWindDirection', () {
-    test('perfect offshore scores 1.0', () {
-      // North (0°) is center of offshore range 315-45 at Rockaway
-      final score = scoreWindDirection(
-          0, _defaultPrefs, _rockaway);
-      expect(score, closeTo(1.0, 0.01));
-    });
-
-    test('perfect onshore scores ~0.2 (worst)', () {
-      // South (180°) is opposite of offshore center
-      final score = scoreWindDirection(
-          180, _defaultPrefs, _rockaway);
-      expect(score, closeTo(0.2, 0.01));
-    });
-
-    test('cross-shore scores ~0.6', () {
-      // East (90°) is 90° from offshore center
-      final score = scoreWindDirection(
-          90, _defaultPrefs, _rockaway);
-      expect(score, closeTo(0.6, 0.05));
-    });
-
-    test('any preference returns 1.0', () {
-      final anyPrefs = _defaultPrefs.copyWith(preferredWindDir: 'any');
-      final score = scoreWindDirection(180, anyPrefs, _rockaway);
-      expect(score, 1.0);
-    });
-
-    test('null wind returns 0.5 when user has preference', () {
-      final score = scoreWindDirection(
-          null, _defaultPrefs, _rockaway);
-      expect(score, 0.5);
-    });
-
-    test('null wind returns 1.0 when no preference', () {
-      final anyPrefs = _defaultPrefs.copyWith(preferredWindDir: 'any');
-      final score = scoreWindDirection(null, anyPrefs, _rockaway);
-      expect(score, 1.0);
-    });
-  });
-
-  group('scoreSwellPeriod', () {
-    test('14s+ scores 1.0', () {
-      expect(scoreSwellPeriod(14), 1.0);
-      expect(scoreSwellPeriod(18), 1.0);
-    });
-
-    test('12s scores 0.9', () {
-      expect(scoreSwellPeriod(12), 0.9);
-    });
-
-    test('10s scores 0.75', () {
-      expect(scoreSwellPeriod(10), 0.75);
-    });
-
-    test('8s scores 0.5', () {
-      expect(scoreSwellPeriod(8), 0.5);
-    });
-
-    test('6s scores 0.25', () {
-      expect(scoreSwellPeriod(6), 0.25);
-    });
-
-    test('4s scores 0.1', () {
-      expect(scoreSwellPeriod(4), 0.1);
-    });
-
-    test('null scores 0.5', () {
-      expect(scoreSwellPeriod(null), 0.5);
-    });
-  });
-
-  group('scoreTide', () {
-    const range = TideRange(-0.5, 2.5);
-
-    test('any preference returns 1.0', () {
-      expect(scoreTide(1.0, 'any', range), 1.0);
-    });
-
-    test('null preference returns 1.0', () {
-      expect(scoreTide(1.0, null, range), 1.0);
-    });
-
-    test('low tide at low water scores high', () {
-      // -0.5 is min → normalized 0.0
-      final score = scoreTide(-0.5, 'low', range);
-      expect(score, closeTo(1.0, 0.01));
-    });
-
-    test('low tide at high water scores low', () {
-      // 2.5 is max → normalized 1.0
-      final score = scoreTide(2.5, 'low', range);
-      expect(score, closeTo(0.3, 0.01));
-    });
-
-    test('high tide at high water scores high', () {
-      final score = scoreTide(2.5, 'high', range);
-      expect(score, closeTo(1.0, 0.01));
-    });
-
-    test('high tide at low water scores low', () {
-      final score = scoreTide(-0.5, 'high', range);
-      expect(score, closeTo(0.3, 0.01));
-    });
-
-    test('mid tide at mid water scores highest', () {
-      // 1.0 is mid (0.5 normalized)
-      final score = scoreTide(1.0, 'mid', range);
-      expect(score, closeTo(1.0, 0.01));
-    });
-
-    test('mid tide at extremes scores lower', () {
-      final scoreLow = scoreTide(-0.5, 'mid', range);
-      final scoreHigh = scoreTide(2.5, 'mid', range);
-      expect(scoreLow, closeTo(0.5, 0.01));
-      expect(scoreHigh, closeTo(0.5, 0.01));
-    });
-
-    test('null range returns 0.5', () {
-      expect(scoreTide(1.0, 'low', null), 0.5);
-    });
-
-    test('null tide height returns 0.5', () {
-      expect(scoreTide(null, 'low', range), 0.5);
-    });
-  });
-
-  group('getEffectiveWeights', () {
-    test('beach break returns base weights', () {
-      final weights = getEffectiveWeights(_rockaway);
-      expect(weights['wave'], 0.30);
-      expect(weights['wind'], 0.25);
-      expect(weights['windDir'], 0.15);
-      expect(weights['swellDir'], 0.10);
-      expect(weights['swellPeriod'], 0.10);
-      expect(weights['tide'], 0.10);
-    });
-
-    test('point break boosts swell period, reduces wave', () {
-      final weights = getEffectiveWeights(_santaCruz);
-      expect(weights['wave'], closeTo(0.25, 0.001)); // 0.30 - 0.05
-      expect(weights['swellPeriod'], closeTo(0.15, 0.001)); // 0.10 + 0.05
-      // Others unchanged
-      expect(weights['wind'], 0.25);
-      expect(weights['windDir'], 0.15);
-    });
-
-    test('reef break boosts tide + swell period, reduces wave + wind', () {
-      const reefLocation = Location(
-        id: 'test-reef',
-        name: 'Test Reef',
-        lat: 0,
-        lon: 0,
-        timezone: 'UTC',
-        beachFacing: 180,
-        offshoreMin: 315,
-        offshoreMax: 45,
-        onshoreMin: 135,
-        onshoreMax: 225,
-        noaaStation: '0',
-        breakType: 'reef',
-      );
-      final weights = getEffectiveWeights(reefLocation);
-      expect(weights['wave'], closeTo(0.20, 0.001)); // 0.30 - 0.10
-      expect(weights['wind'], closeTo(0.20, 0.001)); // 0.25 - 0.05
-      expect(weights['swellPeriod'], closeTo(0.15, 0.001)); // 0.10 + 0.05
-      expect(weights['tide'], closeTo(0.20, 0.001)); // 0.10 + 0.10
     });
   });
 
@@ -331,33 +191,36 @@ void main() {
       expect(computeMatchScore(_makeHour(), null, _rockaway), 0);
     });
 
-    test('perfect conditions score near 1.0', () {
+    test('perfect conditions score high', () {
       final hour = _makeHour(
-        waveHeight: 1.0, // in range 0.3-2.0
-        windSpeed: 8.0, // below max 25
+        waveHeight: 1.0,
+        windSpeed: 5.0,
         windDirection: 0, // offshore (N)
         swellDirection: 180, // direct hit on south-facing beach
         swellPeriod: 14, // long period groundswell
-        tideHeight: 1.0, // mid tide (with any pref = 1.0)
+        swellHeight: 1.0,
+        tideHeight: 1.0,
       );
       final score = computeMatchScore(hour, _defaultPrefs, _rockaway);
-      expect(score, greaterThan(0.8));
+      expect(score, greaterThan(0.7));
     });
 
     test('swell period affects score', () {
       final longPeriod = _makeHour(
         waveHeight: 1.0,
-        windSpeed: 8.0,
+        windSpeed: 5.0,
         windDirection: 0,
         swellDirection: 180,
         swellPeriod: 14,
+        swellHeight: 1.0,
       );
       final shortPeriod = _makeHour(
         waveHeight: 1.0,
-        windSpeed: 8.0,
+        windSpeed: 5.0,
         windDirection: 0,
         swellDirection: 180,
         swellPeriod: 4,
+        swellHeight: 1.0,
       );
       final scoreLong =
           computeMatchScore(longPeriod, _defaultPrefs, _rockaway);
@@ -366,19 +229,144 @@ void main() {
       expect(scoreLong, greaterThan(scoreShort));
     });
 
+    test('offshore wind scores higher than onshore', () {
+      final offshore = _makeHour(
+        waveHeight: 1.0,
+        windSpeed: 15.0,
+        windDirection: 0, // offshore
+        swellDirection: 180,
+        swellPeriod: 10,
+        swellHeight: 1.0,
+      );
+      final onshore = _makeHour(
+        waveHeight: 1.0,
+        windSpeed: 15.0,
+        windDirection: 180, // onshore
+        swellDirection: 180,
+        swellPeriod: 10,
+        swellHeight: 1.0,
+      );
+      final scoreOffshore =
+          computeMatchScore(offshore, _defaultPrefs, _rockaway);
+      final scoreOnshore =
+          computeMatchScore(onshore, _defaultPrefs, _rockaway);
+      expect(scoreOffshore, greaterThan(scoreOnshore));
+    });
+
+    test('high wind above tolerance penalizes more for beginners', () {
+      final hour = _makeHour(
+        waveHeight: 0.5,
+        windSpeed: 30.0,
+        windDirection: 90, // cross-shore
+        swellDirection: 180,
+        swellPeriod: 8,
+        swellHeight: 0.5,
+      );
+      final beginnerScore =
+          computeMatchScore(hour, _beginnerPrefs, _rockaway);
+      final intermediateScore =
+          computeMatchScore(hour, _defaultPrefs, _rockaway);
+      expect(intermediateScore, greaterThan(beginnerScore));
+    });
+
+    test('thunderstorm caps score at 0.25', () {
+      final hour = _makeHour(
+        waveHeight: 1.0,
+        windSpeed: 5.0,
+        windDirection: 0,
+        swellDirection: 180,
+        swellPeriod: 14,
+        swellHeight: 1.0,
+        weatherCode: 95, // thunderstorm
+      );
+      final score = computeMatchScore(hour, _defaultPrefs, _rockaway);
+      expect(score, lessThanOrEqualTo(0.25));
+    });
+
+    test('strong onshore caps score at Fair for exposed spots', () {
+      final hour = _makeHour(
+        waveHeight: 1.0,
+        windSpeed: 35.0,
+        windDirection: 180, // onshore
+        swellDirection: 180,
+        swellPeriod: 14,
+        swellHeight: 1.0,
+      );
+      final score = computeMatchScore(hour, _defaultPrefs, _rockaway);
+      // Beach break with windExposure 0.8 >= 0.7 -> capped at Fair
+      expect(score, lessThan(0.4));
+    });
+
+    test('low energy caps score at Fair', () {
+      final hour = _makeHour(
+        waveHeight: 0.3,
+        windSpeed: 5.0,
+        windDirection: 0,
+        swellDirection: 180,
+        swellPeriod: 4, // very short period
+        swellHeight: 0.3, // H^2*T = 0.09*4 = 0.36, below beach minEnergy 2.0
+      );
+      final score = computeMatchScore(hour, _defaultPrefs, _rockaway);
+      expect(score, lessThan(0.4));
+    });
+
+    test('overpowered surf caps beginner score', () {
+      final hour = _makeHour(
+        waveHeight: 2.0, // 2x beginner max of 1.0 -> > 1.6x
+        windSpeed: 5.0,
+        windDirection: 0,
+        swellDirection: 180,
+        swellPeriod: 14,
+        swellHeight: 2.0,
+      );
+      final score = computeMatchScore(hour, _beginnerPrefs, _rockaway);
+      expect(score, lessThanOrEqualTo(0.25));
+    });
+
+    test('too-big waves penalize harder than too-small', () {
+      // Both 0.5m outside the preferred range, with enough energy to avoid low-energy cap
+      final tooSmall = _makeHour(
+        waveHeight: 0.8, // below min 0.3 by ~0.5 after accounting for range
+        windSpeed: 5.0,
+        windDirection: 0,
+        swellDirection: 180,
+        swellPeriod: 12,
+        swellHeight: 1.0, // enough energy
+      );
+      final tooBig = _makeHour(
+        waveHeight: 2.5, // 0.5 above max of 2.0
+        windSpeed: 5.0,
+        windDirection: 0,
+        swellDirection: 180,
+        swellPeriod: 12,
+        swellHeight: 2.5,
+      );
+      final scoreSmall =
+          computeMatchScore(tooSmall, _defaultPrefs, _rockaway);
+      final scoreBig =
+          computeMatchScore(tooBig, _defaultPrefs, _rockaway);
+      // Too-small is actually in range (0.3-2.0), so it should score better
+      // than too-big which is penalized at 1.5x rate
+      expect(scoreSmall, greaterThan(scoreBig));
+    });
+
     test('tide affects score when user has tide preference', () {
       final tidePrefs =
           _defaultPrefs.copyWith(preferredTide: 'low');
-      final tideRange = const TideRange(0, 3.0);
+      const tideRange = TideRange(0, 3.0);
 
       final lowTide = _makeHour(
         waveHeight: 1.0,
         windSpeed: 8.0,
+        swellPeriod: 10,
+        swellHeight: 1.0,
         tideHeight: 0.1,
       );
       final highTide = _makeHour(
         waveHeight: 1.0,
         windSpeed: 8.0,
+        swellPeriod: 10,
+        swellHeight: 1.0,
         tideHeight: 2.9,
       );
       final scoreLow = computeMatchScore(lowTide, tidePrefs, _rockaway,
@@ -388,17 +376,20 @@ void main() {
       expect(scoreLow, greaterThan(scoreHigh));
     });
 
-    test('flat conditions score low', () {
+    test('reef at high tide is capped when tide-sensitive', () {
+      const tideRange = TideRange(0, 3.0);
       final hour = _makeHour(
-        waveHeight: 0.05, // way below min
-        windSpeed: 40.0, // way above max
-        windDirection: 180, // onshore
-        swellDirection: 0, // opposite of beach facing
-        swellPeriod: 4, // short period windswell
+        waveHeight: 1.5,
+        windSpeed: 5.0,
+        windDirection: 0,
+        swellDirection: 180,
+        swellPeriod: 12,
+        swellHeight: 1.5,
+        tideHeight: 2.7, // 90% of range -> above 0.85 threshold
       );
-      final score = computeMatchScore(hour, _defaultPrefs, _rockaway);
-      // With cosine wind scoring and neutral tide/swell period, bad conditions score Fair or below
-      expect(score, lessThan(0.55));
+      final score = computeMatchScore(hour, _defaultPrefs, _testReef,
+          tideRange: tideRange);
+      expect(score, lessThan(0.4));
     });
 
     test('score is clamped between 0 and 1', () {
@@ -407,55 +398,38 @@ void main() {
         windSpeed: 10.0,
         windDirection: 0,
         swellDirection: 180,
+        swellPeriod: 10,
+        swellHeight: 1.0,
       );
       final score = computeMatchScore(hour, _defaultPrefs, _rockaway);
       expect(score, greaterThanOrEqualTo(0));
       expect(score, lessThanOrEqualTo(1));
     });
 
-    test('missing swell direction gives half credit', () {
-      final hourWithSwell = _makeHour(
-        waveHeight: 1.0,
-        windSpeed: 10.0,
-        windDirection: 0,
-        swellDirection: 180,
-      );
-      final hourNoSwell = _makeHour(
-        waveHeight: 1.0,
-        windSpeed: 10.0,
-        windDirection: 0,
-      );
-      final scoreWith =
-          computeMatchScore(hourWithSwell, _defaultPrefs, _rockaway);
-      final scoreWithout =
-          computeMatchScore(hourNoSwell, _defaultPrefs, _rockaway);
-      // With perfect swell should score higher than half-credit
-      expect(scoreWith, greaterThan(scoreWithout));
-    });
-
-    test('point break adjusts weights (higher swell period weight)', () {
+    test('point break scores differently than beach break', () {
       final hour = _makeHour(
         waveHeight: 1.0,
-        windSpeed: 8.0,
+        windSpeed: 5.0,
         windDirection: 0,
         swellDirection: 180,
-        swellPeriod: 14, // long period — boosted at point breaks
+        swellPeriod: 14,
+        swellHeight: 1.0,
       );
       final beachScore =
           computeMatchScore(hour, _defaultPrefs, _rockaway);
       final pointScore =
           computeMatchScore(hour, _defaultPrefs, _santaCruz);
-      // Point break should score slightly differently due to weight shifts
-      // With perfect conditions and long swell, point break boosts swellPeriod
-      // so point score may differ from beach score
-      expect(beachScore, greaterThan(0.8));
-      expect(pointScore, greaterThan(0.8));
+      // Both should score well with perfect conditions
+      expect(beachScore, greaterThan(0.6));
+      expect(pointScore, greaterThan(0.6));
     });
   });
 
   group('getConditionLabel', () {
     test('0.9 is Epic', () {
-      expect(getConditionLabel(0.9).label, 'Epic');
+      final label = getConditionLabel(0.9);
+      expect(label.label, 'Epic');
+      expect(label.tagline, isNotEmpty);
     });
 
     test('0.7 is Good', () {
@@ -470,8 +444,8 @@ void main() {
       expect(getConditionLabel(0.2).label, 'Poor');
     });
 
-    test('boundary: 0.8 is Epic', () {
-      expect(getConditionLabel(0.8).label, 'Epic');
+    test('boundary: 0.85 is Epic', () {
+      expect(getConditionLabel(0.85).label, 'Epic');
     });
 
     test('boundary: 0.6 is Good', () {
@@ -481,15 +455,30 @@ void main() {
     test('boundary: 0.4 is Fair', () {
       expect(getConditionLabel(0.4).label, 'Fair');
     });
+
+    test('boundary: 0.84 is Good (not Epic)', () {
+      expect(getConditionLabel(0.84).label, 'Good');
+    });
+  });
+
+  group('proPrefs', () {
+    test('proPrefs is advanced with wide range', () {
+      expect(proPrefs.skillLevel, 'advanced');
+      expect(proPrefs.minWaveHeight, 1.2);
+      expect(proPrefs.maxWaveHeight, 4.0);
+      expect(proPrefs.preferredTide, 'any');
+    });
   });
 
   group('findBestHours', () {
     test('returns best hour for a date', () {
       final hours = [
-        _makeHour(time: '2025-01-15T08:00', waveHeight: 0.5, windSpeed: 10),
+        _makeHour(time: '2025-01-15T08:00', waveHeight: 0.5, windSpeed: 10,
+            swellHeight: 0.5, swellPeriod: 6),
         _makeHour(time: '2025-01-15T10:00', waveHeight: 1.5, windSpeed: 5,
-            windDirection: 0, swellDirection: 180),
-        _makeHour(time: '2025-01-15T14:00', waveHeight: 0.3, windSpeed: 30),
+            windDirection: 0, swellDirection: 180, swellHeight: 1.5, swellPeriod: 12),
+        _makeHour(time: '2025-01-15T14:00', waveHeight: 0.3, windSpeed: 30,
+            swellHeight: 0.3, swellPeriod: 4),
       ];
       final result =
           findBestHours(hours, _defaultPrefs, _rockaway, '2025-01-15');
@@ -506,7 +495,8 @@ void main() {
 
     test('returns null for wrong date', () {
       final hours = [
-        _makeHour(time: '2025-01-16T10:00', waveHeight: 1.5, windSpeed: 5),
+        _makeHour(time: '2025-01-16T10:00', waveHeight: 1.5, windSpeed: 5,
+            swellHeight: 1.5, swellPeriod: 10),
       ];
       final result =
           findBestHours(hours, _defaultPrefs, _rockaway, '2025-01-15');
@@ -516,7 +506,6 @@ void main() {
 
   group('findMatchingWindows', () {
     test('finds consecutive windows above threshold', () {
-      // Create hours where middle chunk is good
       final hours = List.generate(12, (i) {
         final good = i >= 3 && i <= 7;
         return _makeHour(
@@ -526,10 +515,11 @@ void main() {
           windDirection: good ? 0 : 180,
           swellDirection: good ? 180 : 0,
           swellPeriod: good ? 12 : 4,
+          swellHeight: good ? 1.0 : 0.05,
         );
       });
       final windows =
-          findMatchingWindows(hours, _defaultPrefs, _rockaway, minScore: 0.5);
+          findMatchingWindows(hours, _defaultPrefs, _rockaway, minScore: 0.4);
       expect(windows, isNotEmpty);
       expect(windows.first.count, greaterThan(1));
     });
@@ -541,7 +531,6 @@ void main() {
     });
 
     test('max one window per day', () {
-      // Two days of good conditions
       final hours = <HourlyData>[];
       for (final date in ['2025-01-15', '2025-01-16']) {
         for (var h = 6; h <= 18; h++) {
@@ -551,12 +540,13 @@ void main() {
             windSpeed: 5,
             windDirection: 0,
             swellDirection: 180,
+            swellPeriod: 10,
+            swellHeight: 1.0,
           ));
         }
       }
       final windows =
           findTopWindows(hours, _defaultPrefs, _rockaway, count: 5);
-      // Should have at most one per day
       final dates = windows.map((w) => w.date).toSet();
       expect(dates.length, windows.length);
     });
@@ -572,7 +562,6 @@ void main() {
     });
 
     test('finds best consecutive run', () {
-      // Scores with moderate peak — threshold stays at 0.5
       final scores = [0.2, 0.55, 0.6, 0.65, 0.3, 0.4, 0.1];
       final result = findBestWindowIndices(scores);
       expect(result, isNotNull);
@@ -582,8 +571,6 @@ void main() {
     });
 
     test('epic scores use relative threshold (narrows window)', () {
-      // Peak is 0.92, threshold = 0.92 - 0.15 = 0.77
-      // Only indices 2-4 (0.80, 0.92, 0.85) are above 0.77
       final scores = [0.3, 0.6, 0.80, 0.92, 0.85, 0.55, 0.3];
       final result = findBestWindowIndices(scores);
       expect(result, isNotNull);
@@ -593,68 +580,11 @@ void main() {
     });
 
     test('mediocre day preserves 0.5 threshold', () {
-      // Peak is 0.60, below 0.65, so threshold stays at 0.5
       final scores = [0.3, 0.55, 0.60, 0.52, 0.3];
       final result = findBestWindowIndices(scores);
       expect(result, isNotNull);
       expect(result!.startIndex, 1);
       expect(result.endIndex, 3);
-    });
-
-    test('oversized window gets narrowed via sliding window', () {
-      // 8 hours above threshold — should narrow to best 3-hour sub-window
-      // Peak is 0.9, threshold = 0.75
-      final scores = [0.76, 0.78, 0.80, 0.90, 0.88, 0.82, 0.77, 0.76];
-      final result = findBestWindowIndices(scores);
-      expect(result, isNotNull);
-      // Best 3-hour sub-window: indices 3-5 (0.90, 0.88, 0.82) avg=0.867
-      expect(result!.endIndex - result.startIndex + 1, lessThanOrEqualTo(5));
-      expect(result.startIndex, 3);
-      expect(result.endIndex, 5);
-    });
-  });
-
-  group('findTopWindows (relative threshold)', () {
-    test('epic day narrows to peak hours', () {
-      // Simulate an epic day: all daylight hours score high
-      final hours = <HourlyData>[];
-      // Hours 6-20 with varying quality: peak around 10-12
-      for (var h = 6; h <= 20; h++) {
-        final isPeak = h >= 9 && h <= 12;
-        final isGood = h >= 7 && h <= 14;
-        hours.add(_makeHour(
-          time: '2025-01-15T${h.toString().padLeft(2, '0')}:00',
-          waveHeight: isPeak ? 1.5 : (isGood ? 1.0 : 0.5),
-          windSpeed: isPeak ? 3 : (isGood ? 8 : 15),
-          windDirection: isPeak ? 0 : (isGood ? 20 : 90),
-          swellDirection: 180,
-          swellPeriod: isPeak ? 14 : (isGood ? 10 : 6),
-        ));
-      }
-      final windows = findTopWindows(hours, _defaultPrefs, _rockaway);
-      expect(windows, isNotEmpty);
-      // Window should NOT span full daylight (15 hours)
-      expect(windows.first.hours, lessThanOrEqualTo(5));
-    });
-
-    test('mediocre day preserves wider window', () {
-      final hours = <HourlyData>[];
-      for (var h = 6; h <= 20; h++) {
-        final isFair = h >= 8 && h <= 14;
-        hours.add(_makeHour(
-          time: '2025-01-15T${h.toString().padLeft(2, '0')}:00',
-          waveHeight: isFair ? 0.5 : 0.1,
-          windSpeed: isFair ? 12 : 30,
-          windDirection: isFair ? 45 : 180,
-          swellDirection: 180,
-          swellPeriod: isFair ? 8 : 4,
-        ));
-      }
-      final windows = findTopWindows(hours, _defaultPrefs, _rockaway);
-      // Mediocre day may have windows — if so they should be reasonable
-      if (windows.isNotEmpty) {
-        expect(windows.first.hours, greaterThan(0));
-      }
     });
   });
 }

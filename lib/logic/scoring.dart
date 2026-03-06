@@ -1,5 +1,6 @@
-/// Condition scoring engine — direct port of utils/conditions.js
-/// Key difference from JS: Location is passed explicitly (no global state).
+/// Condition scoring engine — v2.1 port of utils/conditions.js
+/// Multiplicative wind model, wave energy, break-specific parameters.
+/// Key difference from JS: Location + TideRange passed explicitly (no global state).
 import 'dart:math';
 import '../models/hourly_data.dart';
 import '../models/location.dart';
@@ -9,46 +10,105 @@ import '../models/user_prefs.dart';
 const daylightStart = 6; // 6 AM
 const daylightEnd = 21; // 9 PM
 
-// Scoring weights (must sum to 1.0)
-const _scoreWeights = {
-  'wave': 0.30,
-  'wind': 0.25,
-  'windDir': 0.15,
-  'swellDir': 0.10,
-  'swellPeriod': 0.10,
-  'tide': 0.10,
-};
-
-// Weight adjustments by break type (deltas from base weights)
-const _breakAdjustments = {
-  'beach': <String, double>{},
-  'point': {'swellPeriod': 0.05, 'wave': -0.05},
-  'reef': {'tide': 0.10, 'swellPeriod': 0.05, 'wave': -0.10, 'wind': -0.05},
-};
-
-/// Get effective scoring weights adjusted for location's break type
-Map<String, double> getEffectiveWeights(Location location) {
-  final adjustments = _breakAdjustments[location.breakType];
-  if (adjustments == null || adjustments.isEmpty) {
-    return Map.of(_scoreWeights);
-  }
-  final weights = Map.of(_scoreWeights);
-  for (final entry in adjustments.entries) {
-    weights[entry.key] = (weights[entry.key] ?? 0) + entry.value;
-  }
-  return weights;
-}
-
 // Condition label thresholds
-const _epicThreshold = 0.8;
+const _epicThreshold = 0.85;
 const _goodThreshold = 0.6;
 const _fairThreshold = 0.4;
 
+// Break-type defaults for spot-specific scoring parameters
+const _breakDefaults = <String, _SpotParams>{
+  'beach': _SpotParams(
+      swellWindowWidth: 120,
+      tideSensitivity: 0.3,
+      windExposure: 0.8,
+      minWaveEnergy: 2.0),
+  'point': _SpotParams(
+      swellWindowWidth: 60,
+      tideSensitivity: 0.5,
+      windExposure: 0.5,
+      minWaveEnergy: 4.0),
+  'reef': _SpotParams(
+      swellWindowWidth: 70,
+      tideSensitivity: 0.9,
+      windExposure: 0.6,
+      minWaveEnergy: 6.0),
+};
+
+// Base score component weights (sum to 1.0)
+const _baseWeightHeight = 0.40;
+const _baseWeightSwellDir = 0.30;
+const _baseWeightSwellQuality = 0.30;
+
+// Skill-based wind sensitivity: scales penalties only (not offshore bonus)
+const _windSensitivity = <String, double>{
+  'beginner': 1.3,
+  'intermediate': 1.0,
+  'advanced': 0.75,
+};
+
+// Power thresholds by skill for safety cap (H^2 x T)
+const _powerThreshold = <String, double>{
+  'beginner': 15,
+  'intermediate': 40,
+  'advanced': double.infinity,
+};
+
+// Dynamic taglines
+const _taglines = <String, List<String>>{
+  'epic': [
+    "Rare alignment — don't miss it",
+    'About as good as it gets here',
+    'Drop everything and go',
+  ],
+  'good': [
+    'Solid session ahead',
+    'Worth getting wet',
+    'Conditions are dialed',
+  ],
+  'fair': [
+    'Rideable, not ideal',
+    'Fun if you lower expectations',
+    'Better than the couch',
+  ],
+  'poor': [
+    'Save your energy',
+    'Not worth the paddle',
+    'Check back later',
+  ],
+};
+
+class _SpotParams {
+  final double swellWindowWidth;
+  final double tideSensitivity;
+  final double windExposure;
+  final double minWaveEnergy;
+  const _SpotParams({
+    required this.swellWindowWidth,
+    required this.tideSensitivity,
+    required this.windExposure,
+    required this.minWaveEnergy,
+  });
+}
+
+_SpotParams _getSpotParams(Location location) {
+  final defaults = _breakDefaults[location.breakType] ?? _breakDefaults['beach']!;
+  return _SpotParams(
+    swellWindowWidth:
+        location.swellWindowWidth ?? defaults.swellWindowWidth,
+    tideSensitivity:
+        location.tideSensitivity ?? defaults.tideSensitivity,
+    windExposure: location.windExposure ?? defaults.windExposure,
+    minWaveEnergy: location.minWaveEnergy ?? defaults.minWaveEnergy,
+  );
+}
+
+// --- Wind angle helpers ---
+
 /// Check if a wind degree falls within a range, handling wrap-around at 360
-bool _inWindRange(double deg, double min, double max) {
-  if (min <= max) return deg >= min && deg <= max;
+bool _inWindRange(double deg, double rangeMin, double rangeMax) {
+  if (rangeMin <= rangeMax) return deg >= rangeMin && deg <= rangeMax;
   // Wrap-around (e.g., 315 to 45 crosses 0)
-  return deg >= min || deg <= max;
+  return deg >= rangeMin || deg <= rangeMax;
 }
 
 bool isOffshoreWind(double windDegrees, Location location) {
@@ -59,13 +119,10 @@ bool isOnshoreWind(double windDegrees, Location location) {
   return _inWindRange(windDegrees, location.onshoreMin, location.onshoreMax);
 }
 
-// --- Wind direction gradient scoring ---
-
 /// Center angle of a min/max range (handles wrap-around at 360)
-double rangeCenterAngle(double min, double max) {
-  if (min <= max) return (min + max) / 2;
-  // Wraps around 0 (e.g., 315-45) — unwrap, average, re-mod
-  return ((min + max + 360) / 2) % 360;
+double rangeCenterAngle(double rangeMin, double rangeMax) {
+  if (rangeMin <= rangeMax) return (rangeMin + rangeMax) / 2;
+  return ((rangeMin + rangeMax + 360) / 2) % 360;
 }
 
 /// Shortest angular distance between two bearings (0-180)
@@ -74,39 +131,119 @@ double angularDistance(double a, double b) {
   return diff > 180 ? 360 - diff : diff;
 }
 
-/// Smooth wind direction score: cosine falloff from ideal center
-/// 0 deg from ideal -> 1.0, 90 deg -> 0.6, 180 deg -> 0.2
-double scoreWindDirection(
-    double? windDeg, UserPrefs prefs, Location location) {
-  // User doesn't care about wind direction → perfect score
-  if (prefs.preferredWindDir == null || prefs.preferredWindDir == 'any') return 1.0;
-  // Missing data → neutral score (not perfect)
-  if (windDeg == null) return 0.5;
+// --- Wave energy proxy (H^2 x T) ---
 
-  double idealCenter;
-  if (prefs.preferredWindDir == 'offshore') {
-    idealCenter =
-        rangeCenterAngle(location.offshoreMin, location.offshoreMax);
-  } else {
-    idealCenter =
-        rangeCenterAngle(location.onshoreMin, location.onshoreMax);
-  }
-
-  final dist = angularDistance(windDeg, idealCenter);
-  final distRad = dist * pi / 180;
-  return 0.6 + 0.4 * cos(distRad);
+double _computeWaveEnergy(HourlyData hourData) {
+  final h = hourData.swellHeight ?? hourData.waveHeight ?? 0;
+  final t = hourData.swellPeriod ?? hourData.wavePeriod ?? 0;
+  return h * h * t;
 }
 
-// --- Swell period scoring (longer is always better) ---
+// --- Component scoring ---
 
-double scoreSwellPeriod(double? periodSeconds) {
-  if (periodSeconds == null) return 0.5;
-  if (periodSeconds >= 14) return 1.0;
-  if (periodSeconds >= 12) return 0.9;
-  if (periodSeconds >= 10) return 0.75;
-  if (periodSeconds >= 8) return 0.5;
-  if (periodSeconds >= 6) return 0.25;
-  return 0.1;
+/// Wave height match against user preferences (0-1)
+/// Decay scaled by range width; too-big penalizes harder than too-small
+double _scoreWaveHeight(double? wh, UserPrefs prefs) {
+  if (wh == null || prefs.minWaveHeight == null || prefs.maxWaveHeight == null) {
+    return 0.5;
+  }
+  if (wh >= prefs.minWaveHeight! && wh <= prefs.maxWaveHeight!) return 1.0;
+  final rangeWidth = max(0.3, prefs.maxWaveHeight! - prefs.minWaveHeight!);
+  if (wh < prefs.minWaveHeight!) {
+    // Too small: linear decay proportional to range width
+    final dist = prefs.minWaveHeight! - wh;
+    return max(0.0, 1 - dist / rangeWidth);
+  }
+  // Too big: steeper decay (1.5x penalty) — oversized surf is worse than undersized
+  final dist = wh - prefs.maxWaveHeight!;
+  return max(0.0, 1 - 1.5 * dist / rangeWidth);
+}
+
+/// Swell quality based on period (0-1): longer period = more powerful, better shaped waves
+double _scoreSwellQuality(HourlyData hourData) {
+  final period = hourData.swellPeriod ?? hourData.wavePeriod ?? 0;
+  if (period >= 14) return 1.0;
+  if (period >= 12) return 0.85;
+  if (period >= 10) return 0.65;
+  if (period >= 8) return 0.45;
+  if (period >= 6) return 0.25;
+  if (period > 0) return 0.1;
+  return 0;
+}
+
+/// Swell direction match (0-1) with per-spot swell window width
+double _scoreSwellDirection(
+    double? sd, Location location, _SpotParams spotParams) {
+  if (sd == null) return 0.5;
+
+  var diff = (sd - location.beachFacing).abs();
+  if (diff > 180) diff = 360 - diff;
+
+  final halfWindow = spotParams.swellWindowWidth / 2;
+  final sweetSpot = halfWindow * 0.3;
+
+  // Within sweet spot: perfect
+  if (diff <= sweetSpot) return 1.0;
+
+  // Outside window: drops quickly toward 0
+  if (diff >= halfWindow) {
+    final overshoot = diff - halfWindow;
+    return max(0.0, 0.3 * (1 - overshoot / 90));
+  }
+
+  // Within window but outside sweet spot: linear decay from 1.0 to 0.3
+  final t = (diff - sweetSpot) / (halfWindow - sweetSpot);
+  return 1.0 - 0.7 * t;
+}
+
+/// Wind multiplier (floor-1.0): wind degrades wave quality.
+/// Uses maxWindSpeed as threshold, skill as slope beyond that.
+/// Offshore bonus is objective (not skill-scaled). Penalties are skill-scaled.
+double _scoreWind(HourlyData hourData, Location location,
+    _SpotParams spotParams, String? skillLevel, double? maxWindTolerance) {
+  final ws = hourData.windSpeed;
+  final gusts = hourData.windGusts;
+  final wd = hourData.windDirection;
+  final exposure = spotParams.windExposure;
+  final sensitivity = _windSensitivity[skillLevel] ?? 1.0;
+
+  // Exposure-conditional floor: 0.15 for fully exposed, 0.25 for sheltered
+  final floor = 0.15 + 0.10 * (1 - exposure);
+
+  if (ws == null) return 0.7;
+
+  // Speed penalty: excess wind beyond user's tolerance, skill as slope
+  final baseDecay = 0.012 + 0.006 * exposure;
+  double speedFactor;
+  if (maxWindTolerance != null && ws > maxWindTolerance) {
+    final excess = ws - maxWindTolerance;
+    final basePenalty = maxWindTolerance * baseDecay * 0.5;
+    final excessPenalty = excess * baseDecay * sensitivity;
+    speedFactor = max(floor, 1.0 - basePenalty - excessPenalty);
+  } else {
+    // Below tolerance: light objective decay (not skill-scaled)
+    speedFactor = max(floor, 1.0 - ws * baseDecay * 0.5);
+  }
+
+  // Gust penalty: gusty conditions are worse than steady wind (skill-scaled)
+  double gustPenalty = 0;
+  if (gusts != null && gusts > ws + 5) {
+    gustPenalty = min(0.15, (gusts - ws) * 0.004 * sensitivity);
+  }
+
+  // Direction: offshore bonus is objective, onshore penalty is skill-scaled
+  double dirMod = 0;
+  if (wd != null) {
+    final offshoreCenter =
+        rangeCenterAngle(location.offshoreMin, location.offshoreMax);
+    final dist = angularDistance(wd, offshoreCenter);
+    final offshoreness = cos(dist * pi / 180);
+    dirMod = offshoreness > 0
+        ? offshoreness * 0.08 // objective cleanup benefit
+        : offshoreness * 0.15 * exposure * sensitivity; // skill-sensitive downside
+  }
+
+  return min(1.0, max(floor, speedFactor - gustPenalty + dirMod));
 }
 
 // --- Tide scoring ---
@@ -131,22 +268,65 @@ class TideRange {
   }
 }
 
-/// Score tide based on user's preferred tide and normalized position
-double scoreTide(double? tideHeight, String? preferredTide, TideRange? range) {
-  if (preferredTide == null || preferredTide == 'any') return 1.0;
-  if (range == null || tideHeight == null) return 0.5;
+/// Tide modifier: break-specific fit + personal preference (-0.15 to +0.08)
+double _scoreTide(double? tideHeight, UserPrefs prefs, Location location,
+    _SpotParams spotParams, TideRange? range) {
+  if (tideHeight == null) return 0;
+  if (range == null) return 0;
 
   final span = range.max - range.min;
-  if (span == 0) return 0.5;
+  if (span == 0) return 0;
 
-  // Normalize to 0-1 (0 = low tide, 1 = high tide)
+  // Normalize: 0 = low tide, 1 = high tide
   final n = (tideHeight - range.min) / span;
+  final sensitivity = spotParams.tideSensitivity;
 
-  if (preferredTide == 'low') return 1.0 - 0.7 * n;
-  if (preferredTide == 'high') return 0.3 + 0.7 * n;
-  // 'mid' — quadratic: 1.0 at mid-tide, 0.5 at extremes
-  return 1.0 - 2.0 * pow(n - 0.5, 2);
+  // Break-specific tide fit (objective)
+  double breakFit = 0;
+  if (location.breakType == 'reef') {
+    if (n > 0.8) {
+      breakFit = -0.15 * sensitivity;
+    } else if (n > 0.6) {
+      breakFit = -0.08 * sensitivity;
+    } else if (n < 0.15) {
+      breakFit = -0.05 * sensitivity;
+    } else {
+      breakFit = 0.03 * sensitivity;
+    }
+  } else if (location.breakType == 'point') {
+    if (n > 0.8) {
+      breakFit = -0.06 * sensitivity;
+    } else if (n < 0.3) {
+      breakFit = 0.02 * sensitivity;
+    }
+  }
+
+  // Personal preference ("any" = no modifier, no free points)
+  double prefMod = 0;
+  final prefTide = prefs.preferredTide;
+  if (prefTide != null && prefTide != 'any') {
+    if (prefTide == 'low') {
+      prefMod = (0.5 - n) * 0.08;
+    } else if (prefTide == 'high') {
+      prefMod = (n - 0.5) * 0.08;
+    } else if (prefTide == 'mid') {
+      prefMod = (1.0 - 2.0 * (n - 0.5).abs()) * 0.06;
+    }
+  }
+
+  return breakFit + prefMod;
 }
+
+// --- Main scoring function ---
+
+/// Reference prefs for "pro perspective" comparison score
+const proPrefs = UserPrefs(
+  skillLevel: 'advanced',
+  minWaveHeight: 1.2,
+  maxWaveHeight: 4.0,
+  maxWindSpeed: 50,
+  preferredTide: 'any',
+);
 
 /// Compute match score (0-1) for an hour of conditions against user preferences.
 /// [location] is passed explicitly to keep this function pure.
@@ -159,55 +339,79 @@ double computeMatchScore(
 }) {
   if (hourData == null || prefs == null) return 0;
 
-  final weights = getEffectiveWeights(location);
-  var score = 0.0;
+  final spotParams = _getSpotParams(location);
 
-  // Wave height score
+  // Base quality components
+  final heightScore = _scoreWaveHeight(hourData.waveHeight, prefs);
+  final qualityScore = _scoreSwellQuality(hourData);
+  final dirScore =
+      _scoreSwellDirection(hourData.swellDirection, location, spotParams);
+
+  final baseScore = _baseWeightHeight * heightScore +
+      _baseWeightSwellDir * dirScore +
+      _baseWeightSwellQuality * qualityScore;
+
+  // Wind multiplier (threshold + skill as slope)
+  final windMult = _scoreWind(
+      hourData, location, spotParams, prefs.skillLevel, prefs.maxWindSpeed);
+
+  // Tide modifier
+  final tideMod =
+      _scoreTide(hourData.tideHeight, prefs, location, spotParams, tideRange);
+
+  var score = baseScore * windMult + tideMod;
+
+  // --- Hard caps (applied after main calculation) ---
+
+  final energy = _computeWaveEnergy(hourData);
+
+  // Minimum energy: spot isn't "turned on"
+  if (energy > 0 && energy < spotParams.minWaveEnergy) {
+    score = min(_fairThreshold - 0.01, score);
+  }
+
+  // Overpowered / oversized safety cap
+  final powerCap = _powerThreshold[prefs.skillLevel] ?? double.infinity;
   final wh = hourData.waveHeight;
-  if (wh != null && prefs.minWaveHeight != null && prefs.maxWaveHeight != null) {
-    if (wh >= prefs.minWaveHeight! && wh <= prefs.maxWaveHeight!) {
-      score += weights['wave']! * 1.0;
-    } else {
-      final dist = wh < prefs.minWaveHeight!
-          ? prefs.minWaveHeight! - wh
-          : wh - prefs.maxWaveHeight!;
-      score += weights['wave']! *
-          max(0.0, 1 - dist / prefs.maxWaveHeight!);
+  if (powerCap < double.infinity && energy > powerCap) {
+    score = min(_fairThreshold - 0.01, score);
+  }
+  if (prefs.maxWaveHeight != null && wh != null) {
+    if (wh > prefs.maxWaveHeight! * 1.6 && prefs.skillLevel == 'beginner') {
+      score = min(0.25, score);
+    } else if (wh > prefs.maxWaveHeight! * 1.35 && energy > powerCap * 0.7) {
+      score = min(_fairThreshold - 0.01, score);
     }
   }
 
-  // Wind speed score
-  final ws = hourData.windSpeed;
-  if (ws != null && prefs.maxWindSpeed != null) {
-    if (ws <= prefs.maxWindSpeed!) {
-      score += weights['wind']! * 1.0;
-    } else {
-      score += weights['wind']! *
-          max(0.0, 1 - (ws - prefs.maxWindSpeed!) / prefs.maxWindSpeed!);
+  // Thunderstorm/lightning hard cap (safety)
+  if (hourData.weatherCode != null && hourData.weatherCode! >= 95) {
+    score = min(0.25, score);
+  }
+
+  // Strong onshore hard cap (>30 km/h onshore -> max Fair at exposed, max Good elsewhere)
+  if (hourData.windSpeed != null &&
+      hourData.windDirection != null &&
+      isOnshoreWind(hourData.windDirection!, location) &&
+      hourData.windSpeed! > 30) {
+    final onshoreCap = spotParams.windExposure >= 0.7
+        ? _fairThreshold - 0.01
+        : _goodThreshold + 0.05;
+    score = min(onshoreCap, score);
+  }
+
+  // Wrong tide at tide-sensitive spots: hard cap
+  if (spotParams.tideSensitivity >= 0.7 && hourData.tideHeight != null) {
+    if (tideRange != null && tideRange.max - tideRange.min > 0) {
+      final n =
+          (hourData.tideHeight! - tideRange.min) / (tideRange.max - tideRange.min);
+      if (n > 0.85 && location.breakType == 'reef') {
+        score = min(_fairThreshold - 0.01, score);
+      } else if (n > 0.9) {
+        score = min(_fairThreshold - 0.01, score);
+      }
     }
   }
-
-  // Wind direction score (smooth cosine gradient)
-  score +=
-      weights['windDir']! * scoreWindDirection(hourData.windDirection, prefs, location);
-
-  // Swell direction score — how well does swell angle hit the beach?
-  final sd = hourData.swellDirection;
-  if (sd != null) {
-    var diff = (sd - location.beachFacing).abs();
-    if (diff > 180) diff = 360 - diff;
-    final diffRad = diff * pi / 180;
-    score += weights['swellDir']! * max(0.0, cos(diffRad));
-  } else {
-    score += weights['swellDir']! * 0.5;
-  }
-
-  // Swell period score (longer period = better quality waves)
-  score += weights['swellPeriod']! * scoreSwellPeriod(hourData.swellPeriod);
-
-  // Tide score (based on user preference)
-  score += weights['tide']! *
-      scoreTide(hourData.tideHeight, prefs.preferredTide, tideRange);
 
   return min(1.0, max(0.0, score));
 }
@@ -217,21 +421,32 @@ class ConditionLabel {
   final String label;
   final String cssClass;
   final String color;
+  final String tagline;
 
-  const ConditionLabel(this.label, this.cssClass, this.color);
+  const ConditionLabel(this.label, this.cssClass, this.color, this.tagline);
+}
+
+String _pickTagline(String cls, double score) {
+  final lines = _taglines[cls]!;
+  final idx = (score * 100).floor() % lines.length;
+  return lines[idx];
 }
 
 ConditionLabel getConditionLabel(double score) {
   if (score >= _epicThreshold) {
-    return const ConditionLabel('Epic', 'epic', '#22c55e');
+    return ConditionLabel(
+        'Epic', 'epic', '#22c55e', _pickTagline('epic', score));
   }
   if (score >= _goodThreshold) {
-    return const ConditionLabel('Good', 'good', '#3b82f6');
+    return ConditionLabel(
+        'Good', 'good', '#3b82f6', _pickTagline('good', score));
   }
   if (score >= _fairThreshold) {
-    return const ConditionLabel('Fair', 'fair', '#f59e0b');
+    return ConditionLabel(
+        'Fair', 'fair', '#f59e0b', _pickTagline('fair', score));
   }
-  return const ConditionLabel('Poor', 'poor', '#ef4444');
+  return ConditionLabel(
+      'Poor', 'poor', '#ef4444', _pickTagline('poor', score));
 }
 
 /// Find best hour result
@@ -426,7 +641,6 @@ List<TopWindow> findTopWindows(
           bestStart = j;
         }
       }
-      // Parse start time to compute offset
       final baseHour = int.parse(w.startTime.split('T')[1].split(':')[0]);
       final newStartHour = baseHour + bestStart;
       final newEndHour = newStartHour + slidingWindowSize - 1;
@@ -446,7 +660,8 @@ List<TopWindow> findTopWindows(
   for (final s in scored) {
     if (!seen.contains(s.window.date)) {
       seen.add(s.window.date);
-      final avg = s.window.scores.reduce((a, b) => a + b) / s.window.scores.length;
+      final avg =
+          s.window.scores.reduce((a, b) => a + b) / s.window.scores.length;
       result.add(TopWindow(
         date: s.window.date,
         startTime: s.window.startTime,

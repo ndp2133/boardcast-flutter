@@ -22,7 +22,6 @@ const _prefs = UserPrefs(
   minWaveHeight: 0.3,
   maxWaveHeight: 2.0,
   maxWindSpeed: 25.0,
-  preferredWindDir: 'offshore',
 );
 
 void main() {

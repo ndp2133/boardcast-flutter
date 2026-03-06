@@ -31,6 +31,28 @@ final aiServiceProvider = Provider<AiService>((ref) {
   return AiService(supabase);
 });
 
+/// Build location payload for AI Edge Functions
+Map<String, dynamic> _buildLocationPayload(location) => {
+      'name': location.name,
+      'breakType': location.breakType,
+      'description': location.description,
+    };
+
+/// Compute pro perspective scores for AI context
+({int score, String label}) _computeProPerspective(
+    hourData, location, tideRange) {
+  final proScore = computeMatchScore(
+    hourData,
+    proPrefs,
+    location,
+    tideRange: tideRange,
+  );
+  return (
+    score: (proScore * 100).round(),
+    label: getConditionLabel(proScore).label,
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Surf Tip — user-initiated "Get Surf Tip"
 // ---------------------------------------------------------------------------
@@ -58,13 +80,16 @@ class SurfTipNotifier extends Notifier<AiState> {
 
       final current = data.current;
       final tideRange = TideRange.fromHourlyData(data.hourly);
+      final currentHour =
+          data.hourly.isNotEmpty ? data.hourly.first : null;
       final score = computeMatchScore(
-        data.hourly.isNotEmpty ? data.hourly.first : null,
+        currentHour,
         prefs,
         location,
         tideRange: tideRange,
       );
       final condLabel = getConditionLabel(score);
+      final pro = _computeProPerspective(currentHour, location, tideRange);
 
       final conditions = {
         'waveHeight': current.waveHeight != null
@@ -90,9 +115,11 @@ class SurfTipNotifier extends Notifier<AiState> {
       final tip = await ai.fetchSurfTip(
         conditions: conditions,
         prefs: prefsPayload,
-        locationName: location.name,
+        location: _buildLocationPayload(location),
         matchScore: score,
         conditionLabel: condLabel.label,
+        proScore: pro.score,
+        proCondition: pro.label,
       );
 
       state = AiState(status: AiStatus.loaded, text: tip);
@@ -134,6 +161,11 @@ class SurfQueryNotifier extends Notifier<AiState> {
       final prefs = ref.read(preferencesProvider);
       final ai = ref.read(aiServiceProvider);
 
+      final tideRange = TideRange.fromHourlyData(data.hourly);
+      final currentHour =
+          data.hourly.isNotEmpty ? data.hourly.first : null;
+      final pro = _computeProPerspective(currentHour, location, tideRange);
+
       final currentStr = formatCurrentConditions(data.current);
       final dailyStr = formatDailySummaries(data.daily, data.hourly);
       final windows = findTopWindows(data.hourly, prefs, location, count: 3);
@@ -145,8 +177,10 @@ class SurfQueryNotifier extends Notifier<AiState> {
         current: currentStr,
         dailySummaries: dailyStr,
         prefs: prefsPayload,
-        locationName: location.name,
+        location: _buildLocationPayload(location),
         topWindows: windowsStr,
+        proScore: pro.score,
+        proCondition: pro.label,
       );
 
       state = AiState(status: AiStatus.loaded, text: answer);
@@ -195,6 +229,11 @@ class LlmSummaryNotifier extends Notifier<AiState> {
       final prefs = ref.read(preferencesProvider);
       final ai = ref.read(aiServiceProvider);
 
+      final tideRange = TideRange.fromHourlyData(data.hourly);
+      final currentHour =
+          data.hourly.isNotEmpty ? data.hourly.first : null;
+      final pro = _computeProPerspective(currentHour, location, tideRange);
+
       final currentStr = formatCurrentConditions(data.current);
       final dailyStr = formatDailySummaries(data.daily, data.hourly);
       final prefsPayload = buildPrefsPayload(prefs);
@@ -211,9 +250,11 @@ class LlmSummaryNotifier extends Notifier<AiState> {
         current: currentStr,
         daily: dailyStr,
         prefs: prefsPayload,
-        locationName: location.name,
+        location: _buildLocationPayload(location),
         ruleBased: ruleBasedSummary,
         bestWindow: bestWindowStr,
+        proScore: pro.score,
+        proCondition: pro.label,
       );
 
       // Race condition guard: if location changed during the fetch

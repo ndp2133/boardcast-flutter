@@ -93,6 +93,5 @@ Map<String, dynamic> buildPrefsPayload(UserPrefs prefs) {
     'maxWind': prefs.maxWindSpeed != null
         ? kmhToMph(prefs.maxWindSpeed!).round().toString()
         : null,
-    'preferredWindDir': prefs.preferredWindDir ?? 'any',
   };
 }
