@@ -1,7 +1,9 @@
 /// Riverpod provider for HealthKit import state machine.
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../logic/preference_inference.dart';
 import '../services/health_import_service.dart';
+import '../services/mock_import_service.dart' as mock;
 import 'sessions_provider.dart';
 
 enum ImportPhase { idle, requesting, discovering, enriching, complete, error }
@@ -62,6 +64,12 @@ class HealthImportNotifier extends Notifier<HealthImportState> {
 
   /// Run the full import flow
   Future<void> startImport({String? homeLocationId, String? userId}) async {
+    // Debug mock: bypass HealthKit on simulator/emulator
+    if (kDebugMode) {
+      await _runMockImport();
+      return;
+    }
+
     // Phase 1: Request permission
     state = state.copyWith(phase: ImportPhase.requesting);
 
@@ -131,6 +139,39 @@ class HealthImportNotifier extends Notifier<HealthImportState> {
         errorMessage: 'Import failed: $e',
       );
     }
+  }
+
+  /// Mock import for debug builds (simulator/emulator)
+  Future<void> _runMockImport() async {
+    state = state.copyWith(phase: ImportPhase.requesting);
+    await Future.delayed(const Duration(milliseconds: 400));
+
+    state = state.copyWith(phase: ImportPhase.discovering);
+    await Future.delayed(const Duration(milliseconds: 600));
+
+    state = state.copyWith(
+      discoveredCount: 14,
+      phase: ImportPhase.enriching,
+      enrichTotal: 14,
+    );
+
+    final result = await mock.generateMockImport(
+      sessionCount: 14,
+      onProgress: (completed, total) {
+        state = state.copyWith(
+          enrichProgress: completed,
+          enrichTotal: total,
+        );
+      },
+    );
+
+    final inferredPrefs = inferPrefsFromSessions(result.sessions);
+
+    state = state.copyWith(
+      phase: ImportPhase.complete,
+      result: result,
+      inferredPrefs: inferredPrefs,
+    );
   }
 
   /// Persist imported sessions to store

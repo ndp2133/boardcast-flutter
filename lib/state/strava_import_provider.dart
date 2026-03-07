@@ -1,9 +1,11 @@
 // Riverpod provider for Strava import state machine.
 // Mirrors HealthImportProvider pattern: connect → discover → enrich → save.
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/session.dart';
 import '../services/strava_service.dart';
 import '../services/health_import_service.dart';
+import '../services/mock_import_service.dart' as mock;
 import 'sessions_provider.dart';
 
 enum StravaImportPhase {
@@ -100,12 +102,51 @@ class StravaImportNotifier extends Notifier<StravaImportState> {
 
   /// Run import on an already-connected account
   Future<void> startImport() async {
+    // Debug mock: bypass Strava OAuth on simulator/emulator
+    if (kDebugMode) {
+      await _runMockImport();
+      return;
+    }
+
     final connected = await _strava.isConnected;
     if (!connected) {
       await startAuth();
       return;
     }
     await _discoverAndImport();
+  }
+
+  /// Mock import for debug builds (simulator/emulator)
+  Future<void> _runMockImport() async {
+    state = state.copyWith(
+      phase: StravaImportPhase.connecting,
+      isConnected: true,
+    );
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    state = state.copyWith(phase: StravaImportPhase.discovering);
+    await Future.delayed(const Duration(milliseconds: 700));
+
+    state = state.copyWith(
+      discoveredCount: 8,
+      phase: StravaImportPhase.enriching,
+      enrichTotal: 8,
+    );
+
+    final result = await mock.generateMockStravaImport(
+      sessionCount: 8,
+      onProgress: (completed, total) {
+        state = state.copyWith(
+          enrichProgress: completed,
+          enrichTotal: total,
+        );
+      },
+    );
+
+    state = state.copyWith(
+      phase: StravaImportPhase.complete,
+      result: result,
+    );
   }
 
   Future<void> _discoverAndImport() async {
