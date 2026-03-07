@@ -8,11 +8,16 @@
 
 /* Begin PBXBuildFile section */
 		1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */ = {isa = PBXBuildFile; fileRef = 1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */; };
+		2D0D865832811D0224BFE96C /* BoardcastWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBD03BD26B27E2FDA1CBF3CB /* BoardcastWatchApp.swift */; };
 		331C808B294A63AB00263BE5 /* RunnerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 331C807B294A618700263BE5 /* RunnerTests.swift */; };
 		3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */ = {isa = PBXBuildFile; fileRef = 3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */; };
 		451703040DC2F83A26DB6406 /* Pods_RunnerTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CC12DBF19383548FB227A290 /* Pods_RunnerTests.framework */; };
+		541143384C41C061B7E979CB /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 26EF5C59940BCF0FDD834024 /* Foundation.framework */; };
+		5E003A0740EB679E8BB2DB77 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 26EF5C59940BCF0FDD834024 /* Foundation.framework */; };
 		74858FAF1ED2DC5600515810 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74858FAE1ED2DC5600515810 /* AppDelegate.swift */; };
+		7814E037359EB6868B7D9899 /* BoardcastWatchComplication.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = AAC44DEBCD2CCB0A19B2356E /* BoardcastWatchComplication.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */; };
+		942C5D7D186F95CB0B1E7C13 /* BoardcastWatchComplication.swift in Sources */ = {isa = PBXBuildFile; fileRef = 107BE8FD69D5F496351588F5 /* BoardcastWatchComplication.swift */; };
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
@@ -27,7 +32,6 @@
 		BCB0000700000000BCBB0007 /* DMMono-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = BCA0000700000000BCAA0007 /* DMMono-Medium.ttf */; };
 		BCB0000900000000BCBB0009 /* BoardcastWidgetExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = BCA0000900000000BCAA0009 /* BoardcastWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		BCB0001000000000BCBB0010 /* SharedSurfData.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0000D00000000BCAA000D /* SharedSurfData.swift */; };
-		BCB0002200000000BCBB0022 /* LargeWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0001800000000BCAA0018 /* LargeWidgetView.swift */; };
 		BCB0001100000000BCBB0011 /* SharedSurfData.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0000D00000000BCAA000D /* SharedSurfData.swift */; };
 		BCB0001200000000BCBB0012 /* LocationEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0000E00000000BCAA000E /* LocationEntity.swift */; };
 		BCB0001300000000BCBB0013 /* SurfIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0000F00000000BCAA000F /* SurfIntents.swift */; };
@@ -39,6 +43,8 @@
 		BCB0001900000000BCBB0019 /* SurfActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0001600000000BCAA0016 /* SurfActivityAttributes.swift */; };
 		BCB0002000000000BCBB0020 /* SurfActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0001600000000BCAA0016 /* SurfActivityAttributes.swift */; };
 		BCB0002100000000BCBB0021 /* SurfLiveActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0001700000000BCAA0017 /* SurfLiveActivityView.swift */; };
+		BCB0002200000000BCBB0022 /* LargeWidgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0001800000000BCAA0018 /* LargeWidgetView.swift */; };
+		BCB0002500000000BCBB0025 /* WatchConnectivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCA0002500000000BCAA0025 /* WatchConnectivityManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -48,6 +54,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = 97C146ED1CF9000F007C117D;
 			remoteInfo = Runner;
+		};
+		428C3521D77FB754F0A65D7B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 97C146E61CF9000F007C117D /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 25BAD311E53E92F7F0FB416F;
+			remoteInfo = BoardcastWatchComplication;
 		};
 		BCD0000100000000BC220001 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -69,6 +82,17 @@
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B437B74B1A180CDF70FDC388 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				7814E037359EB6868B7D9899 /* BoardcastWatchComplication.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		BCE0000100000000BCEE0001 /* Embed App Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -84,14 +108,19 @@
 
 /* Begin PBXFileReference section */
 		0EF153A5BD59C107B02AA934 /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
+		107BE8FD69D5F496351588F5 /* BoardcastWatchComplication.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BoardcastWatchComplication.swift; sourceTree = "<group>"; };
 		1498D2321E8E86230040F4C2 /* GeneratedPluginRegistrant.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GeneratedPluginRegistrant.h; sourceTree = "<group>"; };
 		1498D2331E8E89220040F4C2 /* GeneratedPluginRegistrant.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = GeneratedPluginRegistrant.m; sourceTree = "<group>"; };
 		1998123D4A5075A13324AF09 /* Pods-RunnerTests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.debug.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.debug.xcconfig"; sourceTree = "<group>"; };
+		26EF5C59940BCF0FDD834024 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/WatchOS.platform/Developer/SDKs/WatchOS11.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		331C807B294A618700263BE5 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
 		331C8081294A63A400263BE5 /* RunnerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
+		56CF701C4E28B7E580574AF9 /* BoardcastWatchComplication.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BoardcastWatchComplication.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		5E0C60F819511DD88B1731AA /* BoardcastWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BoardcastWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		68BC6D448C6A7DEA1A3A2711 /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
 		6A05837B10E0B9AD335DB466 /* Pods-RunnerTests.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.profile.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.profile.xcconfig"; sourceTree = "<group>"; };
+		6E716490986C964E93F5AC97 /* BoardcastWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BoardcastWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Runner-Bridging-Header.h"; sourceTree = "<group>"; };
 		74858FAE1ED2DC5600515810 /* AppDelegate.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -106,6 +135,8 @@
 		97C147001CF9000F007C117D /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		9AA446AFAB6AAEE468BAF9FD /* Pods-Runner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"; sourceTree = "<group>"; };
+		AAC44DEBCD2CCB0A19B2356E /* BoardcastWatchComplication.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BoardcastWatchComplication.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		B9C1C8897C24751843521F2A /* BoardcastWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BoardcastWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BCA0000100000000BCAA0001 /* BoardcastWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardcastWidget.swift; sourceTree = "<group>"; };
 		BCA0000200000000BCAA0002 /* MediumWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediumWidgetView.swift; sourceTree = "<group>"; };
 		BCA0000300000000BCAA0003 /* BoardcastWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoardcastWidgetBundle.swift; sourceTree = "<group>"; };
@@ -121,7 +152,6 @@
 		BCA0000D00000000BCAA000D /* SharedSurfData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedSurfData.swift; sourceTree = "<group>"; };
 		BCA0000E00000000BCAA000E /* LocationEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationEntity.swift; sourceTree = "<group>"; };
 		BCA0000F00000000BCAA000F /* SurfIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurfIntents.swift; sourceTree = "<group>"; };
-		BCA0001800000000BCAA0018 /* LargeWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LargeWidgetView.swift; sourceTree = "<group>"; };
 		BCA0001100000000BCAA0011 /* ConditionsSnippetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConditionsSnippetView.swift; sourceTree = "<group>"; };
 		BCA0001200000000BCAA0012 /* AppShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppShortcuts.swift; sourceTree = "<group>"; };
 		BCA0001300000000BCAA0013 /* BestTimeSnippetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BestTimeSnippetView.swift; sourceTree = "<group>"; };
@@ -129,10 +159,22 @@
 		BCA0001500000000BCAA0015 /* LiveActivityChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityChannel.swift; sourceTree = "<group>"; };
 		BCA0001600000000BCAA0016 /* SurfActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurfActivityAttributes.swift; sourceTree = "<group>"; };
 		BCA0001700000000BCAA0017 /* SurfLiveActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SurfLiveActivityView.swift; sourceTree = "<group>"; };
+		BCA0001800000000BCAA0018 /* LargeWidgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LargeWidgetView.swift; sourceTree = "<group>"; };
+		BCA0002500000000BCAA0025 /* WatchConnectivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConnectivityManager.swift; sourceTree = "<group>"; };
 		CC12DBF19383548FB227A290 /* Pods_RunnerTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RunnerTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		EBD03BD26B27E2FDA1CBF3CB /* BoardcastWatchApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BoardcastWatchApp.swift; sourceTree = "<group>"; };
+		FC61C62BA59A0FE0A0661EB4 /* BoardcastWatchComplication.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = BoardcastWatchComplication.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		6336D0CBFB8842CCD510AD5C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				541143384C41C061B7E979CB /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		88457F9760442B8E9E46ECFC /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -156,15 +198,40 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E6F5B996F747CEFEDAB62842 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5E003A0740EB679E8BB2DB77 /* Foundation.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		1EE13619ABCA6C9D42D50DCA /* watchOS */ = {
+			isa = PBXGroup;
+			children = (
+				26EF5C59940BCF0FDD834024 /* Foundation.framework */,
+			);
+			name = watchOS;
+			sourceTree = "<group>";
+		};
 		331C8082294A63A400263BE5 /* RunnerTests */ = {
 			isa = PBXGroup;
 			children = (
 				331C807B294A618700263BE5 /* RunnerTests.swift */,
 			);
 			path = RunnerTests;
+			sourceTree = "<group>";
+		};
+		3FC7FCE18FC0D4680F71FBE6 /* BoardcastWatch */ = {
+			isa = PBXGroup;
+			children = (
+				EBD03BD26B27E2FDA1CBF3CB /* BoardcastWatchApp.swift */,
+			);
+			name = BoardcastWatch;
+			path = BoardcastWatch;
 			sourceTree = "<group>";
 		};
 		5847F16B56216D674415F093 /* Pods */ = {
@@ -185,8 +252,18 @@
 			children = (
 				8D7F7BA1CC2D67BC9871F563 /* Pods_Runner.framework */,
 				CC12DBF19383548FB227A290 /* Pods_RunnerTests.framework */,
+				1EE13619ABCA6C9D42D50DCA /* watchOS */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		8966425F774BD3BD117E772D /* BoardcastWatchComplication */ = {
+			isa = PBXGroup;
+			children = (
+				107BE8FD69D5F496351588F5 /* BoardcastWatchComplication.swift */,
+			);
+			name = BoardcastWatchComplication;
+			path = BoardcastWatchComplication;
 			sourceTree = "<group>";
 		};
 		9740EEB11CF90186004384FC /* Flutter */ = {
@@ -211,6 +288,8 @@
 				BCG0000100000000BCCC0001 /* BoardcastWidget */,
 				5847F16B56216D674415F093 /* Pods */,
 				816CF2FCEC65CB475CDE5FD1 /* Frameworks */,
+				3FC7FCE18FC0D4680F71FBE6 /* BoardcastWatch */,
+				8966425F774BD3BD117E772D /* BoardcastWatchComplication */,
 			);
 			sourceTree = "<group>";
 		};
@@ -220,6 +299,12 @@
 				97C146EE1CF9000F007C117D /* Runner.app */,
 				331C8081294A63A400263BE5 /* RunnerTests.xctest */,
 				BCA0000900000000BCAA0009 /* BoardcastWidgetExtension.appex */,
+				B9C1C8897C24751843521F2A /* BoardcastWatch.app */,
+				FC61C62BA59A0FE0A0661EB4 /* BoardcastWatchComplication.appex */,
+				6E716490986C964E93F5AC97 /* BoardcastWatch.app */,
+				56CF701C4E28B7E580574AF9 /* BoardcastWatchComplication.appex */,
+				5E0C60F819511DD88B1731AA /* BoardcastWatch.app */,
+				AAC44DEBCD2CCB0A19B2356E /* BoardcastWatchComplication.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -245,6 +330,7 @@
 				BCA0001300000000BCAA0013 /* BestTimeSnippetView.swift */,
 				BCA0001400000000BCAA0014 /* LiveActivityManager.swift */,
 				BCA0001500000000BCAA0015 /* LiveActivityChannel.swift */,
+				BCA0002500000000BCAA0025 /* WatchConnectivityManager.swift */,
 			);
 			path = Runner;
 			sourceTree = "<group>";
@@ -279,6 +365,23 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		25BAD311E53E92F7F0FB416F /* BoardcastWatchComplication */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EBB5B7969FC03CA4FF78700D /* Build configuration list for PBXNativeTarget "BoardcastWatchComplication" */;
+			buildPhases = (
+				C37943EF37A8A1816E8988E2 /* Sources */,
+				6336D0CBFB8842CCD510AD5C /* Frameworks */,
+				FF6135E9A831F0487E07D8F1 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = BoardcastWatchComplication;
+			productName = BoardcastWatchComplication;
+			productReference = AAC44DEBCD2CCB0A19B2356E /* BoardcastWatchComplication.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		331C8080294A63A400263BE5 /* RunnerTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 331C8087294A63A400263BE5 /* Build configuration list for PBXNativeTarget "RunnerTests" */;
@@ -321,6 +424,25 @@
 			name = Runner;
 			productName = Runner;
 			productReference = 97C146EE1CF9000F007C117D /* Runner.app */;
+			productType = "com.apple.product-type.application";
+		};
+		A3723736A48FB613394BD982 /* BoardcastWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 0D2E5F69D41D506CB27AB442 /* Build configuration list for PBXNativeTarget "BoardcastWatch" */;
+			buildPhases = (
+				82764BBCBB9491941222B767 /* Sources */,
+				E6F5B996F747CEFEDAB62842 /* Frameworks */,
+				46F3CFEEF39C07501EEB7074 /* Resources */,
+				B437B74B1A180CDF70FDC388 /* Embed App Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B169E3832F93F79CEDD80970 /* PBXTargetDependency */,
+			);
+			name = BoardcastWatch;
+			productName = BoardcastWatch;
+			productReference = 5E0C60F819511DD88B1731AA /* BoardcastWatch.app */;
 			productType = "com.apple.product-type.application";
 		};
 		BCT0000100000000BCFF0001 /* BoardcastWidgetExtension */ = {
@@ -379,12 +501,21 @@
 				97C146ED1CF9000F007C117D /* Runner */,
 				331C8080294A63A400263BE5 /* RunnerTests */,
 				BCT0000100000000BCFF0001 /* BoardcastWidgetExtension */,
+				A3723736A48FB613394BD982 /* BoardcastWatch */,
+				25BAD311E53E92F7F0FB416F /* BoardcastWatchComplication */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		331C807F294A63A400263BE5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		46F3CFEEF39C07501EEB7074 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -409,6 +540,13 @@
 			files = (
 				BCB0000600000000BCBB0006 /* DMMono-Regular.ttf in Resources */,
 				BCB0000700000000BCBB0007 /* DMMono-Medium.ttf in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FF6135E9A831F0487E07D8F1 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -535,6 +673,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		82764BBCBB9491941222B767 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2D0D865832811D0224BFE96C /* BoardcastWatchApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		97C146EA1CF9000F007C117D /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -551,6 +697,7 @@
 				BCB0001700000000BCBB0017 /* LiveActivityManager.swift in Sources */,
 				BCB0001800000000BCBB0018 /* LiveActivityChannel.swift in Sources */,
 				BCB0001900000000BCBB0019 /* SurfActivityAttributes.swift in Sources */,
+				BCB0002500000000BCBB0025 /* WatchConnectivityManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -570,6 +717,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C37943EF37A8A1816E8988E2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				942C5D7D186F95CB0B1E7C13 /* BoardcastWatchComplication.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -577,6 +732,12 @@
 			isa = PBXTargetDependency;
 			target = 97C146ED1CF9000F007C117D /* Runner */;
 			targetProxy = 331C8085294A63A400263BE5 /* PBXContainerItemProxy */;
+		};
+		B169E3832F93F79CEDD80970 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = BoardcastWatchComplication;
+			target = 25BAD311E53E92F7F0FB416F /* BoardcastWatchComplication */;
+			targetProxy = 428C3521D77FB754F0A65D7B /* PBXContainerItemProxy */;
 		};
 		BCD0000200000000BC220002 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -605,6 +766,76 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
+		0266803C0E2977430F0473DE /* Profile */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = BoardcastWatch/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Boardcast;
+				INFOPLIST_KEY_WKApplication = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.boardcast.app.watch;
+				PRODUCT_NAME = BoardcastWatch;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Profile;
+		};
+		1CE4569543B80B498906F9C6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = BoardcastWatchComplication/Info.plist;
+				INFOPLIST_KEY_NSExtension_NSExtensionPointIdentifier = "com.apple.widgetkit-extension";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.boardcast.app.watch.complication;
+				PRODUCT_NAME = BoardcastWatchComplication;
+				SDKROOT = watchos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		21FAA1BA351229456EAC7118 /* Profile */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = BoardcastWatchComplication/Info.plist;
+				INFOPLIST_KEY_NSExtension_NSExtensionPointIdentifier = "com.apple.widgetkit-extension";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.boardcast.app.watch.complication;
+				PRODUCT_NAME = BoardcastWatchComplication;
+				SDKROOT = watchos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Profile;
+		};
 		249021D3217E4FDB00AE95B9 /* Profile */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -974,9 +1205,88 @@
 			};
 			name = Profile;
 		};
+		C6CEE0B33B94F9ADB54AAC49 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = BoardcastWatch/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Boardcast;
+				INFOPLIST_KEY_WKApplication = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.boardcast.app.watch;
+				PRODUCT_NAME = BoardcastWatch;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
+		D06BC6DCA4739D33C1A7EEC5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = BoardcastWatchComplication/Info.plist;
+				INFOPLIST_KEY_NSExtension_NSExtensionPointIdentifier = "com.apple.widgetkit-extension";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.boardcast.app.watch.complication;
+				PRODUCT_NAME = BoardcastWatchComplication;
+				SDKROOT = watchos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
+		DD8AEFE4DAD632870019AF95 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = BoardcastWatch/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Boardcast;
+				INFOPLIST_KEY_WKApplication = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.boardcast.app.watch;
+				PRODUCT_NAME = BoardcastWatch;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		0D2E5F69D41D506CB27AB442 /* Build configuration list for PBXNativeTarget "BoardcastWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C6CEE0B33B94F9ADB54AAC49 /* Release */,
+				DD8AEFE4DAD632870019AF95 /* Debug */,
+				0266803C0E2977430F0473DE /* Profile */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		331C8087294A63A400263BE5 /* Build configuration list for PBXNativeTarget "RunnerTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -1013,6 +1323,16 @@
 				BCC0000100000000BC110001 /* Debug */,
 				BCC0000200000000BC110002 /* Release */,
 				BCC0000300000000BC110003 /* Profile */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EBB5B7969FC03CA4FF78700D /* Build configuration list for PBXNativeTarget "BoardcastWatchComplication" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D06BC6DCA4739D33C1A7EEC5 /* Release */,
+				1CE4569543B80B498906F9C6 /* Debug */,
+				21FAA1BA351229456EAC7118 /* Profile */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
