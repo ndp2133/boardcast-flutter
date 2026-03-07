@@ -604,104 +604,150 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   Widget _buildQuiverSection(BuildContext context, WidgetRef ref,
       List boards, List sessions, bool isDark, Color textColor, Color subColor) {
     final boardStats = aggregateBoardStats(sessions.cast(), boards.cast());
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.s3),
-      decoration: BoxDecoration(
-        color: isDark ? AppColorsDark.bgSecondary : AppColors.bgSecondary,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'My Quiver',
-                  style: TextStyle(
-                    fontSize: AppTypography.textSm,
-                    fontWeight: AppTypography.weightSemibold,
-                    color: textColor,
-                  ),
-                ),
-              ),
-              GestureDetector(
-                onTap: () => showBoardModal(context, ref),
-                child: Icon(Icons.add, size: AppIconSize.lg, color: AppColors.accent),
-              ),
-            ],
+    final insights = generateBoardInsights(sessions.cast(), boards.cast());
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(AppSpacing.s3),
+          decoration: BoxDecoration(
+            color: isDark ? AppColorsDark.bgSecondary : AppColors.bgSecondary,
+            borderRadius: BorderRadius.circular(AppRadius.md),
           ),
-          if (boards.isEmpty)
-            const EmptyState(
-              icon: Icons.sailing_outlined,
-              title: 'Your quiver is empty',
-              subtitle: 'Add your first board to track which shapes work best.',
-            )
-          else
-            ...boards.map((b) {
-              final stats = boardStats[b.id];
-              return Padding(
-                padding: const EdgeInsets.only(top: AppSpacing.s2),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            b.name,
-                            style: TextStyle(
-                              fontSize: AppTypography.textSm,
-                              color: textColor,
-                            ),
-                          ),
-                          if (stats != null)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 2),
-                              child: Text(
-                                [
-                                  '${stats.count} session${stats.count != 1 ? 's' : ''}',
-                                  if (stats.avgRating != null)
-                                    '${stats.avgRating!.toStringAsFixed(1)}\u2605 avg',
-                                  if (stats.bestRange != null)
-                                    'Best in ${stats.bestRange}',
-                                ].join(' \u00b7 '),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'My Quiver',
+                      style: TextStyle(
+                        fontSize: AppTypography.textSm,
+                        fontWeight: AppTypography.weightSemibold,
+                        color: textColor,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => showBoardModal(context, ref),
+                    child: Icon(Icons.add, size: AppIconSize.lg, color: AppColors.accent),
+                  ),
+                ],
+              ),
+              if (boards.isEmpty)
+                const EmptyState(
+                  icon: Icons.sailing_outlined,
+                  title: 'Your quiver is empty',
+                  subtitle: 'Add your first board to track which shapes work best.',
+                )
+              else
+                ...boards.map((b) {
+                  final stats = boardStats[b.id];
+                  return Padding(
+                    padding: const EdgeInsets.only(top: AppSpacing.s2),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                b.name,
                                 style: TextStyle(
-                                  fontSize: AppTypography.textXs,
-                                  color: subColor,
+                                  fontSize: AppTypography.textSm,
+                                  color: textColor,
                                 ),
                               ),
-                            ),
-                        ],
-                      ),
+                              if (stats != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 2),
+                                  child: Text(
+                                    [
+                                      '${stats.count} session${stats.count != 1 ? 's' : ''}',
+                                      if (stats.avgRating != null)
+                                        '${stats.avgRating!.toStringAsFixed(1)}\u2605 avg',
+                                      if (stats.bestRange != null)
+                                        'Best in ${stats.bestRange}',
+                                    ].join(' \u00b7 '),
+                                    style: TextStyle(
+                                      fontSize: AppTypography.textXs,
+                                      color: subColor,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        Text(
+                          b.type,
+                          style: TextStyle(
+                            fontSize: AppTypography.textXs,
+                            color: subColor,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.s2),
+                        GestureDetector(
+                          onTap: () =>
+                              showBoardModal(context, ref, existing: b),
+                          child: Icon(Icons.edit, size: AppIconSize.base, color: subColor),
+                        ),
+                        const SizedBox(width: AppSpacing.s1),
+                        GestureDetector(
+                          onTap: () => ref
+                              .read(boardsProvider.notifier)
+                              .delete(b.id),
+                          child: Icon(Icons.delete_outline,
+                              size: AppIconSize.base, color: AppColors.conditionPoor),
+                        ),
+                      ],
                     ),
-                    Text(
-                      b.type,
+                  );
+                }),
+            ],
+          ),
+        ),
+        if (insights.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.s2),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(AppSpacing.s3),
+              decoration: BoxDecoration(
+                color: AppColors.accent.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(
+                  color: AppColors.accent.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Board Insights',
+                    style: TextStyle(
+                      fontSize: AppTypography.textXs,
+                      fontWeight: AppTypography.weightSemibold,
+                      color: AppColors.accent,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  ...insights.map((insight) => Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      insight,
                       style: TextStyle(
                         fontSize: AppTypography.textXs,
-                        color: subColor,
+                        color: isDark
+                            ? AppColorsDark.textSecondary
+                            : AppColors.textSecondary,
                       ),
                     ),
-                    const SizedBox(width: AppSpacing.s2),
-                    GestureDetector(
-                      onTap: () =>
-                          showBoardModal(context, ref, existing: b),
-                      child: Icon(Icons.edit, size: AppIconSize.base, color: subColor),
-                    ),
-                    const SizedBox(width: AppSpacing.s1),
-                    GestureDetector(
-                      onTap: () => ref
-                          .read(boardsProvider.notifier)
-                          .delete(b.id),
-                      child: Icon(Icons.delete_outline,
-                          size: AppIconSize.base, color: AppColors.conditionPoor),
-                    ),
-                  ],
-                ),
-              );
-            }),
-        ],
-      ),
+                  )),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

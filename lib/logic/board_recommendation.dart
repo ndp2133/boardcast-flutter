@@ -169,6 +169,90 @@ BoardRecommendation? recommendBoard(
   return BoardRecommendation(board: bestBoard, score: bestScore, reason: reason);
 }
 
+/// Generate comparative board insights from session data.
+/// Returns list of insight strings when 2+ boards have rated sessions.
+List<String> generateBoardInsights(List<Session> sessions, List<Board> boards) {
+  final insights = <String>[];
+  if (sessions.isEmpty || boards.length < 2) return insights;
+
+  final completed = sessions
+      .where((s) => s.status == 'completed' && s.boardId != null && s.rating != null)
+      .toList();
+  if (completed.length < 3) return insights;
+
+  // Per-board data
+  final boardData = <String, ({
+    Board board,
+    String name,
+    int count,
+    double avgRating,
+    Map<String, List<int>> bySize,
+  })>{};
+
+  for (final board in boards) {
+    final sess = completed.where((s) => s.boardId == board.id).toList();
+    if (sess.isEmpty) continue;
+    final avgRating = sess.fold<double>(0, (sum, s) => sum + s.rating!) / sess.length;
+
+    final bySize = <String, List<int>>{'small': [], 'medium': [], 'large': []};
+    for (final s in sess) {
+      final wh = s.conditions?.waveHeight;
+      if (wh == null) continue;
+      final ft = metersToFeet(wh);
+      if (ft < 2) {
+        bySize['small']!.add(s.rating!);
+      } else if (ft < 4) {
+        bySize['medium']!.add(s.rating!);
+      } else {
+        bySize['large']!.add(s.rating!);
+      }
+    }
+
+    final name = board.name.isNotEmpty
+        ? board.name
+        : (getBoardType(board.type)?.name ?? board.type);
+
+    boardData[board.id] = (
+      board: board,
+      name: name,
+      count: sess.length,
+      avgRating: avgRating,
+      bySize: bySize,
+    );
+  }
+
+  final entries = boardData.values.toList()
+    ..sort((a, b) => b.avgRating.compareTo(a.avgRating));
+  if (entries.length < 2) return insights;
+
+  // Insight 1: Overall comparison
+  final top = entries[0];
+  final runner = entries[1];
+  final diff = top.avgRating - runner.avgRating;
+  if (diff >= 0.3 && top.count >= 2 && runner.count >= 2) {
+    insights.add(
+        'Your ${top.name} averages ${top.avgRating.toStringAsFixed(1)}\u2605 vs your ${runner.name} at ${runner.avgRating.toStringAsFixed(1)}\u2605');
+  }
+
+  // Insight 2: Board that excels in specific wave size
+  for (final entry in entries) {
+    for (final MapEntry(key: label, value: ratings) in entry.bySize.entries) {
+      if (ratings.length < 2) continue;
+      final avg = ratings.fold<double>(0, (s, r) => s + r) / ratings.length;
+      if (avg >= 4.0) {
+        final sizeLabel =
+            label == 'small' ? 'under 2ft' : label == 'medium' ? '2-4ft' : '4ft+';
+        insights.add(
+            'Your ${entry.name} shines in $sizeLabel surf (${avg.toStringAsFixed(1)}\u2605 avg)');
+        break;
+      }
+    }
+    if (insights.length >= 3) break;
+  }
+
+  return insights.take(3).toList();
+}
+
 String _generateReason(BoardType type, double waveHeightFt) {
   final name = type.name.toLowerCase();
   if (waveHeightFt < 1) return 'Great for small surf on a $name';

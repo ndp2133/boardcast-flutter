@@ -6,6 +6,7 @@ import '../models/session.dart';
 import '../models/user_prefs.dart';
 import '../logic/surf_iq.dart';
 import '../logic/units.dart';
+import '../logic/board_recommendation.dart';
 import '../state/sessions_provider.dart';
 import '../state/boards_provider.dart';
 import '../state/preferences_provider.dart';
@@ -237,6 +238,30 @@ class _CompletionSheetState extends State<_CompletionSheet> {
                     );
                   }).toList(),
                 ),
+                if (_boardId != null)
+                  Builder(builder: (_) {
+                    final allStats = aggregateBoardStats(sessions.cast(), boards.cast());
+                    final stats = allStats[_boardId];
+                    final statsText = stats != null
+                        ? [
+                            '${stats.count} session${stats.count != 1 ? 's' : ''}',
+                            if (stats.avgRating != null)
+                              '${stats.avgRating!.toStringAsFixed(1)}\u2605 avg',
+                            if (stats.bestRange != null)
+                              'Best in ${stats.bestRange}',
+                          ].join(' \u00b7 ')
+                        : 'First session with this board';
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text(
+                        statsText,
+                        style: TextStyle(
+                          fontSize: AppTypography.textXs,
+                          color: subColor,
+                        ),
+                      ),
+                    );
+                  }),
                 const SizedBox(height: AppSpacing.s5),
               ],
 
