@@ -162,4 +162,4 @@ Kotlin Glance widgets in `android/app/src/main/kotlin/com/boardcast/boardcast_fl
 
 ## Current Status
 
-235 passing tests. Full feature parity with PWA. App Store Connect listing populated, 6 TestFlight builds, RevenueCat production key active. Siri Shortcuts (CheckConditions + GetBestTime), Live Activities (lock screen + Dynamic Island), feature tour, custom paywall with 14-day trial. Android: first APK on Firebase App Distribution (build 7), 2 Glance home screen widgets. Pending: App Store submission (APP-6), Google Play submission.
+262 passing tests. Full feature parity with PWA. Scoring engine v2.2 (multi-swell, peak period blend, cell_selection=sea). App Store Connect listing populated, 7 TestFlight builds, RevenueCat production key active. Siri Shortcuts (CheckConditions + GetBestTime), Live Activities (lock screen + Dynamic Island), feature tour, custom paywall with 14-day trial. Android: Firebase App Distribution. 2 Glance home screen widgets. Security: flutter_secure_storage for Strava tokens, OAuth CSRF state param. Pending: App Store submission (APP-6), Google Play submission.
