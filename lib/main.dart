@@ -8,6 +8,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'services/supabase_service.dart';
 import 'services/cache_service.dart';
+import 'services/ai_limits.dart';
 import 'services/store_service.dart';
 import 'services/auth_service.dart';
 import 'services/widget_service.dart';
@@ -15,6 +16,7 @@ import 'services/live_activity_service.dart';
 import 'services/subscription_service.dart';
 import 'services/analytics_service.dart';
 import 'services/push_notification_service.dart';
+import 'state/ai_provider.dart';
 import 'state/conditions_provider.dart';
 import 'state/store_provider.dart';
 import 'state/auth_provider.dart';
@@ -41,6 +43,9 @@ Future<void> main() async {
   // Initialize services
   final cacheService = CacheService();
   await cacheService.init();
+
+  final aiLimitsService = AiLimitsService();
+  await aiLimitsService.init();
 
   final storeService = StoreService();
   await storeService.init();
@@ -112,6 +117,7 @@ Future<void> main() async {
       overrides: [
         // Provide pre-initialized singletons
         cacheServiceProvider.overrideWithValue(cacheService),
+        aiLimitsServiceProvider.overrideWithValue(aiLimitsService),
         storeServiceProvider.overrideWithValue(storeService),
         authServiceProvider.overrideWithValue(authService),
         widgetServiceProvider.overrideWithValue(widgetService),

@@ -1,6 +1,7 @@
 /// AI state providers — surf tip, surf query, LLM summary
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/ai_service.dart';
+import '../services/ai_limits.dart';
 import '../services/supabase_service.dart';
 import '../logic/ai_formatters.dart';
 import '../logic/scoring.dart';
@@ -29,6 +30,11 @@ enum AiStatus { idle, loading, loaded, error }
 /// Singleton AI service
 final aiServiceProvider = Provider<AiService>((ref) {
   return AiService(supabase);
+});
+
+/// AI rate-limiting service (initialized in main, overridden in ProviderScope)
+final aiLimitsServiceProvider = Provider<AiLimitsService>((ref) {
+  return AiLimitsService();
 });
 
 /// Build location payload for AI Edge Functions
@@ -62,6 +68,15 @@ class SurfTipNotifier extends Notifier<AiState> {
   AiState build() => const AiState();
 
   Future<void> fetchTip() async {
+    final limits = ref.read(aiLimitsServiceProvider);
+    if (!limits.canUseTip()) {
+      state = const AiState(
+        status: AiStatus.error,
+        error: 'Daily tip limit reached. Check back tomorrow!',
+      );
+      return;
+    }
+
     state = const AiState(status: AiStatus.loading);
 
     try {
@@ -122,6 +137,7 @@ class SurfTipNotifier extends Notifier<AiState> {
         proCondition: pro.label,
       );
 
+      limits.recordTipUsage();
       state = AiState(status: AiStatus.loaded, text: tip);
     } catch (e) {
       state = AiState(
@@ -145,6 +161,16 @@ class SurfQueryNotifier extends Notifier<AiState> {
 
   Future<void> submitQuery(String query) async {
     if (query.trim().isEmpty) return;
+
+    final limits = ref.read(aiLimitsServiceProvider);
+    if (!limits.canUseQuery()) {
+      state = const AiState(
+        status: AiStatus.error,
+        error: 'Daily question limit reached. Check back tomorrow!',
+      );
+      return;
+    }
+
     state = AiState(status: AiStatus.loading, text: 'Thinking about "$query"...');
 
     try {
@@ -183,6 +209,7 @@ class SurfQueryNotifier extends Notifier<AiState> {
         proCondition: pro.label,
       );
 
+      limits.recordQueryUsage();
       state = AiState(status: AiStatus.loaded, text: answer);
     } catch (e) {
       state = AiState(
@@ -214,6 +241,14 @@ class LlmSummaryNotifier extends Notifier<AiState> {
     if (state.status == AiStatus.loading && _lastLocationId == locationId) {
       return;
     }
+
+    // Rate limit — silently fall back to rule-based summary
+    final limits = ref.read(aiLimitsServiceProvider);
+    if (!limits.canUseSummary()) {
+      state = const AiState(status: AiStatus.idle);
+      return;
+    }
+
     _lastLocationId = locationId;
     state = const AiState(status: AiStatus.loading);
 
@@ -261,6 +296,7 @@ class LlmSummaryNotifier extends Notifier<AiState> {
       if (_lastLocationId != locationId) return;
 
       if (summary != null) {
+        limits.recordSummaryUsage();
         state = AiState(status: AiStatus.loaded, text: summary);
       } else {
         state = const AiState(status: AiStatus.idle);
