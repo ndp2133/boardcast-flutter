@@ -1,10 +1,13 @@
 /// Dashboard screen — score ring, metric cards, best time, forecast summary, AI coach
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../theme/tokens.dart';
 import '../models/merged_conditions.dart';
+import '../models/hourly_data.dart';
 import '../models/location.dart';
 import '../models/user_prefs.dart';
 import '../logic/scoring.dart';
@@ -25,6 +28,7 @@ import '../components/surf_coach_card.dart';
 import '../components/share_card.dart';
 import '../components/alert_banner.dart';
 import '../state/subscription_provider.dart';
+import '../services/supabase_service.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   final VoidCallback? onNavigateToForecast;
@@ -159,6 +163,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final bestWindow = findBestWindow(data.hourly, prefs, location,
         tideRange: tideRange);
 
+    // Sunrise for the best window's day
+    final bestDate = bestWindow?.date ?? today;
+    final sunrise = data.daily
+        .where((d) => d.date == bestDate)
+        .map((d) => d.sunrise)
+        .firstOrNull;
+
     // Sparkline data: next 6 hours
     final next6 = getNextNHours(data.hourly, nowIdx, 6);
     final waveSparkline =
@@ -261,6 +272,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ruleBasedSummary, llmState, isDark),
             ),
 
+          // Score feedback
+          if (score > 0)
+            _ScoreFeedbackWidget(
+              locationId: location.id,
+              score: score,
+              currentHour: currentHour,
+              isDark: isDark,
+            ),
+
           // Metric cards — 3 column grid
           Row(
             children: [
@@ -327,7 +347,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           const SizedBox(height: AppSpacing.s4),
 
           // Best time card
-          BestTimeCard(window: bestWindow),
+          BestTimeCard(window: bestWindow, sunrise: sunrise),
           const SizedBox(height: AppSpacing.s4),
 
           // AI Surf Coach card
@@ -472,4 +492,171 @@ Color? _prefDotColor(double? value, double? min, double? max) {
   final dist = value < min ? min - value : value - max;
   if (dist < max * 0.3) return AppColors.conditionFair;
   return AppColors.conditionPoor;
+}
+
+/// Score feedback widget — "Score feel right?" with dedup per location+hour
+class _ScoreFeedbackWidget extends StatefulWidget {
+  final String locationId;
+  final double score;
+  final HourlyData? currentHour;
+  final bool isDark;
+
+  const _ScoreFeedbackWidget({
+    required this.locationId,
+    required this.score,
+    this.currentHour,
+    required this.isDark,
+  });
+
+  @override
+  State<_ScoreFeedbackWidget> createState() => _ScoreFeedbackWidgetState();
+}
+
+class _ScoreFeedbackWidgetState extends State<_ScoreFeedbackWidget> {
+  static const _hiveBox = 'boardcast_store';
+  static const _feedbackKey = 'score_feedback_given';
+
+  String? _submitted;
+
+  String _dedupKey() {
+    final hour = DateTime.now().toIso8601String().split('T')[0] +
+        'T${DateTime.now().hour.toString().padLeft(2, '0')}';
+    return '${widget.locationId}_$hour';
+  }
+
+  bool _hasGivenFeedback() {
+    try {
+      final box = Hive.box<String>(_hiveBox);
+      final raw = box.get(_feedbackKey);
+      if (raw == null) return false;
+      final given = jsonDecode(raw) as Map<String, dynamic>;
+      return given.containsKey(_dedupKey());
+    } catch (_) {
+      return false;
+    }
+  }
+
+  void _saveFeedback(String feedback) {
+    setState(() => _submitted = feedback);
+    HapticFeedback.lightImpact();
+
+    // Save dedup locally
+    try {
+      final box = Hive.box<String>(_hiveBox);
+      final raw = box.get(_feedbackKey);
+      final given = raw != null
+          ? (jsonDecode(raw) as Map<String, dynamic>)
+          : <String, dynamic>{};
+      given[_dedupKey()] = feedback;
+      // Prune to last 100
+      if (given.length > 100) {
+        final keys = given.keys.toList();
+        for (final k in keys.sublist(0, keys.length - 100)) {
+          given.remove(k);
+        }
+      }
+      box.put(_feedbackKey, jsonEncode(given));
+    } catch (_) {}
+
+    // Push to Supabase fire-and-forget
+    final h = widget.currentHour;
+    supabase.from('feedback').insert({
+      'type': 'score_accuracy',
+      'message': jsonEncode({
+        'locationId': widget.locationId,
+        'score': (widget.score * 100).round(),
+        'feedback': feedback,
+        'conditions': {
+          'waveHeight': h?.waveHeight,
+          'windSpeed': h?.windSpeed,
+          'windDirection': h?.windDirection,
+          'swellDirection': h?.swellDirection,
+          'swellPeriod': h?.swellPeriod,
+          'tideHeight': h?.tideHeight,
+        },
+      }),
+    }).then((_) {}, onError: (_) {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_hasGivenFeedback() && _submitted == null) {
+      return const SizedBox.shrink();
+    }
+
+    final subColor = widget.isDark
+        ? AppColorsDark.textSecondary
+        : AppColors.textSecondary;
+
+    if (_submitted != null) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: AppSpacing.s4),
+        child: Center(
+          child: Text(
+            'Thanks for the feedback!',
+            style: TextStyle(
+              fontSize: AppTypography.textXs,
+              color: subColor,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.s4),
+      child: Column(
+        children: [
+          Text(
+            'Score feel right?',
+            style: TextStyle(
+              fontSize: AppTypography.textXs,
+              color: subColor,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _feedbackButton('Too low', Icons.arrow_downward, subColor),
+              const SizedBox(width: 8),
+              _feedbackButton('Spot on', Icons.check, subColor,
+                  isAccent: true),
+              const SizedBox(width: 8),
+              _feedbackButton('Too high', Icons.arrow_upward, subColor),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _feedbackButton(String label, IconData icon, Color color,
+      {bool isAccent = false}) {
+    final fg = isAccent ? AppColors.accent : color;
+    return GestureDetector(
+      onTap: () => _saveFeedback(label.toLowerCase().replaceAll(' ', '_')),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          border: Border.all(
+              color: isAccent
+                  ? AppColors.accent.withValues(alpha: 0.4)
+                  : color.withValues(alpha: 0.2)),
+          borderRadius: BorderRadius.circular(AppRadius.full),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 12, color: fg),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(fontSize: AppTypography.textXs, color: fg),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
