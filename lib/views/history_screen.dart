@@ -448,8 +448,28 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     final pushEnabled = ref.watch(pushEnabledProvider);
     final locationId = ref.watch(selectedLocationIdProvider);
     final location = getLocationById(locationId);
+    final favorites = ref.watch(favoritesProvider);
+    final minScore = ref.watch(pushMinScoreProvider);
     final subColor =
         isDark ? AppColorsDark.textTertiary : AppColors.textTertiary;
+
+    // Favorites-aware location text
+    String locText;
+    if (favorites.isNotEmpty) {
+      final favNames = favorites.map((id) => getLocationById(id).name).toList();
+      locText = favNames.length <= 2
+          ? favNames.join(' & ')
+          : '${favNames[0]}, ${favNames[1]} +${favNames.length - 2} more';
+    } else {
+      locText = location.name;
+    }
+
+    const thresholds = [
+      (value: 0, label: 'Every day'),
+      (value: 40, label: 'Fair+'),
+      (value: 60, label: 'Good+'),
+      (value: 80, label: 'Epic only'),
+    ];
 
     return Container(
       padding: const EdgeInsets.symmetric(
@@ -496,19 +516,80 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               ),
             ],
           ),
-          if (pushEnabled)
+          if (pushEnabled) ...[
             Padding(
               padding: const EdgeInsets.only(
                   left: AppSpacing.s3 + AppSpacing.s3 + 24,
                   bottom: AppSpacing.s2),
               child: Text(
-                'Alerts for: ${location.name}',
+                'Alerts for: $locText',
                 style: TextStyle(
                   fontSize: AppTypography.textXs,
                   color: subColor,
                 ),
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.only(
+                  left: AppSpacing.s3 + AppSpacing.s3 + 24,
+                  bottom: AppSpacing.s2),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Notify when conditions are:',
+                    style: TextStyle(
+                      fontSize: AppTypography.textXs,
+                      color: subColor,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.s1),
+                  Wrap(
+                    spacing: AppSpacing.s2,
+                    runSpacing: AppSpacing.s1,
+                    children: thresholds.map((t) {
+                      final isActive = t.value == minScore;
+                      return ChoiceChip(
+                        label: Text(
+                          t.label,
+                          style: TextStyle(
+                            fontSize: AppTypography.textXs,
+                            color: isActive
+                                ? Colors.white
+                                : isDark
+                                    ? AppColorsDark.textSecondary
+                                    : AppColors.textSecondary,
+                          ),
+                        ),
+                        selected: isActive,
+                        selectedColor: AppColors.accent,
+                        backgroundColor: isDark
+                            ? AppColorsDark.bgPrimary
+                            : AppColors.bgPrimary,
+                        side: BorderSide(
+                          color: isActive
+                              ? AppColors.accent
+                              : (isDark
+                                  ? AppColorsDark.textTertiary
+                                  : AppColors.textTertiary)
+                                  .withValues(alpha: 0.3),
+                        ),
+                        visualDensity: VisualDensity.compact,
+                        materialTapTargetSize:
+                            MaterialTapTargetSize.shrinkWrap,
+                        onSelected: (_) {
+                          HapticFeedback.selectionClick();
+                          ref
+                              .read(pushMinScoreProvider.notifier)
+                              .setScore(t.value);
+                        },
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );

@@ -1,4 +1,4 @@
-/// Location picker — modal bottom sheet grouped by region
+/// Location picker — modal bottom sheet grouped by region with favorites + near you
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -28,12 +28,41 @@ class _LocationPickerSheet extends StatefulWidget {
 
 class _LocationPickerSheetState extends State<_LocationPickerSheet> {
   bool _locating = false;
+  List<({Location loc, double distance})>? _nearbyLocations;
 
   static const _regions = {
-    'New York / New Jersey': ['rockaway', 'longbeach', 'asbury', 'belmar'],
-    'California': ['huntington', 'santacruz', 'oceanbeach'],
-    'Florida': ['clearwater', 'cocoa', 'jacksonville', 'miami'],
+    'New York / New Jersey': ['rockaway', 'longbeach', 'montauk', 'manasquan', 'asbury', 'belmar'],
+    'California': ['oceanbeach', 'santacruz', 'pleasurepoint', 'rincon', 'malibu', 'huntington', 'trestles'],
+    'Florida': ['jacksonville', 'staugustine', 'newsmyrna', 'cocoa', 'sebastian', 'jupiter', 'clearwater', 'miami'],
   };
+
+  @override
+  void initState() {
+    super.initState();
+    _detectNearby();
+  }
+
+  Future<void> _detectNearby() async {
+    try {
+      final permission = await Geolocator.checkPermission();
+      if (permission != LocationPermission.whileInUse &&
+          permission != LocationPermission.always) {
+        return;
+      }
+      final pos = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.low,
+          timeLimit: Duration(seconds: 3),
+        ),
+      );
+      final nearby = findLocationsWithinRadius(pos.latitude, pos.longitude);
+      if (nearby.isNotEmpty && mounted) {
+        setState(() => _nearbyLocations = nearby);
+      }
+    } catch (_) {
+      // Silent — just don't show Near You
+    }
+  }
 
   Future<void> _useMyLocation() async {
     setState(() => _locating = true);
@@ -74,6 +103,7 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
   @override
   Widget build(BuildContext context) {
     final selected = widget.ref.watch(selectedLocationIdProvider);
+    final favorites = widget.ref.watch(favoritesProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return SafeArea(
@@ -132,48 +162,124 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
               ),
             ),
             const SizedBox(height: AppSpacing.s3),
-            ..._regions.entries.map((region) => _buildRegion(
-                  context,
-                  region.key,
-                  region.value,
-                  selected,
-                  isDark,
-                )),
-            const SizedBox(height: AppSpacing.s4),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Near You section
+                    if (_nearbyLocations != null && _nearbyLocations!.isNotEmpty)
+                      _buildNearYou(context, _nearbyLocations!, selected, favorites, isDark),
+                    // Favorites section
+                    if (favorites.isNotEmpty)
+                      _buildFavorites(context, favorites, selected, isDark),
+                    // Regions
+                    ..._regions.entries.map((region) => _buildRegion(
+                          context,
+                          region.key,
+                          region.value,
+                          selected,
+                          favorites,
+                          isDark,
+                        )),
+                    const SizedBox(height: AppSpacing.s4),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildRegion(BuildContext context, String regionName,
-      List<String> locationIds, String selected, bool isDark) {
+  Widget _buildNearYou(BuildContext context,
+      List<({Location loc, double distance})> nearby, String selected,
+      List<String> favorites, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.s4,
-            vertical: AppSpacing.s2,
-          ),
-          child: Text(
-            regionName,
-            style: TextStyle(
-              fontSize: AppTypography.textXs,
-              fontWeight: AppTypography.weightSemibold,
-              color: isDark
-                  ? AppColorsDark.textTertiary
-                  : AppColors.textTertiary,
-              letterSpacing: 0.5,
+        _buildRegionHeader('Near You', isDark),
+        ...nearby.map((item) {
+          final miles = (item.distance * 0.621371).round();
+          return _buildLocationTile(
+            context, item.loc, selected, favorites, isDark,
+            trailing: Text(
+              '$miles mi',
+              style: TextStyle(
+                fontSize: AppTypography.textXs,
+                color: isDark ? AppColorsDark.textTertiary : AppColors.textTertiary,
+              ),
             ),
-          ),
-        ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildFavorites(BuildContext context, List<String> favorites,
+      String selected, bool isDark) {
+    final favLocs = favorites
+        .map((id) => getLocationById(id))
+        .where((l) => l.id != 'rockaway' || favorites.contains('rockaway'))
+        .toList();
+    if (favLocs.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildRegionHeader('Favorites', isDark),
+        ...favLocs.map((loc) =>
+            _buildLocationTile(context, loc, selected, favorites, isDark)),
+      ],
+    );
+  }
+
+  Widget _buildRegion(BuildContext context, String regionName,
+      List<String> locationIds, String selected, List<String> favorites,
+      bool isDark) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildRegionHeader(regionName, isDark),
         ...locationIds.map((id) {
           final loc = getLocationById(id);
-          final isSelected = id == selected;
-          return ListTile(
-            dense: true,
-            title: Text(
+          return _buildLocationTile(context, loc, selected, favorites, isDark);
+        }),
+      ],
+    );
+  }
+
+  Widget _buildRegionHeader(String name, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.s4,
+        vertical: AppSpacing.s2,
+      ),
+      child: Text(
+        name,
+        style: TextStyle(
+          fontSize: AppTypography.textXs,
+          fontWeight: AppTypography.weightSemibold,
+          color: isDark
+              ? AppColorsDark.textTertiary
+              : AppColors.textTertiary,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLocationTile(BuildContext context, Location loc,
+      String selected, List<String> favorites, bool isDark,
+      {Widget? trailing}) {
+    final isSelected = loc.id == selected;
+    final isFav = favorites.contains(loc.id);
+    return ListTile(
+      dense: true,
+      title: Row(
+        children: [
+          Expanded(
+            child: Text(
               loc.name,
               style: TextStyle(
                 fontSize: AppTypography.textSm,
@@ -187,17 +293,45 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
                         : AppColors.textPrimary,
               ),
             ),
-            trailing: isSelected
-                ? Icon(Icons.check, color: AppColors.accent, size: 18)
-                : null,
+          ),
+          if (trailing != null) ...[
+            const SizedBox(width: 4),
+            trailing,
+          ],
+        ],
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          GestureDetector(
             onTap: () {
               HapticFeedback.selectionClick();
-              widget.ref.read(selectedLocationIdProvider.notifier).select(id);
-              Navigator.pop(context);
+              widget.ref.read(favoritesProvider.notifier).toggle(loc.id);
             },
-          );
-        }),
-      ],
+            child: Padding(
+              padding: const EdgeInsets.all(4),
+              child: Icon(
+                isFav ? Icons.favorite : Icons.favorite_border,
+                size: 18,
+                color: isFav
+                    ? AppColors.accent
+                    : isDark
+                        ? AppColorsDark.textTertiary
+                        : AppColors.textTertiary,
+              ),
+            ),
+          ),
+          if (isSelected) ...[
+            const SizedBox(width: 4),
+            Icon(Icons.check, color: AppColors.accent, size: 18),
+          ],
+        ],
+      ),
+      onTap: () {
+        HapticFeedback.selectionClick();
+        widget.ref.read(selectedLocationIdProvider.notifier).select(loc.id);
+        Navigator.pop(context);
+      },
     );
   }
 }

@@ -15,6 +15,8 @@ const _keyLocation = 'location';
 const _keyTheme = 'theme';
 const _keyBoards = 'boards';
 const _keyFeatureTourSeen = 'feature_tour_seen';
+const _keyFavorites = 'favorites';
+const _keyPushMinScore = 'push_min_score';
 
 const defaultLocationId = 'rockaway';
 
@@ -337,6 +339,47 @@ class StoreService {
   }
 
   // ---------------------------------------------------------------------------
+  // Favorites
+  // ---------------------------------------------------------------------------
+
+  List<String> getFavorites() {
+    final raw = _box.get(_keyFavorites);
+    if (raw == null) return [];
+    try {
+      return (jsonDecode(raw) as List).cast<String>();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<List<String>> toggleFavorite(String id) async {
+    final favs = getFavorites();
+    if (favs.contains(id)) {
+      favs.remove(id);
+    } else {
+      favs.add(id);
+    }
+    await _box.put(_keyFavorites, jsonEncode(favs));
+    _pushUserData('settings', _getSettingsObject());
+    return favs;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Push Alert Threshold
+  // ---------------------------------------------------------------------------
+
+  int getPushMinScore() {
+    final raw = _box.get(_keyPushMinScore);
+    if (raw == null) return 60;
+    return int.tryParse(raw) ?? 60;
+  }
+
+  Future<void> setPushMinScore(int score) async {
+    await _box.put(_keyPushMinScore, score.toString());
+    _pushUserData('settings', _getSettingsObject());
+  }
+
+  // ---------------------------------------------------------------------------
   // Location
   // ---------------------------------------------------------------------------
 
@@ -421,6 +464,8 @@ class StoreService {
         'locationId': _box.get(_keyLocation) ?? defaultLocationId,
         'onboarded': _box.get(_keyOnboarded) == 'true',
         'featureTourSeen': _box.get(_keyFeatureTourSeen) == 'true',
+        'favorites': getFavorites(),
+        'pushMinScore': getPushMinScore(),
       };
 
   /// Non-blocking push of a single column to user_data table.
@@ -523,6 +568,12 @@ class StoreService {
         }
         if (remoteSettings['featureTourSeen'] == true) {
           await _box.put(_keyFeatureTourSeen, 'true');
+        }
+        if (remoteSettings['favorites'] is List) {
+          await _box.put(_keyFavorites, jsonEncode(remoteSettings['favorites']));
+        }
+        if (remoteSettings['pushMinScore'] is int) {
+          await _box.put(_keyPushMinScore, (remoteSettings['pushMinScore'] as int).toString());
         }
       } else {
         _pushUserData('settings', _getSettingsObject());

@@ -28,6 +28,7 @@ import '../components/surf_coach_card.dart';
 import '../components/share_card.dart';
 import '../components/alert_banner.dart';
 import '../state/subscription_provider.dart';
+import '../state/sessions_provider.dart';
 import '../services/supabase_service.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -262,6 +263,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
           // Score ring
           Center(child: ScoreRing(score: score)),
+
+          // Confidence badge
+          if (currentHour != null)
+            _ConfidenceBadge(
+              confidence: computeConfidence(data.hourly, currentHour),
+              isDark: isDark,
+            ),
           const SizedBox(height: AppSpacing.s3),
 
           // Forecast summary with LLM crossfade
@@ -271,6 +279,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               child: _buildSummaryWithCrossfade(
                 ruleBasedSummary, llmState, isDark),
             ),
+
+          // Expected vs Potential
+          Builder(builder: (context) {
+            final evp = computeExpectedVsPotential(
+              data.hourly, prefs, location, tideRange: tideRange);
+            if (evp == null) return const SizedBox.shrink();
+            return _ExpectedVsPotentialCard(evp: evp, isDark: isDark);
+          }),
+
+          // Forecast accuracy
+          Builder(builder: (context) {
+            final sessions = ref.watch(sessionsProvider);
+            final accuracy = computeForecastAccuracy(sessions);
+            if (accuracy == null) return const SizedBox.shrink();
+            return _ForecastAccuracyBadge(accuracy: accuracy);
+          }),
 
           // Score feedback
           if (score > 0)
@@ -492,6 +516,172 @@ Color? _prefDotColor(double? value, double? min, double? max) {
   final dist = value < min ? min - value : value - max;
   if (dist < max * 0.3) return AppColors.conditionFair;
   return AppColors.conditionPoor;
+}
+
+/// Confidence badge — shows forecast reliability
+class _ConfidenceBadge extends StatelessWidget {
+  final Confidence confidence;
+  final bool isDark;
+  const _ConfidenceBadge({required this.confidence, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = {
+      'high': AppColors.conditionEpic,
+      'medium': AppColors.conditionFair,
+      'low': AppColors.conditionPoor,
+    };
+    final icons = {'high': '\u2713', 'medium': '\u223C', 'low': '?'};
+    final color = colors[confidence.level] ?? AppColors.conditionFair;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.s2),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            icons[confidence.level] ?? '',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: AppTypography.weightBold,
+              color: color,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '${confidence.level} confidence',
+            style: TextStyle(
+              fontSize: AppTypography.textXs,
+              fontWeight: AppTypography.weightMedium,
+              color: isDark ? AppColorsDark.textSecondary : AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '\u2014 ${confidence.reason}',
+            style: TextStyle(
+              fontSize: AppTypography.textXs,
+              color: isDark ? AppColorsDark.textTertiary : AppColors.textTertiary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Expected vs Potential card
+class _ExpectedVsPotentialCard extends StatelessWidget {
+  final ExpectedVsPotential evp;
+  final bool isDark;
+  const _ExpectedVsPotentialCard({required this.evp, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    final expectedLabel = getConditionLabel(evp.expectedScore);
+    final potentialLabel = getConditionLabel(evp.potentialScore);
+    final bgColor = isDark ? AppColorsDark.bgSecondary : AppColors.bgSecondary;
+    final labelColor = isDark ? AppColorsDark.textTertiary : AppColors.textTertiary;
+    final descColor = isDark ? AppColorsDark.textSecondary : AppColors.textSecondary;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.s3),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.s3),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+        child: Column(
+          children: [
+            _evpRow('EXPECTED', evp.expectedDescription, expectedLabel, labelColor, descColor),
+            const SizedBox(height: AppSpacing.s1),
+            _evpRow('POTENTIAL', evp.potentialDescription, potentialLabel, labelColor, descColor),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _evpRow(String label, String desc, ConditionLabel condition,
+      Color labelColor, Color descColor) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 68,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: AppTypography.weightSemibold,
+              color: labelColor,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            desc,
+            style: TextStyle(
+              fontSize: AppTypography.textXs,
+              color: descColor,
+            ),
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: Color(int.parse(condition.color.replaceFirst('#', '0xFF'))).withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+          ),
+          child: Text(
+            condition.label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: AppTypography.weightSemibold,
+              color: Color(int.parse(condition.color.replaceFirst('#', '0xFF'))),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Forecast accuracy badge
+class _ForecastAccuracyBadge extends StatelessWidget {
+  final ForecastAccuracy accuracy;
+  const _ForecastAccuracyBadge({required this.accuracy});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.s3),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            '\u2713',
+            style: TextStyle(
+              fontSize: AppTypography.textXs,
+              fontWeight: AppTypography.weightBold,
+              color: AppColors.accent,
+            ),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            'Matched ${accuracy.matched} of your last ${accuracy.total} sessions (${accuracy.pct}%)',
+            style: TextStyle(
+              fontSize: AppTypography.textXs,
+              fontWeight: AppTypography.weightMedium,
+              color: AppColors.accent,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// Score feedback widget — "Score feel right?" with dedup per location+hour

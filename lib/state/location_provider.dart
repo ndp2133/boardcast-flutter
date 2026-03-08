@@ -56,3 +56,20 @@ final selectedLocationProvider = Provider<Location>((ref) {
   final id = ref.watch(selectedLocationIdProvider);
   return getLocationById(id);
 });
+
+/// Notifier for favorite location IDs.
+class FavoritesNotifier extends Notifier<List<String>> {
+  @override
+  List<String> build() {
+    return ref.read(storeServiceProvider).getFavorites();
+  }
+
+  Future<void> toggle(String locationId) async {
+    final store = ref.read(storeServiceProvider);
+    final updated = await store.toggleFavorite(locationId);
+    state = updated;
+  }
+}
+
+final favoritesProvider =
+    NotifierProvider<FavoritesNotifier, List<String>>(FavoritesNotifier.new);

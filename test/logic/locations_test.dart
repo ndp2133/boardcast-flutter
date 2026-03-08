@@ -3,8 +3,8 @@ import 'package:boardcast_flutter/logic/locations.dart';
 
 void main() {
   group('locations', () {
-    test('has 11 locations', () {
-      expect(locations.length, 11);
+    test('has 21 locations', () {
+      expect(locations.length, 21);
     });
 
     test('all have required fields', () {
@@ -22,15 +22,25 @@ void main() {
       // NY/NJ
       expect(ids.contains('rockaway'), true);
       expect(ids.contains('longbeach'), true);
+      expect(ids.contains('montauk'), true);
+      expect(ids.contains('manasquan'), true);
       expect(ids.contains('asbury'), true);
       expect(ids.contains('belmar'), true);
       // CA
       expect(ids.contains('huntington'), true);
       expect(ids.contains('santacruz'), true);
+      expect(ids.contains('malibu'), true);
+      expect(ids.contains('trestles'), true);
+      expect(ids.contains('rincon'), true);
+      expect(ids.contains('pleasurepoint'), true);
       expect(ids.contains('oceanbeach'), true);
       // FL
       expect(ids.contains('clearwater'), true);
       expect(ids.contains('cocoa'), true);
+      expect(ids.contains('newsmyrna'), true);
+      expect(ids.contains('sebastian'), true);
+      expect(ids.contains('staugustine'), true);
+      expect(ids.contains('jupiter'), true);
       expect(ids.contains('jacksonville'), true);
       expect(ids.contains('miami'), true);
     });

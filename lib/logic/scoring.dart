@@ -5,6 +5,8 @@ import 'dart:math';
 import '../models/hourly_data.dart';
 import '../models/location.dart';
 import '../models/user_prefs.dart';
+import 'units.dart' show metersToFeet;
+import 'time_utils.dart' show formatHour;
 
 // Surfable daylight hours — shared constant
 const daylightStart = 6; // 6 AM
@@ -784,6 +786,258 @@ TopWindow? findBestWindow(
   final windows = findTopWindows(hourlyData, prefs, location,
       count: 1, tideRange: tideRange);
   return windows.isNotEmpty ? windows.first : null;
+}
+
+// --- Confidence meter ---
+
+class Confidence {
+  final String level; // 'high', 'medium', 'low'
+  final String reason;
+  const Confidence(this.level, this.reason);
+}
+
+Confidence computeConfidence(List<HourlyData> hourlyData, HourlyData? current) {
+  if (current == null || hourlyData.isEmpty) {
+    return const Confidence('medium', 'Limited data');
+  }
+
+  final nowStr = DateTime.now().toIso8601String().substring(0, 13);
+  final futureHours =
+      hourlyData.where((h) => h.time.compareTo(nowStr) >= 0).take(6).toList();
+  if (futureHours.length < 3) {
+    return const Confidence('medium', 'Limited forecast window');
+  }
+
+  var signals = 0;
+  var total = 0.0;
+  final reasons = <String>[];
+
+  // 1. Wind speed stability (coefficient of variation)
+  final windSpeeds =
+      futureHours.map((h) => h.windSpeed).whereType<double>().toList();
+  if (windSpeeds.length >= 3) {
+    final mean = windSpeeds.reduce((a, b) => a + b) / windSpeeds.length;
+    final variance =
+        windSpeeds.map((v) => (v - mean) * (v - mean)).reduce((a, b) => a + b) /
+            windSpeeds.length;
+    final cv = sqrt(variance) / (mean == 0 ? 1 : mean);
+    signals++;
+    if (cv < 0.15) {
+      total += 1;
+      reasons.add('stable wind');
+    } else if (cv < 0.3) {
+      total += 0.6;
+    } else {
+      total += 0.2;
+      reasons.add('variable wind');
+    }
+  }
+
+  // 2. Wind direction consistency
+  final windDirs =
+      futureHours.map((h) => h.windDirection).whereType<double>().toList();
+  if (windDirs.length >= 3) {
+    final spreads = <double>[];
+    for (var i = 1; i < windDirs.length; i++) {
+      var diff = (windDirs[i] - windDirs[i - 1]).abs();
+      if (diff > 180) diff = 360 - diff;
+      spreads.add(diff);
+    }
+    final avgSpread = spreads.reduce((a, b) => a + b) / spreads.length;
+    signals++;
+    if (avgSpread < 15) {
+      total += 1;
+    } else if (avgSpread < 40) {
+      total += 0.6;
+    } else {
+      total += 0.2;
+      reasons.add('wind shift expected');
+    }
+  }
+
+  // 3. Swell clarity (primary vs secondary)
+  if (current.swellHeight != null) {
+    final primary = current.swellHeight!;
+    final secondary = current.secondarySwellHeight ?? 0;
+    final ratio = primary / (primary + secondary == 0 ? 1 : primary + secondary);
+    signals++;
+    if (ratio > 0.75) {
+      total += 1;
+      reasons.add('clean swell signal');
+    } else if (ratio > 0.5) {
+      total += 0.6;
+      reasons.add('mixed swell');
+    } else {
+      total += 0.25;
+      reasons.add('confused swell');
+    }
+  }
+
+  // 4. Swell period (longer = more predictable)
+  final period = current.swellPeakPeriod ?? current.swellPeriod;
+  if (period != null) {
+    signals++;
+    if (period >= 12) {
+      total += 1;
+    } else if (period >= 8) {
+      total += 0.6;
+    } else {
+      total += 0.3;
+      reasons.add('short-period windswell');
+    }
+  }
+
+  // 5. Weather stability
+  final stormHours =
+      futureHours.where((h) => h.weatherCode != null && h.weatherCode! >= 80);
+  if (stormHours.isNotEmpty) {
+    signals++;
+    total += 0.1;
+    reasons.add('storms possible');
+  }
+
+  final confidence = signals > 0 ? total / signals : 0.5;
+
+  if (confidence >= 0.75) {
+    final goodReasons = reasons
+        .where((r) =>
+            !r.contains('variable') &&
+            !r.contains('shift') &&
+            !r.contains('confused') &&
+            !r.contains('storm') &&
+            !r.contains('short'))
+        .take(2)
+        .toList();
+    return Confidence(
+        'high', goodReasons.isEmpty ? 'Stable conditions' : goodReasons.join(', '));
+  }
+  if (confidence >= 0.45) {
+    return Confidence(
+        'medium', reasons.isEmpty ? 'Mixed signals' : reasons.take(2).join(', '));
+  }
+  return Confidence(
+      'low',
+      reasons.isEmpty ? 'Uncertain conditions' : reasons.take(2).join(', '));
+}
+
+// --- Expected vs Potential ---
+
+class ExpectedVsPotential {
+  final double expectedScore;
+  final String expectedDescription;
+  final double potentialScore;
+  final String potentialDescription;
+  const ExpectedVsPotential({
+    required this.expectedScore,
+    required this.expectedDescription,
+    required this.potentialScore,
+    required this.potentialDescription,
+  });
+}
+
+String _waveSizeWord(double ft) {
+  if (ft < 1) return 'ankle-high';
+  if (ft < 2.5) return 'knee-to-waist';
+  if (ft < 4) return 'waist-to-chest';
+  if (ft < 6) return 'head-high';
+  return 'overhead';
+}
+
+String _textureWord(HourlyData? h, Location location) {
+  if (h == null || h.windSpeed == null) return '';
+  if (h.windSpeed! < 8) return 'clean';
+  if (h.windDirection != null && isOffshoreWind(h.windDirection!, location)) {
+    return 'groomed';
+  }
+  if (h.windSpeed! < 20) return 'textured';
+  return 'bumpy';
+}
+
+ExpectedVsPotential? computeExpectedVsPotential(
+  List<HourlyData> hourlyData,
+  UserPrefs prefs,
+  Location location, {
+  TideRange? tideRange,
+}) {
+  final todayDate = DateTime.now().toIso8601String().split('T')[0];
+  final nowStr = DateTime.now().toIso8601String().substring(0, 13);
+
+  final todayFuture = hourlyData.where((h) {
+    if (!h.time.startsWith(todayDate)) return false;
+    final hour = int.parse(h.time.split('T')[1].split(':')[0]);
+    return hour >= daylightStart && hour <= daylightEnd && h.time.compareTo(nowStr) >= 0;
+  }).toList();
+
+  if (todayFuture.isEmpty) return null;
+
+  // Expected: average of next 3 hours
+  final next3 = todayFuture.take(3).toList();
+  final expectedScores = next3
+      .map((h) => computeMatchScore(h, prefs, location, tideRange: tideRange))
+      .toList();
+  final expectedScore =
+      expectedScores.reduce((a, b) => a + b) / expectedScores.length;
+
+  // Potential: best single hour today
+  var potentialScore = 0.0;
+  HourlyData? potentialHour;
+  for (final h in todayFuture) {
+    final s = computeMatchScore(h, prefs, location, tideRange: tideRange);
+    if (s > potentialScore) {
+      potentialScore = s;
+      potentialHour = h;
+    }
+  }
+
+  // Only show if potential is meaningfully better
+  if (potentialScore - expectedScore < 0.08) return null;
+
+  final avgWave =
+      next3.map((h) => metersToFeet(h.waveHeight ?? 0)).reduce((a, b) => a + b) /
+          next3.length;
+  final potentialWave =
+      potentialHour != null ? metersToFeet(potentialHour.waveHeight ?? 0) : avgWave;
+
+  final expectedTexture = _textureWord(next3.first, location);
+  final potentialTexture =
+      potentialHour != null ? _textureWord(potentialHour, location) : '';
+
+  final expectedDesc =
+      '${_waveSizeWord(avgWave)}${expectedTexture.isNotEmpty ? ', $expectedTexture' : ''}';
+
+  final potentialTime = potentialHour != null
+      ? formatHour(potentialHour.time)
+      : '';
+  final potentialDesc =
+      '${_waveSizeWord(potentialWave)}${potentialTexture.isNotEmpty ? ' $potentialTexture' : ''} sets${potentialTime.isNotEmpty ? ' around $potentialTime' : ''}';
+
+  return ExpectedVsPotential(
+    expectedScore: expectedScore,
+    expectedDescription: expectedDesc,
+    potentialScore: potentialScore,
+    potentialDescription: potentialDesc,
+  );
+}
+
+// --- Forecast Accuracy ---
+
+class ForecastAccuracy {
+  final int matched;
+  final int total;
+  final int pct;
+  const ForecastAccuracy(this.matched, this.total, this.pct);
+}
+
+ForecastAccuracy? computeForecastAccuracy(List<dynamic> sessions) {
+  final calibrated = sessions.where((s) =>
+      s.status == 'completed' && s.calibration != null).toList();
+  if (calibrated.length < 3) return null;
+
+  final matched = calibrated.where((s) => s.calibration == 0).length;
+  final total = calibrated.length;
+  final pct = (matched / total * 100).round();
+
+  return ForecastAccuracy(matched, total, pct);
 }
 
 // Internal mutable helper for building windows
