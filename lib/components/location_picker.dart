@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import '../theme/tokens.dart';
 import '../logic/locations.dart';
+import '../models/location.dart';
 import '../state/location_provider.dart';
 
 void showLocationPicker(BuildContext context, WidgetRef ref) {
