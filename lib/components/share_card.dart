@@ -306,7 +306,7 @@ void _drawFooter(Canvas canvas, _CardColors colors) {
   }
 
   // URL
-  _drawText(canvas, 'myboardcast.vercel.app', _w / 2, _h - 30,
+  _drawText(canvas, 'myboardcast.com', _w / 2, _h - 30,
       color: colors.textSecondary, fontSize: 24, textAlign: TextAlign.center);
 }
 

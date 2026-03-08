@@ -233,7 +233,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
             children: [
               TextButton(
                 onPressed: () => launchUrl(
-                  Uri.parse('https://myboardcast.vercel.app/privacy.html'),
+                  Uri.parse('https://myboardcast.com/privacy.html'),
                   mode: LaunchMode.externalApplication,
                 ),
                 child: Text(
@@ -247,7 +247,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               Text(' · ', style: TextStyle(color: subColor)),
               TextButton(
                 onPressed: () => launchUrl(
-                  Uri.parse('https://myboardcast.vercel.app/terms.html'),
+                  Uri.parse('https://myboardcast.com/terms.html'),
                   mode: LaunchMode.externalApplication,
                 ),
                 child: Text(
