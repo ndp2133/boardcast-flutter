@@ -53,7 +53,7 @@ class BestTimeCard extends StatelessWidget {
     final waveText = w.waveHeight != null
         ? '${formatWaveHeight(w.waveHeight)} ft'
         : '';
-    final isDawnPatrol = _isDawnPatrol(w.startTime, sunrise);
+    final isSunriseWindow = _isSunriseWindow(w.startTime, sunrise);
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.s4),
@@ -110,13 +110,13 @@ class BestTimeCard extends StatelessWidget {
                 const SizedBox(height: 2),
                 Row(
                   children: [
-                    if (isDawnPatrol) ...[
+                    if (isSunriseWindow) ...[
                       Icon(Icons.wb_twilight, size: 12, color: const Color(0xFFF59E0B)),
                       const SizedBox(width: 4),
                     ],
                     Expanded(
                       child: Text(
-                        '${isDawnPatrol ? 'Dawn patrol \u00b7 ' : ''}$startHour \u2013 $endHour${waveText.isNotEmpty ? ' \u00b7 $waveText' : ''} \u00b7 ${w.hours}h window',
+                        '${isSunriseWindow ? 'Sunrise window \u00b7 ' : ''}$startHour \u2013 $endHour${waveText.isNotEmpty ? ' \u00b7 $waveText' : ''} \u00b7 ${w.hours}h window',
                         style: TextStyle(
                           fontSize: AppTypography.textXs,
                           color: isDark
@@ -137,7 +137,7 @@ class BestTimeCard extends StatelessWidget {
 }
 
 /// Best window starts within 1 hour after sunrise
-bool _isDawnPatrol(String startTime, String? sunrise) {
+bool _isSunriseWindow(String startTime, String? sunrise) {
   if (sunrise == null) return false;
   try {
     final startDt = DateTime.parse(startTime);
