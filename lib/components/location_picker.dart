@@ -277,6 +277,9 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
     final isFav = favorites.contains(loc.id);
     return ListTile(
       dense: true,
+      tileColor: isSelected
+          ? (isDark ? AppColors.accent.withValues(alpha: 0.08) : AppColors.accent.withValues(alpha: 0.06))
+          : null,
       title: Row(
         children: [
           Expanded(
@@ -309,11 +312,12 @@ class _LocationPickerSheetState extends State<_LocationPickerSheet> {
               HapticFeedback.selectionClick();
               widget.ref.read(favoritesProvider.notifier).toggle(loc.id);
             },
+            behavior: HitTestBehavior.opaque,
             child: Padding(
-              padding: const EdgeInsets.all(4),
+              padding: const EdgeInsets.all(12),
               child: Icon(
                 isFav ? Icons.favorite : Icons.favorite_border,
-                size: 18,
+                size: 20,
                 color: isFav
                     ? AppColors.accent
                     : isDark

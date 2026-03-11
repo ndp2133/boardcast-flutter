@@ -16,6 +16,10 @@ import '../components/tide_chart.dart';
 import '../components/daily_card.dart';
 import '../components/weekly_windows.dart';
 import '../components/stale_badge.dart';
+import '../components/discovery_hint.dart';
+import '../state/store_provider.dart';
+import '../components/shimmer.dart';
+import '../components/stagger_animate.dart';
 
 class ForecastScreen extends ConsumerStatefulWidget {
   const ForecastScreen({super.key});
@@ -27,6 +31,13 @@ class ForecastScreen extends ConsumerStatefulWidget {
 class _ForecastScreenState extends ConsumerState<ForecastScreen> {
   int _selectedDayIndex = 0;
   final _scrubberNotifier = ValueNotifier<int?>(null);
+  late Set<String> _seenHints;
+
+  @override
+  void initState() {
+    super.initState();
+    _seenHints = ref.read(storeServiceProvider).getSeenHints();
+  }
 
   @override
   void dispose() {
@@ -58,28 +69,58 @@ class _ForecastScreenState extends ConsumerState<ForecastScreen> {
       ),
       body: conditionsAsync.when(
         loading: () => _buildSkeleton(isDark),
-        error: (err, _) => Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.cloud_off, size: 48, color: AppColors.conditionFair),
-              const SizedBox(height: AppSpacing.s3),
-              Text(
-                'Could not load forecast',
-                style: TextStyle(
-                  color: isDark
-                      ? AppColorsDark.textPrimary
-                      : AppColors.textPrimary,
-                ),
+        error: (err, _) {
+          final isOffline = err.toString().contains('SocketException') ||
+              err.toString().contains('Failed host lookup');
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.s8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isOffline ? Icons.wifi_off_rounded : Icons.cloud_off_rounded,
+                    size: 48,
+                    color: AppColors.conditionFair,
+                  ),
+                  const SizedBox(height: AppSpacing.s4),
+                  Text(
+                    isOffline ? 'You\'re offline' : 'Couldn\'t load forecast',
+                    style: TextStyle(
+                      fontSize: AppTypography.textBase,
+                      fontWeight: AppTypography.weightSemibold,
+                      color: isDark
+                          ? AppColorsDark.textPrimary
+                          : AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.s2),
+                  Text(
+                    isOffline
+                        ? 'Connect to the internet and try again.'
+                        : 'The forecast server didn\'t respond.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: AppTypography.textSm,
+                      color: isDark
+                          ? AppColorsDark.textSecondary
+                          : AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.s5),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      HapticFeedback.lightImpact();
+                      ref.invalidate(conditionsProvider);
+                    },
+                    icon: const Icon(Icons.refresh, size: 18),
+                    label: const Text('Try Again'),
+                  ),
+                ],
               ),
-              TextButton.icon(
-                onPressed: () => ref.invalidate(conditionsProvider),
-                icon: const Icon(Icons.refresh),
-                label: const Text('Retry'),
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
         data: (data) => _buildForecast(data, isDark),
       ),
     ),
@@ -166,55 +207,68 @@ class _ForecastScreenState extends ConsumerState<ForecastScreen> {
             ),
           ),
 
-        // Charts section
-        ForecastChart(
-          hourlyData: dayHours,
-          prefs: prefs,
-          location: location,
-          isToday: today,
-          currentHourIndex: currentIdx,
-          scrubberNotifier: _scrubberNotifier,
-        ),
-
-        // Condition quality bar
+        // Discovery hint
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s1),
-          child: ConditionBar(
-            hourlyData: dayHours,
-            prefs: prefs,
-            location: location,
+          child: DiscoveryHint(
+            id: 'forecast_windows',
+            message: 'Tap a best window to jump to that day\u2019s forecast.',
+            icon: Icons.touch_app,
+            seenHints: _seenHints,
+            onDismiss: (id) {
+              _seenHints.add(id);
+              ref.read(storeServiceProvider).markHintSeen(id);
+            },
           ),
         ),
 
-        // Chart legend
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.s1),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+        // Best windows — lead with the answer
+        WeeklyWindows(
+          windows: topWindows,
+          onWindowTap: (date) {
+            final idx = data.daily.indexWhere((d) => d.date == date);
+            if (idx >= 0) setState(() => _selectedDayIndex = idx);
+          },
+        ),
+        const SizedBox(height: AppSpacing.s4),
+
+        // Charts section — crossfade on day switch
+        AnimatedSwitcher(
+          duration: AppDurations.slow,
+          switchInCurve: Curves.easeOut,
+          switchOutCurve: Curves.easeIn,
+          child: Column(
+            key: ValueKey(selectedDate),
             children: [
-              _legendItem('Waves (ft)', AppColors.accent),
-              const SizedBox(width: AppSpacing.s4),
-              _legendItem(
-                'Wind (mph)',
-                isDark ? AppColorsDark.chartWind : AppColors.chartWind,
-                dashed: true,
+              ForecastChart(
+                hourlyData: dayHours,
+                prefs: prefs,
+                location: location,
+                isToday: today,
+                currentHourIndex: currentIdx,
+                scrubberNotifier: _scrubberNotifier,
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s1),
+                child: ConditionBar(
+                  hourlyData: dayHours,
+                  prefs: prefs,
+                  location: location,
+                ),
+              ),
+              TideChart(
+                hourlyData: dayHours,
+                isToday: today,
+                currentHourIndex: currentIdx,
               ),
             ],
           ),
         ),
 
-        // Tide chart
-        TideChart(
-          hourlyData: dayHours,
-          isToday: today,
-          currentHourIndex: currentIdx,
-        ),
-        const SizedBox(height: AppSpacing.s1),
-
         // Window label
         if (windowLabel != null)
           Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.s3),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.s2),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -239,33 +293,28 @@ class _ForecastScreenState extends ConsumerState<ForecastScreen> {
 
         const SizedBox(height: AppSpacing.s3),
 
-        // Daily cards
+        // Daily cards — staggered entrance
         ...List.generate(data.daily.length, (i) {
           final d = data.daily[i];
           final hours = dayHoursMap[d.date] ?? [];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.s2),
-            child: DailyCard(
-              day: d,
-              dayHours: hours,
-              prefs: prefs,
-              location: location,
-              isSelected: i == _selectedDayIndex,
-              onTap: () => setState(() => _selectedDayIndex = i),
+          return StaggerAnimate(
+            index: i,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.s2),
+              child: DailyCard(
+                day: d,
+                dayHours: hours,
+                prefs: prefs,
+                location: location,
+                isSelected: i == _selectedDayIndex,
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  setState(() => _selectedDayIndex = i);
+                },
+              ),
             ),
           );
         }),
-
-        const SizedBox(height: AppSpacing.s4),
-
-        // Weekly windows
-        WeeklyWindows(
-          windows: topWindows,
-          onWindowTap: (date) {
-            final idx = data.daily.indexWhere((d) => d.date == date);
-            if (idx >= 0) setState(() => _selectedDayIndex = idx);
-          },
-        ),
 
         const SizedBox(height: AppSpacing.s8),
       ],
@@ -273,66 +322,21 @@ class _ForecastScreenState extends ConsumerState<ForecastScreen> {
     );
   }
 
-  Widget _legendItem(String label, Color color, {bool dashed = false}) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 16,
-          height: 2,
-          decoration: BoxDecoration(
-            color: dashed ? Colors.transparent : color,
-            border: dashed
-                ? Border(
-                    bottom: BorderSide(
-                      color: color,
-                      width: 2,
-                      strokeAlign: BorderSide.strokeAlignCenter,
-                    ),
-                  )
-                : null,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.s1),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: AppTypography.textXxs,
-            color: color,
-          ),
-        ),
-      ],
-    );
-  }
-
   Widget _buildSkeleton(bool isDark) {
-    final shimmer = isDark ? AppColorsDark.bgTertiary : AppColors.bgTertiary;
-    return Padding(
-      padding: const EdgeInsets.all(AppSpacing.s4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Chart placeholder
-          Container(
-            height: 180,
-            decoration: BoxDecoration(
-              color: shimmer,
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.s4),
-          // Daily card placeholders
-          ...List.generate(4, (_) => Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.s2),
-            child: Container(
-              height: 72,
-              decoration: BoxDecoration(
-                color: shimmer,
-                borderRadius: BorderRadius.circular(AppRadius.md),
-              ),
-            ),
-          )),
-        ],
+    return Shimmer(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.s4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const ShimmerBox(height: 180),
+            const SizedBox(height: AppSpacing.s4),
+            ...List.generate(4, (_) => const Padding(
+              padding: EdgeInsets.only(bottom: AppSpacing.s2),
+              child: ShimmerBox(height: 72),
+            )),
+          ],
+        ),
       ),
     );
   }

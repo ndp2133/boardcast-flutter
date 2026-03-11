@@ -10,14 +10,15 @@ struct WatchComplicationEntry: TimelineEntry {
     let locationName: String
     let waveHeight: String
     let windSpeed: String
+    let trend: String // ↑ ↓ →
 
     var conditionColor: Color {
         switch conditionLabel {
-        case "Epic":  return Color(red: 34/255, green: 197/255, blue: 94/255)
-        case "Good":  return Color(red: 77/255, green: 184/255, blue: 164/255)
-        case "Fair":  return Color(red: 245/255, green: 158/255, blue: 11/255)
-        case "Poor":  return Color(red: 239/255, green: 68/255, blue: 68/255)
-        default:      return Color(red: 77/255, green: 184/255, blue: 164/255)
+        case "Epic":  return Color(red: 0x2e/255, green: 0x8a/255, blue: 0x5e/255)
+        case "Good":  return Color(red: 0x3d/255, green: 0x91/255, blue: 0x89/255)
+        case "Fair":  return Color(red: 0xb0/255, green: 0x7a/255, blue: 0x4f/255)
+        case "Poor":  return Color(red: 0x9e/255, green: 0x5e/255, blue: 0x5e/255)
+        default:      return Color(red: 0x3d/255, green: 0x91/255, blue: 0x89/255)
         }
     }
 
@@ -27,7 +28,8 @@ struct WatchComplicationEntry: TimelineEntry {
         conditionLabel: "Good",
         locationName: "Rockaway",
         waveHeight: "3.2",
-        windSpeed: "8"
+        windSpeed: "8",
+        trend: "→"
     )
 }
 
@@ -57,7 +59,8 @@ struct WatchComplicationProvider: TimelineProvider {
             conditionLabel: d.string(forKey: "watch_conditionLabel") ?? "—",
             locationName: d.string(forKey: "watch_locationName") ?? "Boardcast",
             waveHeight: d.string(forKey: "watch_waveHeight") ?? "--",
-            windSpeed: d.string(forKey: "watch_windSpeed") ?? "--"
+            windSpeed: d.string(forKey: "watch_windSpeed") ?? "--",
+            trend: d.string(forKey: "watch_trend") ?? "→"
         )
     }
 }
@@ -84,8 +87,9 @@ struct CircularComplication: Widget {
             ZStack {
                 AccessoryWidgetBackground()
                 Gauge(value: Double(entry.score), in: 0...100) {
-                    Text("Surf")
-                        .font(.system(size: 7))
+                    Text(entry.trend)
+                        .font(.system(size: 9))
+                        .foregroundStyle(entry.conditionColor)
                 } currentValueLabel: {
                     Text("\(entry.score)")
                         .font(.system(size: 16, weight: .bold, design: .monospaced))
@@ -114,6 +118,9 @@ struct RectangularComplication: Widget {
                         .font(.system(size: 17, weight: .bold, design: .monospaced))
                     Text(entry.conditionLabel)
                         .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(entry.conditionColor)
+                    Text(entry.trend)
+                        .font(.system(size: 13))
                         .foregroundStyle(entry.conditionColor)
                 }
 
@@ -159,7 +166,7 @@ struct InlineComplication: Widget {
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: WatchComplicationProvider()) { entry in
-            Text("\(entry.score) \(entry.conditionLabel) \u{00b7} \(entry.waveHeight)ft")
+            Text("\(entry.score) \(entry.conditionLabel) \(entry.trend) \u{00b7} \(entry.waveHeight)ft")
                 .containerBackground(for: .widget) { Color.clear }
         }
         .configurationDisplayName("Surf Score Inline")
@@ -177,15 +184,20 @@ struct CornerComplication: Widget {
         StaticConfiguration(kind: kind, provider: WatchComplicationProvider()) { entry in
             ZStack {
                 AccessoryWidgetBackground()
-                Text("\(entry.score)")
-                    .font(.system(size: 20, weight: .bold, design: .monospaced))
-                    .widgetLabel {
-                        Gauge(value: Double(entry.score), in: 0...100) {
-                            Text("Surf")
-                        }
-                        .tint(entry.conditionColor)
-                        .gaugeStyle(.accessoryLinear)
+                VStack(spacing: 0) {
+                    Text("\(entry.score)")
+                        .font(.system(size: 18, weight: .bold, design: .monospaced))
+                    Text(entry.trend)
+                        .font(.system(size: 10))
+                        .foregroundStyle(entry.conditionColor)
+                }
+                .widgetLabel {
+                    Gauge(value: Double(entry.score), in: 0...100) {
+                        Text("Surf")
                     }
+                    .tint(entry.conditionColor)
+                    .gaugeStyle(.accessoryLinear)
+                }
             }
             .containerBackground(for: .widget) { Color.clear }
         }

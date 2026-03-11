@@ -34,6 +34,7 @@ class _CompletionSheet extends StatefulWidget {
 }
 
 class _CompletionSheetState extends State<_CompletionSheet> {
+  int _step = 0; // 0 = rate, 1 = details
   int _rating = 0;
   int? _calibration;
   String? _boardId;
@@ -92,18 +93,6 @@ class _CompletionSheetState extends State<_CompletionSheet> {
         isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
     final subColor =
         isDark ? AppColorsDark.textSecondary : AppColors.textSecondary;
-    final boards = widget.ref.read(boardsProvider);
-
-    // Conditions summary
-    final cond = widget.session.conditions;
-
-    // Nudge
-    final sessions = widget.ref.read(sessionsProvider);
-    final prefs = widget.ref.read(preferencesProvider);
-    final nudgeResult = generateNudge(sessions, prefs);
-
-    // Forecast vs Actual comparison
-    final forecastComparison = _computeForecastComparison();
 
     return PopScope(
       canPop: !_hasFormData,
@@ -111,284 +100,510 @@ class _CompletionSheetState extends State<_CompletionSheet> {
         if (!didPop) _showDiscardDialog();
       },
       child: DraggableScrollableSheet(
-      initialChildSize: 0.85,
-      maxChildSize: 0.95,
-      minChildSize: 0.5,
-      expand: false,
-      builder: (context, scrollController) {
-        return GestureDetector(
-          onTap: () => FocusScope.of(context).unfocus(),
-          behavior: HitTestBehavior.opaque,
-          child: SingleChildScrollView(
-          controller: scrollController,
-          padding: const EdgeInsets.fromLTRB(
-              AppSpacing.s4, AppSpacing.s4, AppSpacing.s4, AppSpacing.s8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Handle
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color:
-                        isDark ? AppColorsDark.bgSurface : AppColors.bgSurface,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.s4),
-              Text(
-                'Complete Session',
-                style: TextStyle(
-                  fontSize: AppTypography.textLg,
-                  fontWeight: AppTypography.weightSemibold,
-                  color: textColor,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.s2),
-
-              // Conditions summary
-              if (cond != null)
+        initialChildSize: 0.75,
+        maxChildSize: 0.95,
+        minChildSize: 0.5,
+        expand: false,
+        builder: (context, scrollController) {
+          return GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            behavior: HitTestBehavior.opaque,
+            child: Column(
+              children: [
+                // Handle + step indicator (fixed at top)
                 Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.s4),
-                  child: Row(
+                  padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.s4, AppSpacing.s3, AppSpacing.s4, 0),
+                  child: Column(
                     children: [
-                      if (cond.waveHeight != null)
-                        _infoChip(
-                            '${formatWaveHeight(cond.waveHeight)} ft waves',
-                            subColor),
-                      if (cond.windSpeed != null) ...[
-                        const SizedBox(width: 8),
-                        _infoChip(
-                            '${formatWindSpeed(cond.windSpeed)} mph wind',
-                            subColor),
-                      ],
-                    ],
-                  ),
-                ),
-
-              // Star rating
-              Text('How was it?',
-                  style: TextStyle(
-                    fontSize: AppTypography.textSm,
-                    fontWeight: AppTypography.weightMedium,
-                    color: textColor,
-                  )),
-              const SizedBox(height: AppSpacing.s2),
-              Center(
-                child: StarRating(
-                  rating: _rating,
-                  size: 36,
-                  onChanged: (r) => setState(() => _rating = r),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.s5),
-
-              // Calibration
-              Text('Forecast accuracy',
-                  style: TextStyle(
-                    fontSize: AppTypography.textSm,
-                    fontWeight: AppTypography.weightMedium,
-                    color: textColor,
-                  )),
-              const SizedBox(height: AppSpacing.s2),
-              Row(
-                children: [
-                  _calibrationButton('Worse', -1, '\u{1F44E}'),
-                  const SizedBox(width: 8),
-                  _calibrationButton('About right', 0, '\u{1F44C}'),
-                  const SizedBox(width: 8),
-                  _calibrationButton('Better', 1, '\u{1F919}'),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.s5),
-
-              // Forecast vs Actual
-              if (forecastComparison != null)
-                _buildForecastComparison(forecastComparison, textColor, subColor),
-
-              // Board picker
-              if (boards.isNotEmpty) ...[
-                Text('Board used',
-                    style: TextStyle(
-                      fontSize: AppTypography.textSm,
-                      fontWeight: AppTypography.weightMedium,
-                      color: textColor,
-                    )),
-                const SizedBox(height: AppSpacing.s2),
-                Wrap(
-                  spacing: 8,
-                  children: boards.map((b) {
-                    final selected = b.id == _boardId;
-                    return ChoiceChip(
-                      label: Text(b.name),
-                      selected: selected,
-                      onSelected: (_) {
-                        HapticFeedback.selectionClick();
-                        setState(
-                            () => _boardId = selected ? null : b.id);
-                      },
-                      selectedColor: AppColors.accentBgStrong,
-                      labelStyle: TextStyle(
-                        color: selected ? AppColors.accent : textColor,
-                        fontSize: AppTypography.textSm,
-                      ),
-                    );
-                  }).toList(),
-                ),
-                if (_boardId != null)
-                  Builder(builder: (_) {
-                    final allStats = aggregateBoardStats(sessions.cast(), boards.cast());
-                    final stats = allStats[_boardId];
-                    final statsText = stats != null
-                        ? [
-                            '${stats.count} session${stats.count != 1 ? 's' : ''}',
-                            if (stats.avgRating != null)
-                              '${stats.avgRating!.toStringAsFixed(1)}\u2605 avg',
-                            if (stats.bestRange != null)
-                              'Best in ${stats.bestRange}',
-                          ].join(' \u00b7 ')
-                        : 'First session with this board';
-                    return Padding(
-                      padding: const EdgeInsets.only(top: 6),
-                      child: Text(
-                        statsText,
-                        style: TextStyle(
-                          fontSize: AppTypography.textXs,
-                          color: subColor,
-                        ),
-                      ),
-                    );
-                  }),
-                const SizedBox(height: AppSpacing.s5),
-              ],
-
-              // Tags
-              Text('Tags',
-                  style: TextStyle(
-                    fontSize: AppTypography.textSm,
-                    fontWeight: AppTypography.weightMedium,
-                    color: textColor,
-                  )),
-              const SizedBox(height: AppSpacing.s2),
-              Wrap(
-                spacing: 8,
-                runSpacing: 4,
-                children: _tagOptions.map((tag) {
-                  final selected = _selectedTags.contains(tag);
-                  return FilterChip(
-                    label: Text(tag),
-                    selected: selected,
-                    onSelected: (v) {
-                      HapticFeedback.selectionClick();
-                      setState(() {
-                        if (v) {
-                          _selectedTags.add(tag);
-                        } else {
-                          _selectedTags.remove(tag);
-                        }
-                      });
-                    },
-                    selectedColor: AppColors.accentBgStrong,
-                    labelStyle: TextStyle(
-                      color: selected ? AppColors.accent : textColor,
-                      fontSize: AppTypography.textSm,
-                    ),
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: AppSpacing.s5),
-
-              // Notes
-              Text('Notes',
-                  style: TextStyle(
-                    fontSize: AppTypography.textSm,
-                    fontWeight: AppTypography.weightMedium,
-                    color: textColor,
-                  )),
-              const SizedBox(height: AppSpacing.s2),
-              TextField(
-                controller: _notesController,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  hintText: 'How was your session?',
-                  hintStyle: TextStyle(color: subColor),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                  ),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.s4),
-
-              // Nudge with Apply button
-              if (nudgeResult != null)
-                Container(
-                  padding: const EdgeInsets.all(AppSpacing.s3),
-                  margin: const EdgeInsets.only(bottom: AppSpacing.s4),
-                  decoration: BoxDecoration(
-                    color: AppColors.accentBg,
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                  ),
-                  child: Row(
-                    children: [
-                      const Text('\u{1F4A1}', style: TextStyle(fontSize: 16)),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          nudgeResult.message,
-                          style: TextStyle(
-                            fontSize: AppTypography.textXs,
-                            color: textColor,
+                      Center(
+                        child: Container(
+                          width: 36,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? AppColorsDark.bgSurface
+                                : AppColors.bgSurface,
+                            borderRadius: BorderRadius.circular(2),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      _nudgeApplied
-                          ? Text(
-                              'Applied',
-                              style: TextStyle(
-                                fontSize: AppTypography.textXs,
-                                color: subColor,
-                                fontWeight: AppTypography.weightMedium,
-                              ),
-                            )
-                          : SizedBox(
-                              height: 28,
-                              child: TextButton(
-                                onPressed: () => _applyNudge(nudgeResult, prefs),
-                                style: TextButton.styleFrom(
-                                  foregroundColor: AppColors.accent,
-                                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                                  textStyle: TextStyle(
-                                    fontSize: AppTypography.textXs,
-                                    fontWeight: AppTypography.weightSemibold,
-                                  ),
-                                ),
-                                child: const Text('Apply'),
-                              ),
-                            ),
+                      const SizedBox(height: AppSpacing.s3),
+                      _buildStepIndicator(isDark, textColor, subColor),
+                      const SizedBox(height: AppSpacing.s3),
                     ],
                   ),
                 ),
 
-              // Save button
-              SizedBox(
-                width: double.infinity,
+                // Scrollable step content
+                Expanded(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: _step == -1
+                        ? _buildCelebration(isDark, textColor)
+                        : _step == 0
+                            ? _buildStep1(scrollController, isDark, textColor,
+                                subColor)
+                            : _buildStep2(scrollController, isDark, textColor,
+                                subColor),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // ─── Step indicator ─────────────────────────────────────────────────
+
+  Widget _buildStepIndicator(bool isDark, Color textColor, Color subColor) {
+    return Row(
+      children: [
+        _stepDot(0, 'Rate', isDark, textColor, subColor),
+        Expanded(
+          child: Container(
+            height: 1,
+            margin: const EdgeInsets.symmetric(horizontal: 8),
+            color: _step >= 1
+                ? AppColors.accent
+                : (isDark ? AppColorsDark.bgTertiary : AppColors.bgTertiary),
+          ),
+        ),
+        _stepDot(1, 'Details', isDark, textColor, subColor),
+      ],
+    );
+  }
+
+  Widget _stepDot(
+      int step, String label, bool isDark, Color textColor, Color subColor) {
+    final isActive = _step >= step;
+    return GestureDetector(
+      onTap: step < _step ? () => setState(() => _step = step) : null,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isActive
+                  ? AppColors.accent
+                  : (isDark ? AppColorsDark.bgTertiary : AppColors.bgTertiary),
+            ),
+            child: Center(
+              child: Text(
+                '${step + 1}',
+                style: TextStyle(
+                  fontSize: AppTypography.textXs,
+                  fontWeight: AppTypography.weightSemibold,
+                  color: isActive ? Colors.white : subColor,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: AppTypography.textSm,
+              fontWeight:
+                  isActive ? AppTypography.weightSemibold : FontWeight.normal,
+              color: isActive ? textColor : subColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Step 1: Rate + Calibration ────────────────────────────────────
+
+  Widget _buildStep1(ScrollController scrollController, bool isDark,
+      Color textColor, Color subColor) {
+    final cond = widget.session.conditions;
+    final forecastComparison = _computeForecastComparison();
+
+    return SingleChildScrollView(
+      key: const ValueKey('step1'),
+      controller: scrollController,
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.s4, AppSpacing.s2, AppSpacing.s4, AppSpacing.s8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'How was your session?',
+            style: TextStyle(
+              fontSize: AppTypography.textLg,
+              fontWeight: AppTypography.weightSemibold,
+              color: textColor,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s2),
+
+          // Conditions summary
+          if (cond != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.s4),
+              child: Row(
+                children: [
+                  if (cond.waveHeight != null)
+                    _infoChip(
+                        '${formatWaveHeight(cond.waveHeight)} ft waves',
+                        subColor),
+                  if (cond.windSpeed != null) ...[
+                    const SizedBox(width: 8),
+                    _infoChip(
+                        '${formatWindSpeed(cond.windSpeed)} mph wind',
+                        subColor),
+                  ],
+                ],
+              ),
+            ),
+
+          // Star rating
+          Text('Rating',
+              style: TextStyle(
+                fontSize: AppTypography.textSm,
+                fontWeight: AppTypography.weightMedium,
+                color: textColor,
+              )),
+          const SizedBox(height: AppSpacing.s2),
+          Center(
+            child: StarRating(
+              rating: _rating,
+              size: 40,
+              onChanged: (r) => setState(() => _rating = r),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s5),
+
+          // Calibration
+          Text('Forecast accuracy',
+              style: TextStyle(
+                fontSize: AppTypography.textSm,
+                fontWeight: AppTypography.weightMedium,
+                color: textColor,
+              )),
+          const SizedBox(height: AppSpacing.s2),
+          Row(
+            children: [
+              _calibrationButton('Worse', -1, '\u{1F44E}'),
+              const SizedBox(width: 8),
+              _calibrationButton('About right', 0, '\u{1F44C}'),
+              const SizedBox(width: 8),
+              _calibrationButton('Better', 1, '\u{1F919}'),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.s5),
+
+          // Forecast vs Actual
+          if (forecastComparison != null)
+            _buildForecastComparison(forecastComparison, textColor, subColor),
+
+          // Next / Save buttons
+          const SizedBox(height: AppSpacing.s4),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _rating > 0 ? () {
+                    HapticFeedback.mediumImpact();
+                    _save();
+                  } : null,
+                  child: const Text('Save & Skip Details'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
                 child: ElevatedButton(
-                  onPressed: _save,
-                  child: const Text('Save Session'),
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    setState(() => _step = 1);
+                  },
+                  child: const Text('Add Details'),
                 ),
               ),
             ],
           ),
-        ),
-        );
-      },
-    ),
+        ],
+      ),
     );
   }
+
+  // ─── Step 2: Board + Tags + Notes ──────────────────────────────────
+
+  Widget _buildStep2(ScrollController scrollController, bool isDark,
+      Color textColor, Color subColor) {
+    final boards = widget.ref.read(boardsProvider);
+    final sessions = widget.ref.read(sessionsProvider);
+    final prefs = widget.ref.read(preferencesProvider);
+    final nudgeResult = generateNudge(sessions, prefs);
+
+    return SingleChildScrollView(
+      key: const ValueKey('step2'),
+      controller: scrollController,
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.s4, AppSpacing.s2, AppSpacing.s4, AppSpacing.s8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Session details',
+            style: TextStyle(
+              fontSize: AppTypography.textLg,
+              fontWeight: AppTypography.weightSemibold,
+              color: textColor,
+            ),
+          ),
+          Text(
+            'Optional \u2014 add what you remember.',
+            style: TextStyle(
+              fontSize: AppTypography.textXs,
+              color: subColor,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s4),
+
+          // Board picker
+          if (boards.isNotEmpty) ...[
+            Text('Board used',
+                style: TextStyle(
+                  fontSize: AppTypography.textSm,
+                  fontWeight: AppTypography.weightMedium,
+                  color: textColor,
+                )),
+            const SizedBox(height: AppSpacing.s2),
+            Wrap(
+              spacing: 8,
+              children: boards.map((b) {
+                final selected = b.id == _boardId;
+                return ChoiceChip(
+                  label: Text(b.name),
+                  selected: selected,
+                  onSelected: (_) {
+                    HapticFeedback.selectionClick();
+                    setState(() => _boardId = selected ? null : b.id);
+                  },
+                  selectedColor: AppColors.accentBgStrong,
+                  labelStyle: TextStyle(
+                    color: selected ? AppColors.accent : textColor,
+                    fontSize: AppTypography.textSm,
+                  ),
+                );
+              }).toList(),
+            ),
+            if (_boardId != null)
+              Builder(builder: (_) {
+                final allStats =
+                    aggregateBoardStats(sessions.cast(), boards.cast());
+                final stats = allStats[_boardId];
+                final statsText = stats != null
+                    ? [
+                        '${stats.count} session${stats.count != 1 ? 's' : ''}',
+                        if (stats.avgRating != null)
+                          '${stats.avgRating!.toStringAsFixed(1)}\u2605 avg',
+                        if (stats.bestRange != null)
+                          'Best in ${stats.bestRange}',
+                      ].join(' \u00b7 ')
+                    : 'First session with this board';
+                return Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    statsText,
+                    style: TextStyle(
+                      fontSize: AppTypography.textXs,
+                      color: subColor,
+                    ),
+                  ),
+                );
+              }),
+            const SizedBox(height: AppSpacing.s5),
+          ],
+
+          // Tags
+          Text('Tags',
+              style: TextStyle(
+                fontSize: AppTypography.textSm,
+                fontWeight: AppTypography.weightMedium,
+                color: textColor,
+              )),
+          const SizedBox(height: AppSpacing.s2),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: _tagOptions.map((tag) {
+              final selected = _selectedTags.contains(tag);
+              return FilterChip(
+                label: Text(tag),
+                selected: selected,
+                onSelected: (v) {
+                  HapticFeedback.selectionClick();
+                  setState(() {
+                    if (v) {
+                      _selectedTags.add(tag);
+                    } else {
+                      _selectedTags.remove(tag);
+                    }
+                  });
+                },
+                selectedColor: AppColors.accentBgStrong,
+                labelStyle: TextStyle(
+                  color: selected ? AppColors.accent : textColor,
+                  fontSize: AppTypography.textSm,
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: AppSpacing.s5),
+
+          // Notes
+          Text('Notes',
+              style: TextStyle(
+                fontSize: AppTypography.textSm,
+                fontWeight: AppTypography.weightMedium,
+                color: textColor,
+              )),
+          const SizedBox(height: AppSpacing.s2),
+          TextField(
+            controller: _notesController,
+            maxLines: 3,
+            decoration: InputDecoration(
+              hintText: 'How was your session?',
+              hintStyle: TextStyle(color: subColor),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.s4),
+
+          // Nudge with Apply button
+          if (nudgeResult != null)
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.s3),
+              margin: const EdgeInsets.only(bottom: AppSpacing.s4),
+              decoration: BoxDecoration(
+                color: AppColors.accentBg,
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              child: Row(
+                children: [
+                  const Text('\u{1F4A1}', style: TextStyle(fontSize: 16)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      nudgeResult.message,
+                      style: TextStyle(
+                        fontSize: AppTypography.textXs,
+                        color: textColor,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  _nudgeApplied
+                      ? Text(
+                          'Applied',
+                          style: TextStyle(
+                            fontSize: AppTypography.textXs,
+                            color: subColor,
+                            fontWeight: AppTypography.weightMedium,
+                          ),
+                        )
+                      : SizedBox(
+                          height: 28,
+                          child: TextButton(
+                            onPressed: () =>
+                                _applyNudge(nudgeResult, prefs),
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.accent,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10),
+                              textStyle: TextStyle(
+                                fontSize: AppTypography.textXs,
+                                fontWeight: AppTypography.weightSemibold,
+                              ),
+                            ),
+                            child: const Text('Apply'),
+                          ),
+                        ),
+                ],
+              ),
+            ),
+
+          // Save button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _save,
+              child: const Text('Save Session'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Celebration ──────────────────────────────────────────────────
+
+  Widget _buildCelebration(bool isDark, Color textColor) {
+    return Center(
+      key: const ValueKey('celebration'),
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0.0, end: 1.0),
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.elasticOut,
+        builder: (context, value, child) => Opacity(
+          opacity: value.clamp(0.0, 1.0),
+          child: Transform.scale(scale: value, child: child),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.conditionEpic.withValues(alpha: 0.12),
+              ),
+              child: Icon(
+                Icons.check_rounded,
+                size: 36,
+                color: AppColors.conditionEpic,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.s4),
+            Text(
+              'Session saved',
+              style: TextStyle(
+                fontSize: AppTypography.textLg,
+                fontWeight: AppTypography.weightSemibold,
+                color: textColor,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.s1),
+            Text(
+              'Nice work out there.',
+              style: TextStyle(
+                fontSize: AppTypography.textSm,
+                color: isDark
+                    ? AppColorsDark.textSecondary
+                    : AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─── Shared helpers ─────────────────────────────────────────────────
 
   Widget _calibrationButton(String label, int value, String emoji) {
     final selected = _calibration == value;
@@ -414,7 +629,7 @@ class _CompletionSheetState extends State<_CompletionSheet> {
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 10,
+                  fontSize: AppTypography.textXxs,
                   color: selected
                       ? AppColors.accent
                       : AppColors.textSecondary,
@@ -435,7 +650,8 @@ class _CompletionSheetState extends State<_CompletionSheet> {
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppRadius.full),
       ),
-      child: Text(text, style: TextStyle(fontSize: AppTypography.textXs, color: color)),
+      child: Text(text,
+          style: TextStyle(fontSize: AppTypography.textXs, color: color)),
     );
   }
 
@@ -471,8 +687,10 @@ class _CompletionSheetState extends State<_CompletionSheet> {
 
     if (actualWaves.isEmpty || actualWinds.isEmpty) return null;
 
-    final actualWaveAvg = actualWaves.reduce((a, b) => a + b) / actualWaves.length;
-    final actualWindAvg = actualWinds.reduce((a, b) => a + b) / actualWinds.length;
+    final actualWaveAvg =
+        actualWaves.reduce((a, b) => a + b) / actualWaves.length;
+    final actualWindAvg =
+        actualWinds.reduce((a, b) => a + b) / actualWinds.length;
 
     double metricAccuracy(double forecast, double actual) {
       final mx = forecast > actual ? forecast : actual;
@@ -553,7 +771,8 @@ class _CompletionSheetState extends State<_CompletionSheet> {
           width: 48,
           child: Text(
             label,
-            style: TextStyle(fontSize: AppTypography.textXs, color: subColor),
+            style:
+                TextStyle(fontSize: AppTypography.textXs, color: subColor),
           ),
         ),
         Text(
@@ -567,7 +786,9 @@ class _CompletionSheetState extends State<_CompletionSheet> {
         const SizedBox(width: 6),
         Text(
           'vs $forecast',
-          style: TextStyle(fontSize: AppTypography.textXs, color: subColor.withValues(alpha: 0.6)),
+          style: TextStyle(
+              fontSize: AppTypography.textXs,
+              color: subColor.withValues(alpha: 0.6)),
         ),
       ],
     );
@@ -590,7 +811,8 @@ class _CompletionSheetState extends State<_CompletionSheet> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('${nudge.formatLabel} updated to ${nudge.suggestedValue}'),
+          content: Text(
+              '${nudge.formatLabel} updated to ${nudge.suggestedValue}'),
           duration: const Duration(seconds: 2),
         ),
       );
@@ -601,9 +823,11 @@ class _CompletionSheetState extends State<_CompletionSheet> {
     HapticFeedback.heavyImpact();
     // Store forecast accuracy if available
     final comparison = _computeForecastComparison();
-    final conditions = comparison != null && widget.session.conditions != null
-        ? widget.session.conditions!.copyWith(forecastAccuracy: comparison.accuracy)
-        : widget.session.conditions;
+    final conditions =
+        comparison != null && widget.session.conditions != null
+            ? widget.session.conditions!
+                .copyWith(forecastAccuracy: comparison.accuracy)
+            : widget.session.conditions;
 
     final updated = widget.session.copyWith(
       status: 'completed',
@@ -611,11 +835,28 @@ class _CompletionSheetState extends State<_CompletionSheet> {
       calibration: _calibration,
       boardId: _boardId,
       tags: _selectedTags.isNotEmpty ? _selectedTags.toList() : null,
-      notes: _notesController.text.isNotEmpty ? _notesController.text : null,
+      notes:
+          _notesController.text.isNotEmpty ? _notesController.text : null,
       conditions: conditions,
     );
-    widget.ref.read(sessionsProvider.notifier).update(widget.session.id, updated);
-    Navigator.pop(context);
+    widget.ref
+        .read(sessionsProvider.notifier)
+        .update(widget.session.id, updated);
+
+    // Show celebration overlay before dismissing
+    _showCelebration();
+  }
+
+  void _showCelebration() {
+    setState(() => _step = -1); // Trigger celebration view
+    // Double-tap haptic burst for delight
+    HapticFeedback.heavyImpact();
+    Future.delayed(const Duration(milliseconds: 200), () {
+      if (mounted) HapticFeedback.mediumImpact();
+    });
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (mounted) Navigator.pop(context);
+    });
   }
 }
 

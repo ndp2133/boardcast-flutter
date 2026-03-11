@@ -360,11 +360,13 @@ const proPrefs = UserPrefs(
 /// Compute match score (0-1) for an hour of conditions against user preferences.
 /// [location] is passed explicitly to keep this function pure.
 /// [tideRange] is the min/max tide heights for normalization (from cached API data).
+/// [weightOverrides] optionally replaces base component weights (height, swellDir, swellQuality).
 double computeMatchScore(
   HourlyData? hourData,
   UserPrefs? prefs,
   Location location, {
   TideRange? tideRange,
+  Map<String, double>? weightOverrides,
 }) {
   if (hourData == null || prefs == null) return 0;
 
@@ -376,9 +378,15 @@ double computeMatchScore(
   final dirScore =
       _scoreSwellDirection(hourData.swellDirection, location, spotParams);
 
-  final baseScore = _baseWeightHeight * heightScore +
-      _baseWeightSwellDir * dirScore +
-      _baseWeightSwellQuality * qualityScore;
+  // Use custom weights if provided, then prefs.weights, else base weights
+  final effectiveWeights = weightOverrides ?? prefs.weights;
+  final wH = effectiveWeights?['height'] ?? _baseWeightHeight;
+  final wD = effectiveWeights?['swellDir'] ?? _baseWeightSwellDir;
+  final wQ = effectiveWeights?['swellQuality'] ?? _baseWeightSwellQuality;
+
+  final baseScore = wH * heightScore +
+      wD * dirScore +
+      wQ * qualityScore;
 
   // Wind multiplier (threshold + skill as slope)
   final windMult = _scoreWind(
@@ -464,18 +472,18 @@ String _pickTagline(String cls, double score) {
 ConditionLabel getConditionLabel(double score) {
   if (score >= _epicThreshold) {
     return ConditionLabel(
-        'Epic', 'epic', '#22c55e', _pickTagline('epic', score));
+        'Epic', 'epic', '#2e8a5e', _pickTagline('epic', score));
   }
   if (score >= _goodThreshold) {
     return ConditionLabel(
-        'Good', 'good', '#3b82f6', _pickTagline('good', score));
+        'Good', 'good', '#3d9189', _pickTagline('good', score));
   }
   if (score >= _fairThreshold) {
     return ConditionLabel(
-        'Fair', 'fair', '#f59e0b', _pickTagline('fair', score));
+        'Fair', 'fair', '#b07a4f', _pickTagline('fair', score));
   }
   return ConditionLabel(
-      'Poor', 'poor', '#ef4444', _pickTagline('poor', score));
+      'Poor', 'poor', '#9e5e5e', _pickTagline('poor', score));
 }
 
 /// Find best hour result
@@ -491,6 +499,7 @@ BestHourResult? findBestHours(
   Location location,
   String date, {
   TideRange? tideRange,
+  Map<String, double>? weightOverrides,
 }) {
   final dayHours = hourlyData.where((h) => h.time.startsWith(date)).toList();
   var bestScore = 0.0;
@@ -498,7 +507,7 @@ BestHourResult? findBestHours(
 
   for (final hour in dayHours) {
     final score =
-        computeMatchScore(hour, prefs, location, tideRange: tideRange);
+        computeMatchScore(hour, prefs, location, tideRange: tideRange, weightOverrides: weightOverrides);
     if (score > bestScore) {
       bestScore = score;
       bestHour = hour;
@@ -526,6 +535,7 @@ List<MatchingWindow> findMatchingWindows(
   Location location, {
   double minScore = 0.6,
   TideRange? tideRange,
+  Map<String, double>? weightOverrides,
 }) {
   final windows = <MatchingWindow>[];
   String? currentStart;
@@ -535,7 +545,7 @@ List<MatchingWindow> findMatchingWindows(
 
   for (final hour in hourlyData) {
     final score =
-        computeMatchScore(hour, prefs, location, tideRange: tideRange);
+        computeMatchScore(hour, prefs, location, tideRange: tideRange, weightOverrides: weightOverrides);
     if (score >= minScore) {
       if (currentStart == null) {
         currentStart = hour.time;
@@ -590,6 +600,7 @@ List<TopWindow> findTopWindows(
   Location location, {
   int count = 3,
   TideRange? tideRange,
+  Map<String, double>? weightOverrides,
 }) {
   if (hourlyData.isEmpty) return [];
 
@@ -608,7 +619,7 @@ List<TopWindow> findTopWindows(
     final hourScores = <(HourlyData, double)>[];
     for (final h in entry.value) {
       final score =
-          computeMatchScore(h, prefs, location, tideRange: tideRange);
+          computeMatchScore(h, prefs, location, tideRange: tideRange, weightOverrides: weightOverrides);
       hourScores.add((h, score));
     }
 
@@ -782,9 +793,10 @@ TopWindow? findBestWindow(
   UserPrefs prefs,
   Location location, {
   TideRange? tideRange,
+  Map<String, double>? weightOverrides,
 }) {
   final windows = findTopWindows(hourlyData, prefs, location,
-      count: 1, tideRange: tideRange);
+      count: 1, tideRange: tideRange, weightOverrides: weightOverrides);
   return windows.isNotEmpty ? windows.first : null;
 }
 
@@ -958,6 +970,7 @@ ExpectedVsPotential? computeExpectedVsPotential(
   UserPrefs prefs,
   Location location, {
   TideRange? tideRange,
+  Map<String, double>? weightOverrides,
 }) {
   final todayDate = DateTime.now().toIso8601String().split('T')[0];
   final nowStr = DateTime.now().toIso8601String().substring(0, 13);
@@ -973,7 +986,7 @@ ExpectedVsPotential? computeExpectedVsPotential(
   // Expected: average of next 3 hours
   final next3 = todayFuture.take(3).toList();
   final expectedScores = next3
-      .map((h) => computeMatchScore(h, prefs, location, tideRange: tideRange))
+      .map((h) => computeMatchScore(h, prefs, location, tideRange: tideRange, weightOverrides: weightOverrides))
       .toList();
   final expectedScore =
       expectedScores.reduce((a, b) => a + b) / expectedScores.length;
@@ -982,7 +995,7 @@ ExpectedVsPotential? computeExpectedVsPotential(
   var potentialScore = 0.0;
   HourlyData? potentialHour;
   for (final h in todayFuture) {
-    final s = computeMatchScore(h, prefs, location, tideRange: tideRange);
+    final s = computeMatchScore(h, prefs, location, tideRange: tideRange, weightOverrides: weightOverrides);
     if (s > potentialScore) {
       potentialScore = s;
       potentialHour = h;

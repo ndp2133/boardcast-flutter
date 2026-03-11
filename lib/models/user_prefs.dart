@@ -4,6 +4,8 @@ class UserPrefs {
   final double? maxWindSpeed; // km/h
   final String? preferredTide; // 'low', 'mid', 'high', 'any'
   final String? skillLevel; // 'beginner', 'intermediate', 'advanced'
+  final Map<String, double>? weights; // scoring weight overrides: height, swellDir, swellQuality
+  final String? surfStyle; // performance, longboard, casual, allround
 
   const UserPrefs({
     this.minWaveHeight,
@@ -11,6 +13,8 @@ class UserPrefs {
     this.maxWindSpeed,
     this.preferredTide,
     this.skillLevel,
+    this.weights,
+    this.surfStyle,
   });
 
   static const defaultPrefs = UserPrefs(
@@ -21,12 +25,16 @@ class UserPrefs {
     skillLevel: 'intermediate',
   );
 
+  bool get hasCustomWeights => weights != null && weights!.isNotEmpty;
+
   UserPrefs copyWith({
     double? minWaveHeight,
     double? maxWaveHeight,
     double? maxWindSpeed,
     String? preferredTide,
     String? skillLevel,
+    Map<String, double>? weights,
+    String? surfStyle,
   }) =>
       UserPrefs(
         minWaveHeight: minWaveHeight ?? this.minWaveHeight,
@@ -34,6 +42,8 @@ class UserPrefs {
         maxWindSpeed: maxWindSpeed ?? this.maxWindSpeed,
         preferredTide: preferredTide ?? this.preferredTide,
         skillLevel: skillLevel ?? this.skillLevel,
+        weights: weights ?? this.weights,
+        surfStyle: surfStyle ?? this.surfStyle,
       );
 
   factory UserPrefs.fromJson(Map<String, dynamic> json) => UserPrefs(
@@ -42,6 +52,11 @@ class UserPrefs {
         maxWindSpeed: (json['maxWindSpeed'] as num?)?.toDouble(),
         preferredTide: json['preferredTide'] as String?,
         skillLevel: json['skillLevel'] as String?,
+        weights: json['weights'] != null
+            ? (json['weights'] as Map<String, dynamic>)
+                .map((k, v) => MapEntry(k, (v as num).toDouble()))
+            : null,
+        surfStyle: json['surfStyle'] as String?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -50,5 +65,7 @@ class UserPrefs {
         if (maxWindSpeed != null) 'maxWindSpeed': maxWindSpeed,
         if (preferredTide != null) 'preferredTide': preferredTide,
         if (skillLevel != null) 'skillLevel': skillLevel,
+        if (weights != null) 'weights': weights,
+        if (surfStyle != null) 'surfStyle': surfStyle,
       };
 }

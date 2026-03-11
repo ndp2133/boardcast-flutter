@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/current_conditions.dart';
+import '../theme/tokens.dart';
 import '../models/hourly_data.dart';
 import '../models/location.dart';
 import '../models/user_prefs.dart';
@@ -440,20 +441,20 @@ class _CardColors {
 
   factory _CardColors.from(bool isDark) {
     if (isDark) {
-      return const _CardColors(
-        bg: Color(0xFF0F1923),
-        cardBg: Color(0xFF162230),
-        textPrimary: Color(0xFFE2E8F0),
-        textSecondary: Color(0xFF94A3B8),
-        accent: Color(0xFF4DB8A4),
+      return _CardColors(
+        bg: AppColorsDark.bgPrimary,
+        cardBg: AppColorsDark.bgSecondary,
+        textPrimary: AppColorsDark.textPrimary,
+        textSecondary: AppColorsDark.textSecondary,
+        accent: AppColors.accent,
       );
     }
-    return const _CardColors(
-      bg: Color(0xFFF5F7FA),
-      cardBg: Color(0xFFFFFFFF),
-      textPrimary: Color(0xFF1A1A2E),
-      textSecondary: Color(0xFF6B7280),
-      accent: Color(0xFF4DB8A4),
+    return _CardColors(
+      bg: AppColors.bgPrimary,
+      cardBg: AppColors.bgSecondary,
+      textPrimary: AppColors.textPrimary,
+      textSecondary: AppColors.textSecondary,
+      accent: AppColors.accent,
     );
   }
 }

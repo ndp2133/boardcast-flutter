@@ -29,7 +29,7 @@ class ForecastChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (hourlyData.isEmpty) {
-      return const SizedBox(height: 200);
+      return const SizedBox(height: 320);
     }
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -96,7 +96,7 @@ class ForecastChart extends StatelessWidget {
     }
 
     return SizedBox(
-      height: 210,
+      height: 320,
       child: SfCartesianChart(
         margin: const EdgeInsets.only(top: AppSpacing.s2, right: AppSpacing.s1, bottom: 0, left: AppSpacing.s1),
         plotAreaBorderWidth: 0,
@@ -104,7 +104,7 @@ class ForecastChart extends StatelessWidget {
           majorGridLines: const MajorGridLines(width: 0),
           labelStyle: TextStyle(
             fontFamily: AppTypography.fontMono,
-            fontSize: 9,
+            fontSize: AppTypography.textXxs,
             color: tickColor,
           ),
           labelPlacement: LabelPlacement.onTicks,
@@ -116,7 +116,7 @@ class ForecastChart extends StatelessWidget {
           majorGridLines: MajorGridLines(width: 0.5, color: gridColor),
           labelStyle: TextStyle(
             fontFamily: AppTypography.fontMono,
-            fontSize: 9,
+            fontSize: AppTypography.textXxs,
             color: tickColor,
           ),
           axisLine: const AxisLine(width: 0),
@@ -130,7 +130,7 @@ class ForecastChart extends StatelessWidget {
             majorGridLines: const MajorGridLines(width: 0),
             labelStyle: TextStyle(
               fontFamily: AppTypography.fontMono,
-              fontSize: 9,
+              fontSize: AppTypography.textXxs,
               color: tickColor,
             ),
             axisLine: const AxisLine(width: 0),

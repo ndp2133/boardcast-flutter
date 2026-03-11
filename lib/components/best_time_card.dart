@@ -22,7 +22,7 @@ class BestTimeCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: bg,
           borderRadius: BorderRadius.circular(AppRadius.md),
-          boxShadow: AppShadows.sm,
+          boxShadow: AppShadows.base,
         ),
         child: Row(
           children: [
@@ -58,13 +58,20 @@ class BestTimeCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.s4),
       decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        boxShadow: AppShadows.sm,
+        color: Color.lerp(bg, color, isDark ? 0.1 : 0.06),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(
           color: color.withValues(alpha: 0.3),
           width: 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.15),
+            blurRadius: 16,
+            spreadRadius: 2,
+          ),
+          ...AppShadows.lg,
+        ],
       ),
       child: Row(
         children: [
@@ -99,7 +106,7 @@ class BestTimeCard extends StatelessWidget {
                       child: Text(
                         label.label,
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: AppTypography.textXxs,
                           fontWeight: AppTypography.weightMedium,
                           color: color,
                         ),
@@ -111,7 +118,7 @@ class BestTimeCard extends StatelessWidget {
                 Row(
                   children: [
                     if (isSunriseWindow) ...[
-                      Icon(Icons.wb_twilight, size: 12, color: const Color(0xFFF59E0B)),
+                      Icon(Icons.wb_twilight, size: 12, color: AppColors.conditionFair),
                       const SizedBox(width: 4),
                     ],
                     Expanded(

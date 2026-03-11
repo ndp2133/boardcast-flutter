@@ -1,6 +1,7 @@
 /// Shared condition state computation — used by both widget_service and
 /// live_activity_provider to avoid duplicating score/label/wind logic.
 import '../models/merged_conditions.dart';
+import '../models/hourly_data.dart';
 import '../models/user_prefs.dart';
 import '../models/location.dart';
 import '../logic/scoring.dart';
@@ -15,6 +16,8 @@ class ConditionState {
   final String windContext;
   final String bestWindowRange;
   final String bestWindowLabel;
+  final String verdict;
+  final String trend; // '↑' improving, '→' steady, '↓' declining
 
   const ConditionState({
     required this.score,
@@ -25,6 +28,8 @@ class ConditionState {
     required this.windContext,
     required this.bestWindowRange,
     required this.bestWindowLabel,
+    required this.verdict,
+    required this.trend,
   });
 }
 
@@ -74,6 +79,17 @@ ConditionState buildConditionState({
     bestWindowLabel = getConditionLabel(bestWindow.avgScore).label;
   }
 
+  // Compute 3-hour trend from hourly scores
+  final trend = _computeTrend(conditions.hourly, prefs, location, tideRange);
+
+  // Generate a short decisive verdict for the watch
+  final verdict = _buildVerdict(
+    scoreInt: scoreInt,
+    label: label.label,
+    windContext: windContext,
+    bestWindowRange: bestWindowRange,
+  );
+
   return ConditionState(
     score: scoreInt,
     label: label.label,
@@ -83,7 +99,62 @@ ConditionState buildConditionState({
     windContext: windContext,
     bestWindowRange: bestWindowRange,
     bestWindowLabel: bestWindowLabel,
+    verdict: verdict,
+    trend: trend,
   );
+}
+
+/// Short decisive verdict for watch face — max ~25 chars.
+String _buildVerdict({
+  required int scoreInt,
+  required String label,
+  required String windContext,
+  required String bestWindowRange,
+}) {
+  if (scoreInt >= 80) {
+    return 'Get out there';
+  }
+  if (scoreInt >= 60) {
+    if (windContext == 'offshore') return 'Clean and worth it';
+    if (bestWindowRange.isNotEmpty) return 'Go at $bestWindowRange';
+    return 'Worth a paddle';
+  }
+  if (scoreInt >= 40) {
+    if (bestWindowRange.isNotEmpty) return 'Wait for $bestWindowRange';
+    return 'Marginal, maybe skip';
+  }
+  return 'Give it a miss';
+}
+
+/// Compute 3-hour trend: compare current score to average of next 3 hours.
+/// Returns '↑' (improving ≥5pts), '↓' (declining ≥5pts), or '→' (steady).
+String _computeTrend(
+  List<HourlyData> hourly,
+  UserPrefs prefs,
+  Location location,
+  TideRange? tideRange,
+) {
+  final now = DateTime.now();
+  // Find current hour and next 3 hours
+  final upcoming = <double>[];
+  double? currentScore;
+  for (final h in hourly) {
+    final t = DateTime.parse(h.time);
+    if (t.isBefore(now.subtract(const Duration(minutes: 30)))) continue;
+    final s = computeMatchScore(h, prefs, location, tideRange: tideRange);
+    if (currentScore == null) {
+      currentScore = s;
+      continue;
+    }
+    upcoming.add(s);
+    if (upcoming.length >= 3) break;
+  }
+  if (currentScore == null || upcoming.isEmpty) return '\u2192';
+  final avgUpcoming = upcoming.reduce((a, b) => a + b) / upcoming.length;
+  final delta = ((avgUpcoming - currentScore) * 100).round();
+  if (delta >= 5) return '\u2191';
+  if (delta <= -5) return '\u2193';
+  return '\u2192';
 }
 
 String _formatHour(DateTime dt) {

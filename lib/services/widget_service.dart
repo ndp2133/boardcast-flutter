@@ -89,6 +89,7 @@ class WidgetService {
       HomeWidget.saveWidgetData<String>('windSpeed', state.windSpeed),
       HomeWidget.saveWidgetData<String>('windDir', state.windDir),
       HomeWidget.saveWidgetData<String>('windContext', state.windContext),
+      HomeWidget.saveWidgetData<String>('trend', state.trend),
       HomeWidget.saveWidgetData<String>('fetchedAt', conditions.fetchedAt.toIso8601String()),
       HomeWidget.saveWidgetData<String>('hourlyScores', jsonEncode(hourlyScores)),
       HomeWidget.saveWidgetData<String>('hourlyWaveHeights', jsonEncode(hourlyWaveHeights)),

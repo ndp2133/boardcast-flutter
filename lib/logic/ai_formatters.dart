@@ -93,5 +93,7 @@ Map<String, dynamic> buildPrefsPayload(UserPrefs prefs) {
     'maxWind': prefs.maxWindSpeed != null
         ? kmhToMph(prefs.maxWindSpeed!).round().toString()
         : null,
+    if (prefs.surfStyle != null) 'surfStyle': prefs.surfStyle,
+    if (prefs.hasCustomWeights) 'scoringWeights': prefs.weights,
   };
 }

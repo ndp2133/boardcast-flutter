@@ -35,15 +35,24 @@ class HistoryScreen extends ConsumerStatefulWidget {
   ConsumerState<HistoryScreen> createState() => _HistoryScreenState();
 }
 
-class _HistoryScreenState extends ConsumerState<HistoryScreen> {
+class _HistoryScreenState extends ConsumerState<HistoryScreen>
+    with SingleTickerProviderStateMixin {
   bool _sessionsVisible = false;
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     Future.delayed(const Duration(milliseconds: 100), () {
       if (mounted) setState(() => _sessionsVisible = true);
     });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _onRefresh() async {
@@ -93,176 +102,216 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           ),
         ),
         centerTitle: true,
-      ),
-      body: RefreshIndicator(
-        onRefresh: _onRefresh,
-        color: AppColors.accent,
-        child: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
-        children: [
-          // Account
-          _buildAccountSection(context, ref, isGuest, isDark, textColor),
-          const SizedBox(height: AppSpacing.s5),
-
-          // Subscription
-          _buildSubscriptionSection(context, ref, isDark, textColor, subColor),
-          const SizedBox(height: AppSpacing.s5),
-
-          // Theme toggle
-          _buildThemeToggle(ref, themeMode, isDark, textColor),
-          const SizedBox(height: AppSpacing.s3),
-
-          // Surf Alerts toggle
-          _buildPushToggle(context, ref, isGuest, isDark, textColor),
-          const SizedBox(height: AppSpacing.s5),
-
-          // Feature Tour replay
-          _buildFeatureTourRow(context, isDark, textColor),
-          const SizedBox(height: AppSpacing.s5),
-
-          // Preferences summary
-          _buildPreferencesSection(context, ref, prefs, isDark, textColor, subColor),
-          const SizedBox(height: AppSpacing.s5),
-
-          // Board quiver
-          _buildQuiverSection(context, ref, boards, sessions, isDark, textColor, subColor),
-          const SizedBox(height: AppSpacing.s5),
-
-          // Surf IQ
-          SurfIQCard(
-            iq: surfIQ,
-            insight: insight,
-            isDark: isDark,
-            textColor: textColor,
-            subColor: subColor,
+        bottom: TabBar(
+          controller: _tabController,
+          labelColor: AppColors.accent,
+          unselectedLabelColor: subColor,
+          indicatorColor: AppColors.accent,
+          indicatorSize: TabBarIndicatorSize.label,
+          labelStyle: TextStyle(
+            fontSize: AppTypography.textSm,
+            fontWeight: AppTypography.weightSemibold,
           ),
-          const SizedBox(height: AppSpacing.s5),
-
-          // Stats
-          SessionStatsGrid(
-            completed: completed,
-            isDark: isDark,
-            textColor: textColor,
-            subColor: subColor,
+          unselectedLabelStyle: TextStyle(
+            fontSize: AppTypography.textSm,
+            fontWeight: AppTypography.weightMedium,
           ),
-
-          // Import from Health / Strava + Share Surf Wrapped
-          const SizedBox(height: AppSpacing.s3),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TextButton.icon(
-                onPressed: () => showHealthImport(context, ref),
-                icon: Icon(Icons.favorite_border, size: AppIconSize.base, color: AppColors.accent),
-                label: Text(
-                  'Health',
-                  style: TextStyle(
-                    fontSize: AppTypography.textSm,
-                    color: AppColors.accent,
-                  ),
-                ),
-              ),
-              Text(' · ', style: TextStyle(color: isDark ? AppColorsDark.textTertiary : AppColors.textTertiary)),
-              TextButton.icon(
-                onPressed: () => showStravaImport(context, ref),
-                icon: Icon(Icons.directions_bike, size: AppIconSize.base, color: const Color(0xFFFC5200)),
-                label: Text(
-                  'Strava',
-                  style: TextStyle(
-                    fontSize: AppTypography.textSm,
-                    color: const Color(0xFFFC5200),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (completed.isNotEmpty) ...[
-            Center(
-              child: TextButton.icon(
-                onPressed: () {
-                  final isDarkNow =
-                      Theme.of(context).brightness == Brightness.dark;
-                  generateAndShareWrapped(
-                    sessions: sessions,
-                    boards: boards,
-                    isDark: isDarkNow,
-                  );
-                },
-                icon: Icon(Icons.share, size: AppIconSize.base, color: AppColors.accent),
-                label: Text(
-                  'Share Surf Wrapped',
-                  style: TextStyle(
-                    fontSize: AppTypography.textSm,
-                    color: AppColors.accent,
-                  ),
-                ),
-              ),
-            ),
+          dividerHeight: 0,
+          tabs: const [
+            Tab(text: 'Settings'),
+            Tab(text: 'Sessions'),
           ],
-          const SizedBox(height: AppSpacing.s5),
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          // ── Tab 1: Settings ──
+          RefreshIndicator(
+            onRefresh: _onRefresh,
+            color: AppColors.accent,
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
+              children: [
+                const SizedBox(height: AppSpacing.s4),
 
-          // Session history
-          SessionHistoryList(
-            sessions: completed,
-            boards: boards,
-            isDark: isDark,
-            textColor: textColor,
-            subColor: subColor,
-            visible: _sessionsVisible,
-          ),
+                // Account
+                _buildAccountSection(context, ref, isGuest, isDark, textColor),
+                const SizedBox(height: AppSpacing.s5),
 
-          // Privacy statement
-          const SizedBox(height: AppSpacing.s4),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
-            child: Text(
-              'Your data stays yours. No ads. No selling your location to third parties. We use anonymous analytics to improve the app.',
-              style: TextStyle(
-                fontSize: AppTypography.textXs,
-                color: subColor,
-                fontStyle: FontStyle.italic,
-              ),
-              textAlign: TextAlign.center,
+                // Subscription
+                _buildSubscriptionSection(context, ref, isDark, textColor, subColor),
+                const SizedBox(height: AppSpacing.s5),
+
+                // Theme toggle
+                _buildThemeToggle(ref, themeMode, isDark, textColor),
+                const SizedBox(height: AppSpacing.s3),
+
+                // Surf Alerts toggle
+                _buildPushToggle(context, ref, isGuest, isDark, textColor),
+                const SizedBox(height: AppSpacing.s5),
+
+                // Feature Tour replay
+                _buildFeatureTourRow(context, isDark, textColor),
+                const SizedBox(height: AppSpacing.s5),
+
+                // Preferences summary
+                _buildPreferencesSection(context, ref, prefs, isDark, textColor, subColor),
+                const SizedBox(height: AppSpacing.s5),
+
+                // Board quiver
+                _buildQuiverSection(context, ref, boards, sessions, isDark, textColor, subColor),
+                const SizedBox(height: AppSpacing.s5),
+
+                // Privacy statement
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
+                  child: Text(
+                    'Your data stays yours. No ads. No selling your location to third parties. We use anonymous analytics to improve the app.',
+                    style: TextStyle(
+                      fontSize: AppTypography.textXs,
+                      color: subColor,
+                      fontStyle: FontStyle.italic,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+
+                // Legal links
+                const SizedBox(height: AppSpacing.s3),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    TextButton(
+                      onPressed: () => launchUrl(
+                        Uri.parse('https://myboardcast.com/privacy.html'),
+                        mode: LaunchMode.externalApplication,
+                      ),
+                      child: Text(
+                        'Privacy Policy',
+                        style: TextStyle(
+                          fontSize: AppTypography.textXs,
+                          color: subColor,
+                        ),
+                      ),
+                    ),
+                    Text(' \u00b7 ', style: TextStyle(color: subColor)),
+                    TextButton(
+                      onPressed: () => launchUrl(
+                        Uri.parse('https://myboardcast.com/terms.html'),
+                        mode: LaunchMode.externalApplication,
+                      ),
+                      child: Text(
+                        'Terms of Service',
+                        style: TextStyle(
+                          fontSize: AppTypography.textXs,
+                          color: subColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.s8),
+              ],
             ),
           ),
 
-          // Legal links
-          const SizedBox(height: AppSpacing.s3),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TextButton(
-                onPressed: () => launchUrl(
-                  Uri.parse('https://myboardcast.com/privacy.html'),
-                  mode: LaunchMode.externalApplication,
+          // ── Tab 2: Sessions ──
+          RefreshIndicator(
+            onRefresh: _onRefresh,
+            color: AppColors.accent,
+            child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
+              children: [
+                const SizedBox(height: AppSpacing.s4),
+
+                // Surf IQ
+                SurfIQCard(
+                  iq: surfIQ,
+                  insight: insight,
+                  isDark: isDark,
+                  textColor: textColor,
+                  subColor: subColor,
                 ),
-                child: Text(
-                  'Privacy Policy',
-                  style: TextStyle(
-                    fontSize: AppTypography.textXs,
-                    color: subColor,
+                const SizedBox(height: AppSpacing.s5),
+
+                // Stats
+                SessionStatsGrid(
+                  completed: completed,
+                  isDark: isDark,
+                  textColor: textColor,
+                  subColor: subColor,
+                ),
+
+                // Import from Health / Strava
+                const SizedBox(height: AppSpacing.s3),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    TextButton.icon(
+                      onPressed: () => showHealthImport(context, ref),
+                      icon: Icon(Icons.favorite_border, size: AppIconSize.base, color: AppColors.accent),
+                      label: Text(
+                        'Health',
+                        style: TextStyle(
+                          fontSize: AppTypography.textSm,
+                          color: AppColors.accent,
+                        ),
+                      ),
+                    ),
+                    Text(' \u00b7 ', style: TextStyle(color: isDark ? AppColorsDark.textTertiary : AppColors.textTertiary)),
+                    TextButton.icon(
+                      onPressed: () => showStravaImport(context, ref),
+                      icon: Icon(Icons.directions_bike, size: AppIconSize.base, color: const Color(0xFFFC5200)),
+                      label: Text(
+                        'Strava',
+                        style: TextStyle(
+                          fontSize: AppTypography.textSm,
+                          color: const Color(0xFFFC5200),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (completed.isNotEmpty) ...[
+                  Center(
+                    child: TextButton.icon(
+                      onPressed: () {
+                        final isDarkNow =
+                            Theme.of(context).brightness == Brightness.dark;
+                        generateAndShareWrapped(
+                          sessions: sessions,
+                          boards: boards,
+                          isDark: isDarkNow,
+                        );
+                      },
+                      icon: Icon(Icons.share, size: AppIconSize.base, color: AppColors.accent),
+                      label: Text(
+                        'Share Surf Wrapped',
+                        style: TextStyle(
+                          fontSize: AppTypography.textSm,
+                          color: AppColors.accent,
+                        ),
+                      ),
+                    ),
                   ),
+                ],
+                const SizedBox(height: AppSpacing.s5),
+
+                // Session history
+                SessionHistoryList(
+                  sessions: completed,
+                  boards: boards,
+                  isDark: isDark,
+                  textColor: textColor,
+                  subColor: subColor,
+                  visible: _sessionsVisible,
                 ),
-              ),
-              Text(' · ', style: TextStyle(color: subColor)),
-              TextButton(
-                onPressed: () => launchUrl(
-                  Uri.parse('https://myboardcast.com/terms.html'),
-                  mode: LaunchMode.externalApplication,
-                ),
-                child: Text(
-                  'Terms of Service',
-                  style: TextStyle(
-                    fontSize: AppTypography.textXs,
-                    color: subColor,
-                  ),
-                ),
-              ),
-            ],
+                const SizedBox(height: AppSpacing.s8),
+              ],
+            ),
           ),
-          const SizedBox(height: AppSpacing.s8),
         ],
-      ),
       ),
     );
   }

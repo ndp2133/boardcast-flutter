@@ -54,7 +54,7 @@ String generateForecastSummary(
   }
 
   // Flat day shortcut
-  if (avgWaveFt < _waveSizeFlat) return 'Flat day \u2014 maybe tomorrow.';
+  if (avgWaveFt < _waveSizeFlat) return 'Flat. Maybe tomorrow.';
 
   // Wave size word
   String waveSize;
@@ -78,29 +78,29 @@ String generateForecastSummary(
   // Wind quality word
   String windQuality;
   if (avgWindMph < 5) {
-    windQuality = 'glassy';
+    windQuality = 'Glassy';
   } else if (avgWindMph < 12) {
     if (dominantWindDir != null &&
         isOffshoreWind(dominantWindDir.toDouble(), location)) {
-      windQuality = 'light offshore';
+      windQuality = 'Light offshore';
     } else if (dominantWindDir != null &&
         isOnshoreWind(dominantWindDir.toDouble(), location)) {
-      windQuality = 'light onshore';
+      windQuality = 'Light onshore';
     } else {
-      windQuality = 'light cross-shore';
+      windQuality = 'Light cross-shore';
     }
   } else if (avgWindMph < 20) {
     if (dominantWindDir != null &&
         isOffshoreWind(dominantWindDir.toDouble(), location)) {
-      windQuality = 'moderate offshore';
+      windQuality = 'Moderate offshore';
     } else if (dominantWindDir != null &&
         isOnshoreWind(dominantWindDir.toDouble(), location)) {
-      windQuality = 'moderate onshore';
+      windQuality = 'Moderate onshore';
     } else {
-      windQuality = 'moderate cross-shore';
+      windQuality = 'Moderate cross-shore';
     }
   } else {
-    windQuality = 'gusty';
+    windQuality = 'Gusty';
   }
 
   // Time advice — find best window scoped to this day
@@ -114,29 +114,30 @@ String generateForecastSummary(
     final span = endH - startH + 1;
 
     if (span >= 6) {
-      timeAdvice = 'Conditions hold all day.';
+      timeAdvice = 'Holds all day.';
     } else {
       final startLabel = formatHour(best.start);
       final endLabel = formatHour(best.end);
-      if (endH < 12) {
-        timeAdvice = 'Best window $startLabel\u2013$endLabel.';
-      } else if (startH >= 12) {
-        timeAdvice = 'Best from $startLabel\u2013$endLabel.';
-      } else {
-        timeAdvice = 'Best window $startLabel\u2013$endLabel.';
-      }
+      timeAdvice = 'Best $startLabel\u2013$endLabel.';
     }
   }
 
   // Swell quality descriptor
   String swellDesc = '';
   if (avgSwellPeriod >= 12) {
-    swellDesc = ' Clean groundswell.';
+    swellDesc = 'Clean groundswell.';
   } else if (avgSwellPeriod >= 8) {
-    swellDesc = ' Mixed swell.';
+    swellDesc = 'Mixed swell.';
   } else if (avgSwellPeriod > 0) {
-    swellDesc = ' Short-period windswell.';
+    swellDesc = 'Short-period windswell.';
   }
 
-  return '$waveSize $range waves, $windQuality winds.$swellDesc${timeAdvice.isNotEmpty ? ' $timeAdvice' : ''}';
+  // FL-COPY-3: Short decisive sentences, not compound
+  final parts = <String>[
+    '$waveSize $range.',
+    '$windQuality.',
+    if (swellDesc.isNotEmpty) swellDesc,
+    if (timeAdvice.isNotEmpty) timeAdvice,
+  ];
+  return parts.join(' ');
 }

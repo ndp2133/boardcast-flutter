@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../theme/tokens.dart';
 import '../models/daily_data.dart';
 import '../models/hourly_data.dart';
@@ -9,7 +10,7 @@ import '../logic/time_utils.dart';
 import '../logic/scoring.dart';
 import '../logic/moon_phase.dart';
 
-class DailyCard extends StatelessWidget {
+class DailyCard extends StatefulWidget {
   final DailyData day;
   final List<HourlyData> dayHours;
   final UserPrefs? prefs;
@@ -28,6 +29,13 @@ class DailyCard extends StatelessWidget {
   });
 
   @override
+  State<DailyCard> createState() => _DailyCardState();
+}
+
+class _DailyCardState extends State<DailyCard> {
+  bool _expanded = false;
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final bg = isDark ? AppColorsDark.bgSecondary : AppColors.bgSecondary;
@@ -39,8 +47,8 @@ class DailyCard extends StatelessWidget {
     // Condition badge — use best-hour score instead of average
     double? bestScore;
     ConditionLabel? condLabel;
-    if (prefs != null && location != null && dayHours.isNotEmpty) {
-      final bestHour = findBestHours(dayHours, prefs!, location!, day.date);
+    if (widget.prefs != null && widget.location != null && widget.dayHours.isNotEmpty) {
+      final bestHour = findBestHours(widget.dayHours, widget.prefs!, widget.location!, widget.day.date);
       if (bestHour != null) {
         bestScore = bestHour.matchScore;
         condLabel = getConditionLabel(bestScore);
@@ -48,16 +56,16 @@ class DailyCard extends StatelessWidget {
     }
 
     // Wind context
-    final windContext = _getWindContext(dayHours, location);
+    final windContext = _getWindContext(widget.dayHours, widget.location);
 
     // Tide range
-    final tideRange = _getTideRange(dayHours);
+    final tideRange = _getTideRange(widget.dayHours);
 
     // Swell info
-    final swellInfo = _getSwellInfo(day);
+    final swellInfo = _getSwellInfo(widget.day);
 
     // Water temp
-    final waterTemps = dayHours
+    final waterTemps = widget.dayHours
         .where((h) => h.seaSurfaceTemp != null)
         .map((h) => h.seaSurfaceTemp!)
         .toList();
@@ -66,39 +74,64 @@ class DailyCard extends StatelessWidget {
         : null;
 
     // Moon
-    final moonEmoji = getMoonPhase(day.date).emoji;
+    final moonEmoji = getMoonPhase(widget.day.date).emoji;
 
     // Wave energy (ft² × period)
-    final energy = _getEnergyFromHours(dayHours);
+    final energy = _getEnergyFromHours(widget.dayHours);
 
-    final dayLabel = isToday(day.date) ? 'Today' : formatDayFull(day.date);
-    final waveMaxFt = day.waveHeightMax != null
-        ? formatWaveHeight(day.waveHeightMax)
+    final dayLabel = isToday(widget.day.date) ? 'Today' : formatDayFull(widget.day.date);
+    final waveMaxFt = widget.day.waveHeightMax != null
+        ? formatWaveHeight(widget.day.waveHeightMax)
         : '--';
 
     final semanticLabel = '$dayLabel: ${condLabel?.label ?? ''} conditions, $waveMaxFt ft waves';
+
+    // Condition-tinted background for mood
+    final condColor = bestScore != null ? _scoreColor(bestScore) : null;
+    final tintedBg = condColor != null
+        ? Color.lerp(bg, condColor, isDark ? 0.08 : 0.05)!
+        : bg;
 
     return Semantics(
       label: semanticLabel,
       button: true,
       child: GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        HapticFeedback.selectionClick();
+        setState(() => _expanded = !_expanded);
+        widget.onTap?.call();
+      },
       child: AnimatedContainer(
-        duration: AppDurations.fast,
+        duration: AppDurations.base,
+        curve: Curves.easeOutCubic,
         padding: const EdgeInsets.all(AppSpacing.s3),
         decoration: BoxDecoration(
-          color: bg,
+          color: tintedBg,
           borderRadius: BorderRadius.circular(AppRadius.md),
-          border: Border.all(
-            color: isSelected ? AppColors.accent : Colors.transparent,
-            width: isSelected ? 2 : 1,
+          border: Border(
+            left: BorderSide(
+              color: condColor?.withValues(alpha: widget.isSelected ? 0.8 : 0.5) ?? Colors.transparent,
+              width: 3,
+            ),
+            top: BorderSide(
+              color: widget.isSelected ? AppColors.accent : Colors.transparent,
+              width: widget.isSelected ? 1.5 : 0,
+            ),
+            right: BorderSide(
+              color: widget.isSelected ? AppColors.accent : Colors.transparent,
+              width: widget.isSelected ? 1.5 : 0,
+            ),
+            bottom: BorderSide(
+              color: widget.isSelected ? AppColors.accent : Colors.transparent,
+              width: widget.isSelected ? 1.5 : 0,
+            ),
           ),
-          boxShadow: isSelected ? AppShadows.base : AppShadows.sm,
+          boxShadow: widget.isSelected ? AppShadows.base : AppShadows.sm,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header: day label + condition badge + wave max
+            // Header: day label + condition badge + wind context + wave max
             Row(
               children: [
                 Expanded(
@@ -115,6 +148,11 @@ class DailyCard extends StatelessWidget {
                   _conditionBadge(condLabel, bestScore!),
                   const SizedBox(width: 6),
                 ],
+                // Wind context inline in collapsed view
+                if (windContext != null && !_expanded) ...[
+                  _windBadge(windContext.$1, windContext.$2),
+                  const SizedBox(width: 6),
+                ],
                 Text(
                   '$waveMaxFt ft',
                   style: TextStyle(
@@ -124,36 +162,55 @@ class DailyCard extends StatelessWidget {
                     color: textColor,
                   ),
                 ),
+                const SizedBox(width: 4),
+                AnimatedRotation(
+                  turns: _expanded ? 0.5 : 0,
+                  duration: AppDurations.base,
+                  curve: Curves.easeInOutCubic,
+                  child: Icon(
+                    Icons.expand_more,
+                    size: _expanded ? 18 : 16,
+                    color: _expanded ? AppColors.accent : subColor,
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 6),
-            // Detail row
-            Wrap(
-              spacing: 8,
-              runSpacing: 4,
-              children: [
-                // Temp
-                if (day.tempMax != null)
-                  _chip(
-                    '${formatTemp(day.tempMax)}°/${formatTemp(day.tempMin)}°',
-                    subColor,
-                  ),
-                // Water temp
-                if (avgWaterTemp != null)
-                  _chip('${formatTemp(avgWaterTemp)}° water', subColor),
-                // Tide range
-                if (tideRange != null) _chip(tideRange, subColor),
-                // Swell
-                if (swellInfo != null) _chip(swellInfo, subColor),
-                // Wind context
-                if (windContext != null)
-                  _windBadge(windContext.$1, windContext.$2),
-                // Energy
-                if (energy != null)
-                  _windBadge(energy.$1, energy.$2),
-                // Moon
-                _chip(moonEmoji, subColor),
-              ],
+            // Expanded detail
+            AnimatedSize(
+              duration: AppDurations.base,
+              curve: Curves.easeInOut,
+              child: _expanded
+                  ? Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          // Temp
+                          if (widget.day.tempMax != null)
+                            _chip(
+                              '${formatTemp(widget.day.tempMax)}\u00b0/${formatTemp(widget.day.tempMin)}\u00b0',
+                              subColor,
+                            ),
+                          // Water temp
+                          if (avgWaterTemp != null)
+                            _chip('${formatTemp(avgWaterTemp)}\u00b0 water', subColor),
+                          // Tide range
+                          if (tideRange != null) _chip(tideRange, subColor),
+                          // Swell
+                          if (swellInfo != null) _chip(swellInfo, subColor),
+                          // Wind context (in expanded)
+                          if (windContext != null)
+                            _windBadge(windContext.$1, windContext.$2),
+                          // Energy
+                          if (energy != null)
+                            _windBadge(energy.$1, energy.$2),
+                          // Moon
+                          _chip(moonEmoji, subColor),
+                        ],
+                      ),
+                    )
+                  : const SizedBox.shrink(),
             ),
           ],
         ),
@@ -173,7 +230,7 @@ class DailyCard extends StatelessWidget {
       child: Text(
         label.label,
         style: TextStyle(
-          fontSize: 10,
+          fontSize: AppTypography.textXxs,
           fontWeight: AppTypography.weightMedium,
           color: color,
         ),
@@ -248,7 +305,7 @@ class DailyCard extends StatelessWidget {
     if (tides.isEmpty) return null;
     final mn = tides.reduce((a, b) => a < b ? a : b);
     final mx = tides.reduce((a, b) => a > b ? a : b);
-    return "${mn.toStringAsFixed(1)}–${mx.toStringAsFixed(1)}'";
+    return "${mn.toStringAsFixed(1)}\u2013${mx.toStringAsFixed(1)}'";
   }
 
   String? _getSwellInfo(DailyData d) {
@@ -278,7 +335,6 @@ class DailyCard extends StatelessWidget {
     if (energy >= 30) return ('Moderate', AppColors.conditionFair);
     return ('Low Energy', AppColors.conditionPoor);
   }
-
 }
 
 Color _scoreColor(double score) {

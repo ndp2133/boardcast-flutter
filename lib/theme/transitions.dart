@@ -30,7 +30,7 @@ class SlideUpRoute<T> extends PageRoute<T> {
       Animation<double> secondaryAnimation, Widget child) {
     return SlideTransition(
       position: Tween<Offset>(
-        begin: const Offset(0, 0.05),
+        begin: const Offset(0, 0.15),
         end: Offset.zero,
       ).animate(CurvedAnimation(
         parent: animation,
@@ -39,7 +39,7 @@ class SlideUpRoute<T> extends PageRoute<T> {
       child: FadeTransition(
         opacity: CurvedAnimation(
           parent: animation,
-          curve: Curves.easeOut,
+          curve: Curves.easeOutCubic,
         ),
         child: child,
       ),

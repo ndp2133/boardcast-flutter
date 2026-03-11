@@ -1,3 +1,8 @@
+---
+name: firebase-distribute
+description: "Firebase App Distribution for Android builds. Use whenever deploying, uploading, or distributing an Android APK to Firebase for testing. Covers build, upload, and tester configuration."
+---
+
 # Firebase App Distribution (Android)
 
 Upload a new Android build to Firebase App Distribution.

@@ -31,14 +31,19 @@ class BoardcastSmallWidget : GlanceAppWidget() {
         val waveHeight = prefs.getString("waveHeight", "--") ?: "--"
         val windSpeed = prefs.getString("windSpeed", "--") ?: "--"
 
+        val trend = prefs.getString("trend", "\u2192") ?: "\u2192"
+
         val condColor = conditionColor(score)
         val bgColor = ColorProvider(android.graphics.Color.parseColor("#0f1923"))
+
+        // Condition-tinted background
+        val tintColor = ColorProvider(conditionColorWithAlpha(score, 0.12f))
 
         Box(
             modifier = GlanceModifier
                 .fillMaxSize()
                 .padding(12.dp)
-                .background(bgColor)
+                .background(tintColor)
                 .cornerRadius(16.dp),
         ) {
             Column(
@@ -67,15 +72,25 @@ class BoardcastSmallWidget : GlanceAppWidget() {
                     ),
                 )
 
-                // Condition label
-                Text(
-                    text = conditionLabel,
-                    style = TextStyle(
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = ColorProvider(condColor),
-                    ),
-                )
+                // Condition label + trend
+                Row(verticalAlignment = Alignment.Vertical.CenterVertically) {
+                    Text(
+                        text = conditionLabel,
+                        style = TextStyle(
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = ColorProvider(condColor),
+                        ),
+                    )
+                    Spacer(modifier = GlanceModifier.width(4.dp))
+                    Text(
+                        text = trend,
+                        style = TextStyle(
+                            fontSize = 13.sp,
+                            color = ColorProvider(condColor),
+                        ),
+                    )
+                }
 
                 Spacer(modifier = GlanceModifier.defaultWeight())
 
@@ -106,10 +121,10 @@ class BoardcastSmallWidget : GlanceAppWidget() {
 
 /** Map score (0-100) to condition color. */
 fun conditionColor(score: Int): Int = when {
-    score >= 80 -> android.graphics.Color.parseColor("#22c55e") // Epic
-    score >= 60 -> android.graphics.Color.parseColor("#4db8a4") // Good
-    score >= 40 -> android.graphics.Color.parseColor("#f59e0b") // Fair
-    else -> android.graphics.Color.parseColor("#ef4444")         // Poor
+    score >= 80 -> android.graphics.Color.parseColor("#2e8a5e") // Epic — sage
+    score >= 60 -> android.graphics.Color.parseColor("#3d9189") // Good — sea-glass
+    score >= 40 -> android.graphics.Color.parseColor("#b07a4f") // Fair — sand
+    else -> android.graphics.Color.parseColor("#9e5e5e")         // Poor — brick
 }
 
 /** Condition color with alpha for tint backgrounds. */

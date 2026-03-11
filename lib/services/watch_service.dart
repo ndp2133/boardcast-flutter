@@ -66,6 +66,8 @@ class WatchService {
         'windContext': state.windContext,
         'bestWindowRange': state.bestWindowRange,
         'bestWindowLabel': state.bestWindowLabel,
+        'verdict': state.verdict,
+        'trend': state.trend,
         'hourlyForecast': jsonEncode(hourlyForecast),
       });
       return result ?? false;

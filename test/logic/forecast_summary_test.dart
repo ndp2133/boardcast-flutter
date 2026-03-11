@@ -40,7 +40,7 @@ void main() {
         ),
       );
       final result = generateForecastSummary(hours, _prefs, _rockaway);
-      expect(result, contains('Flat day'));
+      expect(result, contains('Flat'));
     });
 
     test('includes wave size word for decent waves', () {
@@ -56,8 +56,7 @@ void main() {
       );
       final result = generateForecastSummary(hours, _prefs, _rockaway);
       expect(result, contains('Small'));
-      expect(result, contains('waves'));
-      expect(result, contains('winds'));
+      expect(result, contains('ft.'));
     });
 
     test('includes glassy for calm wind', () {
@@ -70,7 +69,7 @@ void main() {
         ),
       );
       final result = generateForecastSummary(hours, _prefs, _rockaway);
-      expect(result, contains('glassy'));
+      expect(result, contains('Glassy'));
     });
 
     test('filters to daylight hours only', () {

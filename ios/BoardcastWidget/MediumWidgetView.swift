@@ -10,12 +10,12 @@ import WidgetKit
 struct MediumWidgetView: View {
     let data: WidgetData
 
-    // Brand colors
-    private let teal = Color(hex: "4db8a4")
-    private let epic = Color(hex: "22c55e")
-    private let good = Color(hex: "4db8a4")
-    private let fair = Color(hex: "f59e0b")
-    private let poor = Color(hex: "ef4444")
+    // Brand colors — WCAG-compliant cold ocean palette
+    private let teal = Color(hex: "3d9189")
+    private let epic = Color(hex: "2e8a5e")
+    private let good = Color(hex: "3d9189")
+    private let fair = Color(hex: "b07a4f")
+    private let poor = Color(hex: "9e5e5e")
 
     var body: some View {
         VStack(spacing: 0) {
@@ -41,7 +41,15 @@ struct MediumWidgetView: View {
                 .padding(.bottom, 10)
         }
         .containerBackground(for: .widget) {
-            Color(hex: "0f1923") // midnight navy — always dark for widget
+            ZStack {
+                Color(hex: "0f1923") // midnight navy
+                // Subtle condition color wash
+                LinearGradient(
+                    colors: [data.conditionColor.opacity(0.1), Color.clear],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
         }
     }
 
@@ -50,24 +58,27 @@ struct MediumWidgetView: View {
     private var headerRow: some View {
         HStack(alignment: .firstTextBaseline) {
             Text(shortLocationName)
-                .font(.system(size: 13, weight: .medium))
+                .font(.system(size: 12, weight: .medium))
                 .foregroundColor(Color(hex: "94a3b8"))
                 .lineLimit(1)
 
             Spacer()
 
             HStack(spacing: 4) {
-                Text(data.conditionLabel)
-                    .font(.system(size: 12, weight: .semibold))
+                Text("\(data.score)")
+                    .font(.custom("DMMono-Medium", size: 34))
                     .foregroundColor(data.conditionColor)
 
-                Text("·")
-                    .font(.system(size: 12))
-                    .foregroundColor(Color(hex: "94a3b8"))
-
-                Text("\(data.score)")
-                    .font(.custom("DMMono-Medium", size: 16))
-                    .foregroundColor(Color(hex: "e2e8f0"))
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(data.conditionLabel)
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(data.conditionColor)
+                    if let trend = data.trend {
+                        Text(trend)
+                            .font(.system(size: 11))
+                            .foregroundColor(data.conditionColor.opacity(0.8))
+                    }
+                }
             }
         }
     }
@@ -163,7 +174,7 @@ struct ScoreFillChart: View {
                     scoreFillPath(width: w, height: chartH, step: step)
                         .fill(
                             LinearGradient(
-                                colors: [Color(hex: "4db8a4").opacity(0.6), Color(hex: "4db8a4").opacity(0.05)],
+                                colors: [Color(hex: "3d9189").opacity(0.6), Color(hex: "3d9189").opacity(0.05)],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
@@ -282,10 +293,10 @@ struct ScoreFillChart: View {
     private var lineGradientColors: [Color] {
         scores.map { entry in
             switch entry.condition {
-            case 0:  return Color(hex: "22c55e")  // epic
-            case 1:  return Color(hex: "4db8a4")  // good
-            case 2:  return Color(hex: "f59e0b")  // fair
-            default: return Color(hex: "ef4444")  // poor
+            case 0:  return Color(hex: "2e8a5e")  // epic — sage
+            case 1:  return Color(hex: "3d9189")  // good — sea-glass
+            case 2:  return Color(hex: "b07a4f")  // fair — sand
+            default: return Color(hex: "9e5e5e")  // poor — brick
             }
         }
     }
@@ -317,7 +328,7 @@ struct ScoreFillChart: View {
 
         return AnyView(
             Rectangle()
-                .fill(Color(hex: "4db8a4").opacity(0.12))
+                .fill(Color(hex: "3d9189").opacity(0.12))
                 .frame(width: x2 - x1, height: height)
                 .offset(x: x1)
                 .frame(maxWidth: .infinity, alignment: .leading)

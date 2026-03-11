@@ -36,17 +36,22 @@ class BoardcastMediumWidget : GlanceAppWidget() {
         val bestEnd = prefs.getString("bestWindowEnd", "") ?: ""
         val bestLabel = prefs.getString("bestWindowLabel", "") ?: ""
 
+        val trend = prefs.getString("trend", "\u2192") ?: "\u2192"
+
         val condColor = conditionColor(score)
         val bgColor = ColorProvider(android.graphics.Color.parseColor("#0f1923"))
 
         // Parse hourly scores
         val hourlyScores = parseHourlyScores(hourlyJson)
 
+        // Condition-tinted background
+        val tintColor = ColorProvider(conditionColorWithAlpha(score, 0.10f))
+
         Box(
             modifier = GlanceModifier
                 .fillMaxSize()
                 .padding(12.dp)
-                .background(bgColor)
+                .background(tintColor)
                 .cornerRadius(16.dp),
         ) {
             Column(modifier = GlanceModifier.fillMaxSize()) {
@@ -69,7 +74,7 @@ class BoardcastMediumWidget : GlanceAppWidget() {
                             Text(
                                 text = score.toString(),
                                 style = TextStyle(
-                                    fontSize = 28.sp,
+                                    fontSize = 32.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = ColorProvider(condColor),
                                 ),
@@ -78,8 +83,16 @@ class BoardcastMediumWidget : GlanceAppWidget() {
                             Text(
                                 text = conditionLabel,
                                 style = TextStyle(
-                                    fontSize = 13.sp,
+                                    fontSize = 14.sp,
                                     fontWeight = FontWeight.Medium,
+                                    color = ColorProvider(condColor),
+                                ),
+                            )
+                            Spacer(modifier = GlanceModifier.width(3.dp))
+                            Text(
+                                text = trend,
+                                style = TextStyle(
+                                    fontSize = 13.sp,
                                     color = ColorProvider(condColor),
                                 ),
                             )
@@ -167,7 +180,7 @@ class BoardcastMediumWidget : GlanceAppWidget() {
                         style = TextStyle(
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Medium,
-                            color = ColorProvider(android.graphics.Color.parseColor("#4db8a4")),
+                            color = ColorProvider(android.graphics.Color.parseColor("#3d9189")),
                         ),
                     )
                 }

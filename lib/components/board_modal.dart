@@ -173,7 +173,7 @@ class _BoardModalSheetState extends State<_BoardModalSheet> {
                         Text(
                           bt.bestFor,
                           style: TextStyle(
-                            fontSize: 9,
+                            fontSize: 11,
                             color: isDark
                                 ? AppColorsDark.textTertiary
                                 : AppColors.textTertiary,

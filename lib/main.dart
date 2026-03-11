@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:app_links/app_links.dart';
+import 'package:dynamic_color/dynamic_color.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'services/supabase_service.dart';
@@ -32,7 +33,6 @@ import 'theme/transitions.dart';
 import 'state/strava_import_provider.dart';
 import 'views/shell_screen.dart';
 import 'views/onboarding_screen.dart';
-import 'views/feature_tour_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -138,14 +138,18 @@ class BoardcastApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
 
-    return MaterialApp(
-      title: 'Boardcast',
-      debugShowCheckedModeBanner: false,
-      theme: buildLightTheme(),
-      darkTheme: buildDarkTheme(),
-      themeMode: themeMode,
-      scrollBehavior: const BoardcastScrollBehavior(),
-      home: const _OnboardingGate(),
+    return DynamicColorBuilder(
+      builder: (ColorScheme? lightDynamic, ColorScheme? darkDynamic) {
+        return MaterialApp(
+          title: 'Boardcast',
+          debugShowCheckedModeBanner: false,
+          theme: buildLightTheme(dynamicScheme: lightDynamic),
+          darkTheme: buildDarkTheme(dynamicScheme: darkDynamic),
+          themeMode: themeMode,
+          scrollBehavior: const BoardcastScrollBehavior(),
+          home: const _OnboardingGate(),
+        );
+      },
     );
   }
 }
@@ -218,10 +222,11 @@ class _OnboardingGateState extends ConsumerState<_OnboardingGate> {
         onComplete: () => setState(() {}),
       );
     }
+    // Feature tour is now optional — contextual discovery hints
+    // replace the mandatory front-loaded tour. Tour remains accessible
+    // via Settings > "Show me around".
     if (!store.isFeatureTourSeen) {
-      return FeatureTourScreen(
-        onComplete: () => setState(() {}),
-      );
+      store.setFeatureTourSeen();
     }
     return const ShellScreen();
   }

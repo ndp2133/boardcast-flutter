@@ -172,7 +172,7 @@ class _PaywallSheetState extends State<_PaywallSheet> {
           ),
           const SizedBox(height: AppSpacing.s2),
           Text(
-            'Know exactly when to paddle out with AI coaching, smart alerts, and widgets.',
+            'Know exactly when to paddle out with The Call, smart alerts, and widgets.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: AppTypography.textSm,
@@ -470,8 +470,7 @@ class _PaywallSheetState extends State<_PaywallSheet> {
 }
 
 const _features = <(IconData, String, String)>[
-  (Icons.psychology, 'AI Surf Coach', 'Personalized tips based on your style'),
-  (Icons.chat_bubble_outline, 'Unlimited AI Queries', 'Ask anything about conditions'),
+  (Icons.call_made, 'The Call', 'AI-powered conditions Q&A tuned to your style'),
   (Icons.notifications_active, 'Smart Alerts', 'Never miss epic conditions'),
   (Icons.widgets, 'Home Screen Widget', 'Check the score at a glance'),
   (Icons.insights, 'Session Analytics', 'Track your Surf IQ progression'),

@@ -65,11 +65,11 @@ struct BestTimeSnippetView: View {
 
     private var windowColor: Color {
         switch data.bestWindowLabel {
-        case "Epic":  return Color(hex: "22c55e")
-        case "Good":  return Color(hex: "4db8a4")
-        case "Fair":  return Color(hex: "f59e0b")
-        case "Poor":  return Color(hex: "ef4444")
-        default:      return Color(hex: "4db8a4")
+        case "Epic":  return Color(hex: "2e8a5e")
+        case "Good":  return Color(hex: "3d9189")
+        case "Fair":  return Color(hex: "b07a4f")
+        case "Poor":  return Color(hex: "9e5e5e")
+        default:      return Color(hex: "3d9189")
         }
     }
 }

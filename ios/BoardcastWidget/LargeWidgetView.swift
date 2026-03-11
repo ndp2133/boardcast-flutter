@@ -14,7 +14,7 @@ struct LargeWidgetView: View {
     let data: WidgetData
 
     private let navy = Color(hex: "0f1923")
-    private let teal = Color(hex: "4db8a4")
+    private let teal = Color(hex: "3d9189")
     private let subText = Color(hex: "94a3b8")
     private let lightText = Color(hex: "e2e8f0")
 
@@ -70,7 +70,15 @@ struct LargeWidgetView: View {
             Spacer(minLength: 6)
         }
         .containerBackground(for: .widget) {
-            navy
+            ZStack {
+                navy
+                // Subtle condition color atmosphere
+                LinearGradient(
+                    colors: [data.conditionColor.opacity(0.08), Color.clear],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
         }
     }
 
@@ -196,7 +204,7 @@ struct WaveTideChart: View {
     let waves: [WidgetData.HourlyWave]
     let tides: [WidgetData.HourlyTide]
 
-    private let teal = Color(hex: "4db8a4")
+    private let teal = Color(hex: "3d9189")
     private let tideLine = Color(hex: "94a3b8")
 
     var body: some View {

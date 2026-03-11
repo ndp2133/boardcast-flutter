@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/session.dart';
 import '../models/board.dart';
+import '../theme/tokens.dart';
 import '../logic/scoring.dart';
 import '../logic/locations.dart';
 
@@ -197,10 +198,10 @@ Future<bool> generateAndShareWrapped({
     // Legend
     final legendY = barY + 70.0;
     final legendItems = [
-      ('Epic', const Color(0xFF22C55E), condCounts['epic']!),
-      ('Good', const Color(0xFF4DB8A4), condCounts['good']!),
-      ('Fair', const Color(0xFFF59E0B), condCounts['fair']!),
-      ('Poor', const Color(0xFFEF4444), condCounts['poor']!),
+      ('Epic', AppColors.conditionEpic, condCounts['epic']!),
+      ('Good', AppColors.conditionGood, condCounts['good']!),
+      ('Fair', AppColors.conditionFair, condCounts['fair']!),
+      ('Poor', AppColors.conditionPoor, condCounts['poor']!),
     ].where((item) => item.$3 > 0).toList();
 
     var lx = 60.0;
@@ -312,10 +313,10 @@ void _drawConditionBar(Canvas canvas, double x, double y, double w, double h,
 
   final order = ['epic', 'good', 'fair', 'poor'];
   final segColors = {
-    'epic': const Color(0xFF22C55E),
-    'good': const Color(0xFF4DB8A4),
-    'fair': const Color(0xFFF59E0B),
-    'poor': const Color(0xFFEF4444),
+    'epic': AppColors.conditionEpic,
+    'good': AppColors.conditionGood,
+    'fair': AppColors.conditionFair,
+    'poor': AppColors.conditionPoor,
   };
 
   var cx = x;
@@ -383,20 +384,20 @@ class _WrappedColors {
 
   factory _WrappedColors.from(bool isDark) {
     if (isDark) {
-      return const _WrappedColors(
-        bg: Color(0xFF0F1923),
-        cardBg: Color(0xFF162230),
-        textPrimary: Color(0xFFE2E8F0),
-        textSecondary: Color(0xFF94A3B8),
-        accent: Color(0xFF4DB8A4),
+      return _WrappedColors(
+        bg: AppColorsDark.bgPrimary,
+        cardBg: AppColorsDark.bgSecondary,
+        textPrimary: AppColorsDark.textPrimary,
+        textSecondary: AppColorsDark.textSecondary,
+        accent: AppColors.accent,
       );
     }
-    return const _WrappedColors(
-      bg: Color(0xFFF5F7FA),
-      cardBg: Color(0xFFFFFFFF),
-      textPrimary: Color(0xFF1A1A2E),
-      textSecondary: Color(0xFF6B7280),
-      accent: Color(0xFF4DB8A4),
+    return _WrappedColors(
+      bg: AppColors.bgPrimary,
+      cardBg: AppColors.bgSecondary,
+      textPrimary: AppColors.textPrimary,
+      textSecondary: AppColors.textSecondary,
+      accent: AppColors.accent,
     );
   }
 }

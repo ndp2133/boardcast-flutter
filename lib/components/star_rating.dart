@@ -46,11 +46,11 @@ class _StarRatingState extends State<StarRating> {
                     }
                   : null,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 6),
                 child: AnimatedScale(
                   scale: _tappedIndex == i ? 1.3 : 1.0,
-                  duration: AppDurations.fast,
-                  curve: Curves.easeOutBack,
+                  duration: AppDurations.base,
+                  curve: Curves.elasticOut,
                   child: Icon(
                     filled ? Icons.star : Icons.star_border,
                     size: widget.size,

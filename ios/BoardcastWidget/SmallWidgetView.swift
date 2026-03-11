@@ -13,7 +13,7 @@ struct SmallWidgetView: View {
     private let navy = Color(hex: "0f1923")
     private let subText = Color(hex: "94a3b8")
     private let lightText = Color(hex: "e2e8f0")
-    private let teal = Color(hex: "4db8a4")
+    private let teal = Color(hex: "3d9189")  // sea-glass accent
 
     var body: some View {
         VStack(spacing: 0) {
@@ -30,9 +30,10 @@ struct SmallWidgetView: View {
 
             Spacer()
 
-            // Score ring (center)
+            // Score ring (center) — larger with glow
             ScoreRing(score: data.score, color: data.conditionColor)
-                .frame(width: 72, height: 72)
+                .frame(width: 78, height: 78)
+                .shadow(color: data.conditionColor.opacity(0.4), radius: 12)
 
             Spacer()
 
@@ -62,7 +63,13 @@ struct SmallWidgetView: View {
         .containerBackground(for: .widget) {
             ZStack {
                 navy
-                data.conditionColor.opacity(0.08)
+                // Condition color wash — Epic glows green, Poor glows red
+                RadialGradient(
+                    colors: [data.conditionColor.opacity(0.18), data.conditionColor.opacity(0.04)],
+                    center: .center,
+                    startRadius: 10,
+                    endRadius: 120
+                )
             }
         }
     }
@@ -165,7 +172,7 @@ struct MicroSparkline: View {
                         path.addLine(to: CGPoint(x: CGFloat(count - 1) * step, y: h))
                         path.closeSubpath()
                     }
-                    .fill(Color(hex: "4db8a4").opacity(0.25))
+                    .fill(Color(hex: "3d9189").opacity(0.25))
 
                     // Line
                     Path { path in
@@ -185,7 +192,7 @@ struct MicroSparkline: View {
                             }
                         }
                     }
-                    .stroke(Color(hex: "4db8a4"), lineWidth: 1.5)
+                    .stroke(Color(hex: "3d9189"), lineWidth: 1.5)
                 }
             )
         }

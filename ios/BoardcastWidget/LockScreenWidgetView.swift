@@ -10,17 +10,28 @@ import WidgetKit
 struct LockScreenRectangularView: View {
     let data: WidgetData
 
+    /// Trend arrow based on hourly score deltas
+    private var trendArrow: String {
+        let scores = data.hourlyScores
+        guard scores.count >= 3 else { return "" }
+        let recent = scores.prefix(3).map { $0.score }
+        let delta = recent.last! - recent.first!
+        if delta > 5 { return " ↑" }
+        if delta < -5 { return " ↓" }
+        return " →"
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            // Line 1: score + condition
+            // Line 1: score + condition + trend
             HStack(spacing: 4) {
                 Text("\(data.score)")
                     .font(.system(size: 15, weight: .bold, design: .monospaced))
-                Text(data.conditionLabel)
+                Text("\(data.conditionLabel)\(trendArrow)")
                     .font(.system(size: 13, weight: .medium))
             }
 
-            // Line 2: wave + wind summary
+            // Line 2: wave + wind + best window hint
             HStack(spacing: 4) {
                 Image(systemName: "water.waves")
                     .font(.system(size: 10))
@@ -46,7 +57,7 @@ struct LockScreenCircularView: View {
 
     var body: some View {
         Gauge(value: Double(data.score), in: 0...100) {
-            Text("Surf")
+            Image(systemName: "water.waves")
                 .font(.system(size: 8))
         } currentValueLabel: {
             Text("\(data.score)")

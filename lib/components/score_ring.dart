@@ -8,7 +8,7 @@ class ScoreRing extends StatefulWidget {
   final double score; // 0-1
   final double size;
 
-  const ScoreRing({super.key, required this.score, this.size = 180});
+  const ScoreRing({super.key, required this.score, this.size = 220});
 
   @override
   State<ScoreRing> createState() => _ScoreRingState();
@@ -60,47 +60,64 @@ class _ScoreRingState extends State<ScoreRing>
           maxScaleFactor: 1.3,
           child: Semantics(
             label: 'Surf conditions score: $displayScore out of 100, ${label.label}',
-            child: SizedBox(
-              width: widget.size,
-              height: widget.size,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  CustomPaint(
-                    size: Size(widget.size, widget.size),
-                    painter: _RingPainter(
-                      progress: animatedScore,
-                      color: color,
-                      trackColor: Theme.of(context).brightness == Brightness.dark
-                          ? AppColorsDark.bgTertiary
-                          : AppColors.bgTertiary,
-                    ),
+            child: Container(
+              width: widget.size + 32,
+              height: widget.size + 32,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.25 * _animation.value),
+                    blurRadius: 32,
+                    spreadRadius: 4,
                   ),
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
+                ],
+              ),
+              child: Center(
+                child: SizedBox(
+                  width: widget.size,
+                  height: widget.size,
+                  child: Stack(
+                    alignment: Alignment.center,
                     children: [
-                      Text(
-                        '$displayScore',
-                        style: TextStyle(
-                          fontFamily: AppTypography.fontMono,
-                          fontSize: widget.size * 0.22,
-                          fontWeight: AppTypography.weightBold,
+                      CustomPaint(
+                        size: Size(widget.size, widget.size),
+                        painter: _RingPainter(
+                          progress: animatedScore,
                           color: color,
-                          height: 1,
+                          trackColor: Theme.of(context).brightness == Brightness.dark
+                              ? AppColorsDark.bgTertiary
+                              : AppColors.bgTertiary,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        label.label,
-                        style: TextStyle(
-                          fontSize: AppTypography.textSm,
-                          fontWeight: AppTypography.weightMedium,
-                          color: color,
-                        ),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '$displayScore',
+                            style: TextStyle(
+                              fontFamily: AppTypography.fontMono,
+                              fontSize: widget.size * 0.30,
+                              fontWeight: AppTypography.weightBold,
+                              color: color,
+                              height: 1,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            label.label.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: AppTypography.textSm,
+                              fontWeight: AppTypography.weightSemibold,
+                              letterSpacing: 1.2,
+                              color: color,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
@@ -131,8 +148,8 @@ class _RingPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 10;
-    const strokeWidth = 10.0;
+    final radius = size.width / 2 - 12;
+    const strokeWidth = 12.0;
 
     // Track
     final trackPaint = Paint()

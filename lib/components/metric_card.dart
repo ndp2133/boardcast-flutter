@@ -38,11 +38,16 @@ class MetricCard extends StatefulWidget {
 
 class _MetricCardState extends State<MetricCard> {
   bool _expanded = false;
+  bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? AppColorsDark.bgSecondary : AppColors.bgSecondary;
+    final baseBg = isDark ? AppColorsDark.bgSecondary : AppColors.bgSecondary;
+    // Tint card background with condition color for mood
+    final bg = widget.dotColor != null
+        ? Color.lerp(baseBg, widget.dotColor!, isDark ? 0.08 : 0.06)!
+        : baseBg;
     final textColor =
         isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
     final subColor =
@@ -52,18 +57,36 @@ class _MetricCardState extends State<MetricCard> {
       label: '${widget.name}: ${widget.value} ${widget.unit}. ${widget.subLabel}',
       button: true,
       child: GestureDetector(
-      onTap: () {
-        HapticFeedback.lightImpact();
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) {
+        setState(() => _pressed = false);
+        if (widget.dotColor != null) {
+          if (widget.dotColor == AppColors.conditionEpic) {
+            HapticFeedback.heavyImpact();
+          } else if (widget.dotColor == AppColors.conditionFair) {
+            HapticFeedback.lightImpact();
+          } else if (widget.dotColor == AppColors.conditionPoor) {
+            HapticFeedback.selectionClick();
+          } else {
+            HapticFeedback.mediumImpact();
+          }
+        } else {
+          HapticFeedback.lightImpact();
+        }
         setState(() => _expanded = !_expanded);
       },
-      child: AnimatedContainer(
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedScale(
+        scale: _pressed ? 0.97 : 1.0,
+        duration: AppDurations.fast,
+        child: AnimatedContainer(
         duration: AppDurations.base,
         curve: Curves.easeInOut,
         padding: const EdgeInsets.all(AppSpacing.s3),
         decoration: BoxDecoration(
           color: bg,
           borderRadius: BorderRadius.circular(AppRadius.md),
-          boxShadow: AppShadows.sm,
+          boxShadow: AppShadows.base,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -159,6 +182,7 @@ class _MetricCardState extends State<MetricCard> {
           ],
         ),
       ),
+      ),
     ),
     );
   }
@@ -196,7 +220,7 @@ class _MetricCardState extends State<MetricCard> {
             Text(
               '6h trend',
               style: TextStyle(
-                fontSize: 10,
+                fontSize: AppTypography.textXxs,
                 color: subColor,
               ),
             ),

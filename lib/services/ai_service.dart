@@ -65,6 +65,23 @@ class AiService {
         "Couldn't generate an answer. Try rephrasing!";
   }
 
+  /// Onboarding chat — multi-turn conversation for preference extraction.
+  /// [mode] is 'chat' for conversation or 'extract' for structured pref extraction.
+  Future<Map<String, dynamic>> onboardingChat({
+    required List<Map<String, String>> messages,
+    required String mode,
+  }) async {
+    final response = await _supabase.functions.invoke(
+      'onboarding-chat',
+      body: {
+        'messages': messages,
+        'mode': mode,
+      },
+    );
+
+    return response.data as Map<String, dynamic>? ?? {};
+  }
+
   /// Get an LLM-enhanced forecast summary from forecast-summary.
   /// Returns null if the Edge Function fails (caller falls back to rule-based).
   Future<String?> fetchForecastSummary({

@@ -49,13 +49,17 @@ class StaleBadge extends StatelessWidget {
             ),
           ),
           if (onRefresh != null) ...[
-            const SizedBox(width: 4),
+            const SizedBox(width: 2),
             GestureDetector(
               onTap: onRefresh,
-              child: Icon(
-                Icons.refresh,
-                size: 14,
-                color: AppColors.conditionFair,
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Icon(
+                  Icons.refresh,
+                  size: 16,
+                  color: AppColors.conditionFair,
+                ),
               ),
             ),
           ],

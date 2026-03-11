@@ -54,11 +54,11 @@ class SessionHistoryList extends StatelessWidget {
           final s = entry.value;
           final delay = i < 10 ? i : 10;
           return AnimatedOpacity(
-            duration: Duration(milliseconds: 300 + delay * 50),
+            duration: Duration(milliseconds: 150 + delay * 30),
             curve: Curves.easeOut,
             opacity: visible ? 1.0 : 0.0,
             child: AnimatedSlide(
-              duration: Duration(milliseconds: 300 + delay * 50),
+              duration: Duration(milliseconds: 150 + delay * 30),
               curve: Curves.easeOut,
               offset: visible ? Offset.zero : const Offset(0, 0.08),
               child: _SessionRow(
@@ -220,7 +220,7 @@ class SessionStatsGrid extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontSize: 9,
+                fontSize: 11,
                 color: subColor,
               ),
               textAlign: TextAlign.center,
@@ -345,7 +345,7 @@ class _SessionRow extends StatelessWidget {
                     ),
                     child: Text(
                       t,
-                      style: TextStyle(fontSize: 9, color: AppColors.accent),
+                      style: TextStyle(fontSize: 11, color: AppColors.accent),
                     ),
                   )).toList(),
             ),

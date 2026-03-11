@@ -34,8 +34,8 @@ class WindCompass extends StatelessWidget {
         height: size,
         child: TweenAnimationBuilder<double>(
           tween: Tween(end: windDegrees),
-          duration: AppDurations.slow,
-          curve: Curves.easeInOut,
+          duration: AppDurations.base,
+          curve: Curves.easeOutCubic,
           builder: (context, animatedDegrees, _) => CustomPaint(
             painter: _CompassPainter(
               windDegrees: animatedDegrees,

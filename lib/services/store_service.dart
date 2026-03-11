@@ -116,6 +116,21 @@ class StoreService {
   }
 
   // ---------------------------------------------------------------------------
+  // Discovery Hints (contextual tips that replace front-loaded tour)
+  // ---------------------------------------------------------------------------
+
+  Set<String> getSeenHints() {
+    final raw = _box.get('seen_hints');
+    if (raw == null) return {};
+    return Set<String>.from((raw as String).split(',').where((s) => s.isNotEmpty));
+  }
+
+  Future<void> markHintSeen(String hintId) async {
+    final seen = getSeenHints()..add(hintId);
+    await _box.put('seen_hints', seen.join(','));
+  }
+
+  // ---------------------------------------------------------------------------
   // Sessions
   // ---------------------------------------------------------------------------
 

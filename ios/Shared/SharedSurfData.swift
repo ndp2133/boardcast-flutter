@@ -19,6 +19,7 @@ struct WidgetData {
     let bestWindowEnd: String
     let bestWindowScore: Int
     let bestWindowLabel: String
+    let trend: String?  // ↑ ↓ →
 
     struct HourlyScore: Identifiable {
         let id: Int  // index
@@ -73,22 +74,22 @@ struct WidgetData {
 
         var conditionColor: Color {
             switch label {
-            case "Epic":  return Color(hex: "22c55e")
-            case "Good":  return Color(hex: "4db8a4")
-            case "Fair":  return Color(hex: "f59e0b")
-            case "Poor":  return Color(hex: "ef4444")
-            default:      return Color(hex: "4db8a4")
+            case "Epic":  return Color(hex: "2e8a5e")
+            case "Good":  return Color(hex: "3d9189")
+            case "Fair":  return Color(hex: "b07a4f")
+            case "Poor":  return Color(hex: "9e5e5e")
+            default:      return Color(hex: "3d9189")
             }
         }
     }
 
     var conditionColor: Color {
         switch conditionLabel {
-        case "Epic":  return Color(hex: "22c55e")
-        case "Good":  return Color(hex: "4db8a4")
-        case "Fair":  return Color(hex: "f59e0b")
-        case "Poor":  return Color(hex: "ef4444")
-        default:      return Color(hex: "4db8a4")
+        case "Epic":  return Color(hex: "2e8a5e")
+        case "Good":  return Color(hex: "3d9189")
+        case "Fair":  return Color(hex: "b07a4f")
+        case "Poor":  return Color(hex: "9e5e5e")
+        default:      return Color(hex: "3d9189")
         }
     }
 
@@ -154,7 +155,8 @@ struct WidgetData {
         bestWindowStart: "",
         bestWindowEnd: "",
         bestWindowScore: 78,
-        bestWindowLabel: "Good"
+        bestWindowLabel: "Good",
+        trend: "→"
     )
 }
 
@@ -180,6 +182,7 @@ extension WidgetData {
         let bestEnd = defaults?.string(forKey: "bestWindowEnd") ?? ""
         let bestScore = defaults?.integer(forKey: "bestWindowScore") ?? 0
         let bestLabel = defaults?.string(forKey: "bestWindowLabel") ?? ""
+        let trend = defaults?.string(forKey: "trend")
 
         // Parse fetchedAt
         let isoFormatter = ISO8601DateFormatter()
@@ -258,7 +261,8 @@ extension WidgetData {
             bestWindowStart: bestStart,
             bestWindowEnd: bestEnd,
             bestWindowScore: bestScore,
-            bestWindowLabel: bestLabel
+            bestWindowLabel: bestLabel,
+            trend: trend
         )
     }
 }

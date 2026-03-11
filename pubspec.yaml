@@ -1,7 +1,7 @@
 name: boardcast_flutter
 description: "Know when to go. Surf conditions tracker."
 publish_to: 'none'
-version: 1.0.0+13
+version: 1.0.0+14
 
 environment:
   sdk: ^3.11.0
@@ -66,6 +66,7 @@ dependencies:
   purchases_ui_flutter: ^8.11.0
   posthog_flutter: ^5.15.2
   sign_in_with_apple: ^7.0.1
+  dynamic_color: ^1.8.1
 
 dev_dependencies:
   flutter_test:

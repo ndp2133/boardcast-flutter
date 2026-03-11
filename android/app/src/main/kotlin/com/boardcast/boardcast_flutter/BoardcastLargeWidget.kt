@@ -39,9 +39,11 @@ class BoardcastLargeWidget : GlanceAppWidget() {
         val bestScore = prefs.getInt("bestWindowScore", 0)
         val bestLabel = prefs.getString("bestWindowLabel", "") ?: ""
 
+        val trend = prefs.getString("trend", "\u2192") ?: "\u2192"
+
         val condColor = conditionColor(score)
         val bgColor = ColorProvider(android.graphics.Color.parseColor("#0f1923"))
-        val teal = android.graphics.Color.parseColor("#4db8a4")
+        val teal = android.graphics.Color.parseColor("#3d9189")
         val subTextColor = android.graphics.Color.parseColor("#8899aa")
         val lightColor = android.graphics.Color.parseColor("#e2e8f0")
 
@@ -49,11 +51,14 @@ class BoardcastLargeWidget : GlanceAppWidget() {
         val waveHeights = parseWaveHeights(waveJson)
         val upcomingWindows = parseUpcomingWindows(windowsJson)
 
+        // Condition-tinted background
+        val tintColor = ColorProvider(conditionColorWithAlpha(score, 0.08f))
+
         Box(
             modifier = GlanceModifier
                 .fillMaxSize()
                 .padding(12.dp)
-                .background(bgColor)
+                .background(tintColor)
                 .cornerRadius(16.dp),
         ) {
             Column(modifier = GlanceModifier.fillMaxSize()) {
@@ -87,6 +92,14 @@ class BoardcastLargeWidget : GlanceAppWidget() {
                                 style = TextStyle(
                                     fontSize = 13.sp,
                                     fontWeight = FontWeight.Medium,
+                                    color = ColorProvider(condColor),
+                                ),
+                            )
+                            Spacer(modifier = GlanceModifier.width(3.dp))
+                            Text(
+                                text = trend,
+                                style = TextStyle(
+                                    fontSize = 12.sp,
                                     color = ColorProvider(condColor),
                                 ),
                             )
@@ -193,7 +206,7 @@ class BoardcastLargeWidget : GlanceAppWidget() {
                         modifier = GlanceModifier
                             .fillMaxWidth()
                             .padding(horizontal = 8.dp, vertical = 6.dp)
-                            .background(ColorProvider(android.graphics.Color.argb(25, 77, 184, 164)))
+                            .background(ColorProvider(android.graphics.Color.argb(25, 61, 145, 137)))
                             .cornerRadius(8.dp),
                     ) {
                         Row(

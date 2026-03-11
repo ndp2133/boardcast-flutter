@@ -4,6 +4,7 @@ import '../theme/tokens.dart';
 import '../logic/scoring.dart';
 import '../logic/time_utils.dart';
 import '../logic/units.dart';
+import 'stagger_animate.dart';
 
 class WeeklyWindows extends StatelessWidget {
   final List<TopWindow> windows;
@@ -37,12 +38,15 @@ class WeeklyWindows extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.s2),
-        ...windows.map((w) => _WindowRow(
-              window: w,
-              isDark: isDark,
-              textColor: textColor,
-              subColor: subColor,
-              onTap: () => onWindowTap?.call(w.date),
+        ...windows.asMap().entries.map((e) => StaggerAnimate(
+              index: e.key,
+              child: _WindowRow(
+                window: e.value,
+                isDark: isDark,
+                textColor: textColor,
+                subColor: subColor,
+                onTap: () => onWindowTap?.call(e.value.date),
+              ),
             )),
       ],
     );
@@ -104,10 +108,15 @@ class _WindowRowState extends State<_WindowRow> {
                 vertical: AppSpacing.s2,
               ),
               decoration: BoxDecoration(
-                color: widget.isDark
-                    ? AppColorsDark.bgSecondary
-                    : AppColors.bgSecondary,
+                color: Color.lerp(
+                  widget.isDark ? AppColorsDark.bgSecondary : AppColors.bgSecondary,
+                  color,
+                  widget.isDark ? 0.06 : 0.04,
+                ),
                 borderRadius: BorderRadius.circular(AppRadius.sm),
+                border: Border(
+                  left: BorderSide(color: color, width: 3),
+                ),
               ),
               child: Row(
                 children: [

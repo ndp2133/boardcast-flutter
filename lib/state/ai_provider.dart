@@ -142,7 +142,7 @@ class SurfTipNotifier extends Notifier<AiState> {
     } catch (e) {
       state = AiState(
         status: AiStatus.error,
-        error: "Couldn't reach the surf coach. Check your connection.",
+        error: "Couldn't get The Call right now. Check your connection.",
       );
     }
   }
@@ -214,7 +214,7 @@ class SurfQueryNotifier extends Notifier<AiState> {
     } catch (e) {
       state = AiState(
         status: AiStatus.error,
-        error: "Couldn't reach the AI coach. Check your connection.",
+        error: "Couldn't get The Call right now. Check your connection.",
       );
     }
   }

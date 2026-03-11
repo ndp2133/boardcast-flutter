@@ -2,20 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'tokens.dart';
 
-ThemeData buildLightTheme() {
+ThemeData buildLightTheme({ColorScheme? dynamicScheme}) {
+  final scheme = dynamicScheme != null
+      ? dynamicScheme.copyWith(
+          surface: AppColors.bgSecondary,
+          onPrimary: Colors.white,
+          error: AppColors.conditionPoor,
+        )
+      : ColorScheme.fromSeed(
+          seedColor: AppColors.accent,
+          brightness: Brightness.light,
+          surface: AppColors.bgSecondary,
+          primary: AppColors.accent,
+          onPrimary: Colors.white,
+          secondary: AppColors.accentLight,
+          error: AppColors.conditionPoor,
+        );
   return ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
     scaffoldBackgroundColor: AppColors.bgPrimary,
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: AppColors.accent,
-      brightness: Brightness.light,
-      surface: AppColors.bgSecondary,
-      primary: AppColors.accent,
-      onPrimary: Colors.white,
-      secondary: AppColors.accentLight,
-      error: AppColors.conditionPoor,
-    ),
+    colorScheme: scheme,
     appBarTheme: const AppBarTheme(
       backgroundColor: AppColors.bgPrimary,
       foregroundColor: AppColors.textPrimary,
@@ -145,20 +152,27 @@ ThemeData buildLightTheme() {
   );
 }
 
-ThemeData buildDarkTheme() {
+ThemeData buildDarkTheme({ColorScheme? dynamicScheme}) {
+  final scheme = dynamicScheme != null
+      ? dynamicScheme.copyWith(
+          surface: AppColorsDark.bgSecondary,
+          onPrimary: Colors.white,
+          error: AppColors.conditionPoor,
+        )
+      : ColorScheme.fromSeed(
+          seedColor: AppColors.accent,
+          brightness: Brightness.dark,
+          surface: AppColorsDark.bgSecondary,
+          primary: AppColors.accent,
+          onPrimary: Colors.white,
+          secondary: AppColors.accentLight,
+          error: AppColors.conditionPoor,
+        );
   return ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
     scaffoldBackgroundColor: AppColorsDark.bgPrimary,
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: AppColors.accent,
-      brightness: Brightness.dark,
-      surface: AppColorsDark.bgSecondary,
-      primary: AppColors.accent,
-      onPrimary: Colors.white,
-      secondary: AppColors.accentLight,
-      error: AppColors.conditionPoor,
-    ),
+    colorScheme: scheme,
     appBarTheme: const AppBarTheme(
       backgroundColor: AppColorsDark.bgPrimary,
       foregroundColor: AppColorsDark.textPrimary,

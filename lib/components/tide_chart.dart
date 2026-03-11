@@ -136,8 +136,8 @@ class TideChart extends StatelessWidget {
             color: AppColors.accent,
             shape: BoxShape.circle,
             border: Border.all(
-              color: isDark ? AppColorsDark.bgPrimary : AppColors.bgSecondary,
-              width: 1.5,
+              color: isDark ? AppColorsDark.bgSecondary : AppColors.bgSecondary,
+              width: 2,
             ),
           ),
         ),
