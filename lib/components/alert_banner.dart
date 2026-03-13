@@ -67,39 +67,26 @@ class _AlertBannerState extends State<AlertBanner> {
         setState(() => _dismissed = true);
         widget.onTap?.call();
       },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: AppSpacing.s3),
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.s3,
-          vertical: AppSpacing.s2,
-        ),
-        decoration: BoxDecoration(
-          color: conditionColor.withValues(alpha: isDark ? 0.15 : 0.1),
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          border: Border.all(
-            color: conditionColor.withValues(alpha: 0.3),
-          ),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: AppSpacing.s1),
         child: Row(
           children: [
             Container(
-              width: 8,
-              height: 8,
+              width: 6,
+              height: 6,
               decoration: BoxDecoration(
                 color: conditionColor,
                 shape: BoxShape.circle,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             Expanded(
               child: Text(
                 message,
                 style: TextStyle(
-                  fontSize: AppTypography.textSm,
+                  fontSize: AppTypography.textXs,
                   fontWeight: AppTypography.weightMedium,
-                  color: isDark
-                      ? AppColorsDark.textPrimary
-                      : AppColors.textPrimary,
+                  color: conditionColor,
                 ),
               ),
             ),
@@ -107,7 +94,7 @@ class _AlertBannerState extends State<AlertBanner> {
               onTap: () => setState(() => _dismissed = true),
               child: Icon(
                 Icons.close,
-                size: 16,
+                size: 14,
                 color: isDark
                     ? AppColorsDark.textTertiary
                     : AppColors.textTertiary,

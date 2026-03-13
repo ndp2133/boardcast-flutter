@@ -37,3 +37,4 @@ build/
 .pub/
 /build/
 *.lock.bak
+.vercel

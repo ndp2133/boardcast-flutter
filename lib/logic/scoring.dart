@@ -346,6 +346,70 @@ double _scoreTide(double? tideHeight, UserPrefs prefs, Location location,
   return breakFit + prefMod;
 }
 
+// --- Score breakdown types ---
+
+/// Hard cap types that can limit the final score
+enum HardCap {
+  lowEnergy,
+  powerCap,
+  oversizedBeginner,
+  oversizedGeneral,
+  thunderstorm,
+  strongOnshore,
+  wrongTide,
+}
+
+/// Full score breakdown with all component scores and context
+class ScoreBreakdown {
+  final double heightScore;
+  final double qualityScore;
+  final double dirScore;
+  final double baseScore;
+  final double windMult;
+  final double tideMod;
+  final double energy;
+  final double preCapsScore;
+  final double finalScore;
+  final List<HardCap> activeCaps;
+
+  // Context fields for UI display
+  final double? actualWaveHeight;
+  final double? idealMin;
+  final double? idealMax;
+  final double? windSpeed;
+  final double? windDirection;
+  final double? swellPeriod;
+  final double beachFacing;
+  final double? tideNormalized;
+  final String breakType;
+  final bool isOffshore;
+  final bool isOnshore;
+
+  const ScoreBreakdown({
+    required this.heightScore,
+    required this.qualityScore,
+    required this.dirScore,
+    required this.baseScore,
+    required this.windMult,
+    required this.tideMod,
+    required this.energy,
+    required this.preCapsScore,
+    required this.finalScore,
+    required this.activeCaps,
+    this.actualWaveHeight,
+    this.idealMin,
+    this.idealMax,
+    this.windSpeed,
+    this.windDirection,
+    this.swellPeriod,
+    required this.beachFacing,
+    this.tideNormalized,
+    required this.breakType,
+    required this.isOffshore,
+    required this.isOnshore,
+  });
+}
+
 // --- Main scoring function ---
 
 /// Reference prefs for "pro perspective" comparison score
@@ -367,8 +431,39 @@ double computeMatchScore(
   Location location, {
   TideRange? tideRange,
   Map<String, double>? weightOverrides,
+}) =>
+    computeMatchScoreBreakdown(hourData, prefs, location,
+            tideRange: tideRange, weightOverrides: weightOverrides)
+        .finalScore;
+
+/// Compute full score breakdown with all component scores and context.
+/// Same inputs as [computeMatchScore] but returns [ScoreBreakdown] with
+/// component scores, hard caps, and context for the score transparency UI.
+ScoreBreakdown computeMatchScoreBreakdown(
+  HourlyData? hourData,
+  UserPrefs? prefs,
+  Location location, {
+  TideRange? tideRange,
+  Map<String, double>? weightOverrides,
 }) {
-  if (hourData == null || prefs == null) return 0;
+  if (hourData == null || prefs == null) {
+    return ScoreBreakdown(
+      heightScore: 0,
+      qualityScore: 0,
+      dirScore: 0,
+      baseScore: 0,
+      windMult: 0,
+      tideMod: 0,
+      energy: 0,
+      preCapsScore: 0,
+      finalScore: 0,
+      activeCaps: const [],
+      beachFacing: location.beachFacing,
+      breakType: location.breakType,
+      isOffshore: false,
+      isOnshore: false,
+    );
+  }
 
   final spotParams = _getSpotParams(location);
 
@@ -397,14 +492,17 @@ double computeMatchScore(
       _scoreTide(hourData.tideHeight, prefs, location, spotParams, tideRange);
 
   var score = baseScore * windMult + tideMod;
+  final preCapsScore = score;
 
   // --- Hard caps (applied after main calculation) ---
 
+  final activeCaps = <HardCap>[];
   final energy = _effectiveSwellEnergy(hourData, location, spotParams);
 
   // Minimum energy: spot isn't "turned on"
   if (energy > 0 && energy < spotParams.minWaveEnergy) {
     score = min(_fairThreshold - 0.01, score);
+    activeCaps.add(HardCap.lowEnergy);
   }
 
   // Overpowered / oversized safety cap
@@ -412,18 +510,22 @@ double computeMatchScore(
   final wh = hourData.waveHeight;
   if (powerCap < double.infinity && energy > powerCap) {
     score = min(_fairThreshold - 0.01, score);
+    activeCaps.add(HardCap.powerCap);
   }
   if (prefs.maxWaveHeight != null && wh != null) {
     if (wh > prefs.maxWaveHeight! * 1.6 && prefs.skillLevel == 'beginner') {
       score = min(0.25, score);
+      activeCaps.add(HardCap.oversizedBeginner);
     } else if (wh > prefs.maxWaveHeight! * 1.35 && energy > powerCap * 0.7) {
       score = min(_fairThreshold - 0.01, score);
+      activeCaps.add(HardCap.oversizedGeneral);
     }
   }
 
   // Thunderstorm/lightning hard cap (safety)
   if (hourData.weatherCode != null && hourData.weatherCode! >= 95) {
     score = min(0.25, score);
+    activeCaps.add(HardCap.thunderstorm);
   }
 
   // Strong onshore hard cap (>30 km/h onshore -> max Fair at exposed, max Good elsewhere)
@@ -435,6 +537,7 @@ double computeMatchScore(
         ? _fairThreshold - 0.01
         : _goodThreshold + 0.05;
     score = min(onshoreCap, score);
+    activeCaps.add(HardCap.strongOnshore);
   }
 
   // Wrong tide at tide-sensitive spots: hard cap
@@ -444,13 +547,53 @@ double computeMatchScore(
           (hourData.tideHeight! - tideRange.min) / (tideRange.max - tideRange.min);
       if (n > 0.85 && location.breakType == 'reef') {
         score = min(_fairThreshold - 0.01, score);
+        activeCaps.add(HardCap.wrongTide);
       } else if (n > 0.9) {
         score = min(_fairThreshold - 0.01, score);
+        activeCaps.add(HardCap.wrongTide);
       }
     }
   }
 
-  return min(1.0, max(0.0, score));
+  final finalScore = min(1.0, max(0.0, score));
+
+  // Context: tide normalized
+  double? tideNormalized;
+  if (hourData.tideHeight != null && tideRange != null) {
+    final span = tideRange.max - tideRange.min;
+    if (span > 0) {
+      tideNormalized = (hourData.tideHeight! - tideRange.min) / span;
+    }
+  }
+
+  // Context: wind direction
+  final wd = hourData.windDirection;
+  final offshore = wd != null ? isOffshoreWind(wd, location) : false;
+  final onshore = wd != null ? isOnshoreWind(wd, location) : false;
+
+  return ScoreBreakdown(
+    heightScore: heightScore,
+    qualityScore: qualityScore,
+    dirScore: dirScore,
+    baseScore: baseScore,
+    windMult: windMult,
+    tideMod: tideMod,
+    energy: energy,
+    preCapsScore: preCapsScore,
+    finalScore: finalScore,
+    activeCaps: activeCaps,
+    actualWaveHeight: hourData.waveHeight,
+    idealMin: prefs.minWaveHeight,
+    idealMax: prefs.maxWaveHeight,
+    windSpeed: hourData.windSpeed,
+    windDirection: hourData.windDirection,
+    swellPeriod: hourData.swellPeakPeriod ?? hourData.swellPeriod,
+    beachFacing: location.beachFacing,
+    tideNormalized: tideNormalized,
+    breakType: location.breakType,
+    isOffshore: offshore,
+    isOnshore: onshore,
+  );
 }
 
 /// Condition label result

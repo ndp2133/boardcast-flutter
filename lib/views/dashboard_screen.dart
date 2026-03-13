@@ -1,16 +1,15 @@
 /// Dashboard screen — decision-first "The Call" hero, reason chips, metrics, AI Q&A
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import '../theme/tokens.dart';
 import '../models/merged_conditions.dart';
 import '../models/hourly_data.dart';
 import '../models/location.dart';
 import '../models/user_prefs.dart';
 import '../logic/scoring.dart';
+import '../logic/score_breakdown_helpers.dart';
 import '../logic/units.dart';
 import '../logic/time_utils.dart';
 import '../logic/forecast_summary.dart';
@@ -20,17 +19,16 @@ import '../state/location_provider.dart';
 import '../state/preferences_provider.dart';
 import '../state/ai_provider.dart';
 import '../state/boards_provider.dart';
-import '../components/stale_badge.dart';
 import '../components/location_picker.dart';
 import '../components/the_call_card.dart';
 import '../components/share_card.dart';
 import '../components/alert_banner.dart';
 import '../components/discovery_hint.dart';
-import '../state/subscription_provider.dart';
 import '../state/sessions_provider.dart';
 import '../state/store_provider.dart';
-import '../services/supabase_service.dart';
 import '../components/shimmer.dart';
+import '../components/score_breakdown_sheet.dart';
+import '../components/score_ring.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   final VoidCallback? onNavigateToForecast;
@@ -45,6 +43,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   Timer? _autoRefresh;
   final _scrubNotifier = ValueNotifier<int?>(null);
   late Set<String> _seenHints;
+  DateTime? _lastSheetOpen;
 
   @override
   void initState() {
@@ -81,27 +80,42 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           elevation: 0,
           title: GestureDetector(
             onTap: () => showLocationPicker(context, ref),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  location.name,
-                  style: TextStyle(
-                    fontSize: AppTypography.textBase,
-                    fontWeight: AppTypography.weightSemibold,
-                    color: isDark
-                        ? AppColorsDark.textPrimary
-                        : AppColors.textPrimary,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      location.name,
+                      style: TextStyle(
+                        fontSize: AppTypography.textBase,
+                        fontWeight: AppTypography.weightSemibold,
+                        color: isDark
+                            ? AppColorsDark.textPrimary
+                            : AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(
+                      Icons.keyboard_arrow_down,
+                      size: 20,
+                      color: isDark
+                          ? AppColorsDark.textSecondary
+                          : AppColors.textSecondary,
+                    ),
+                  ],
+                ),
+                if (dataAge != null && dataAge >= 15)
+                  Text(
+                    'Updated ${dataAge}m ago',
+                    style: TextStyle(
+                      fontSize: AppTypography.textXxs,
+                      color: isDark
+                          ? AppColorsDark.textTertiary
+                          : AppColors.textTertiary,
+                    ),
                   ),
-                ),
-                const SizedBox(width: 4),
-                Icon(
-                  Icons.keyboard_arrow_down,
-                  size: 20,
-                  color: isDark
-                      ? AppColorsDark.textSecondary
-                      : AppColors.textSecondary,
-                ),
               ],
             ),
           ),
@@ -166,29 +180,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final tideRange = TideRange.fromHourlyData(data.hourly);
     final score = computeMatchScore(currentHour, prefs, location,
         tideRange: tideRange);
-    final generalScore = prefs.hasCustomWeights
-        ? computeMatchScore(currentHour, prefs, location,
-            tideRange: tideRange, weightOverrides: const {})
-        : null;
     final scoreInt = (score * 100).round();
-    final condLabel = getConditionLabel(score);
 
     // Best window
     final bestWindow = findBestWindow(data.hourly, prefs, location,
         tideRange: tideRange);
 
-    // Sunrise for best window day
-    final bestDate =
-        bestWindow?.date ?? DateTime.now().toIso8601String().split('T')[0];
-    final sunrise = data.daily
-        .where((d) => d.date == bestDate)
-        .map((d) => d.sunrise)
-        .firstOrNull;
-
     // Wind direction
     final windDir = current.windDirection;
-    final windDirLabel =
-        windDir != null ? degreesToCardinal(windDir) : '--';
     final windQuality = windDir != null
         ? (isOffshoreWind(windDir, location)
             ? 'Offshore'
@@ -197,50 +196,33 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 : 'Cross-shore')
         : '';
 
-    // Tide
-    final tideLabel = current.tideTrend ?? 'Unknown';
-    final waterTempText = current.waterTemp != null
-        ? '${formatTemp(current.waterTemp)}°'
-        : '';
-    final tideSubLabel =
-        '$tideLabel${waterTempText.isNotEmpty ? ' · $waterTempText water' : ''}';
-
-    // Verdict + trend (same logic as condition_state_builder)
+    // Verdict (same logic as condition_state_builder)
     final bestWindowRange = _formatBestWindowRange(bestWindow);
     final verdict = _buildVerdict(
       scoreInt: scoreInt,
       windContext: windQuality.toLowerCase(),
       bestWindowRange: bestWindowRange,
     );
-    final trend = _computeTrend(data.hourly, prefs, location, tideRange);
 
-    // Board recommendation
+    // Board quiver (used in VLB for scrubbed board rec)
     final boards = ref.watch(boardsProvider);
-    final boardRec = boards.isNotEmpty
-        ? recommendBoard(
-            boards,
-            BoardConditions(
-              waveHeight: current.waveHeight,
-              windSpeed: current.windSpeed,
-              wavePeriod: current.wavePeriod,
-              swellPeriod: currentHour?.swellPeriod,
-            ),
-          )
-        : null;
 
-    // Forecast summary
+    // Forecast summary (1-line for hero subtitle)
     final today = DateTime.now().toIso8601String().split('T')[0];
     final todayHours =
         data.hourly.where((h) => h.time.startsWith(today)).toList();
     final ruleBasedSummary =
         generateForecastSummary(todayHours, prefs, location);
 
-    // LLM summary
+    // Watch LLM summary for crossfade
     final llmState = ref.watch(llmSummaryProvider);
-    final isPremium = ref.watch(isPremiumProvider);
-    if (isPremium &&
-        ruleBasedSummary.isNotEmpty &&
-        llmState.status == AiStatus.idle) {
+    final rawSummary = llmState.status == AiStatus.loaded && llmState.text != null
+        ? llmState.text!
+        : ruleBasedSummary;
+    final displaySummary = rawSummary.isNotEmpty ? 'Today: $rawSummary' : '';
+
+    // Trigger LLM fetch on first load (one-shot)
+    if (llmState.status == AiStatus.idle) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ref.read(llmSummaryProvider.notifier).fetch(
               ruleBasedSummary: ruleBasedSummary,
@@ -249,32 +231,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       });
     }
 
-    // Metric dot colors
-    final waveDot = _prefDotColor(
-      current.waveHeight,
-      prefs.minWaveHeight,
-      prefs.maxWaveHeight,
-    );
-    final windDot = current.windSpeed != null && prefs.maxWindSpeed != null
-        ? (current.windSpeed! <= prefs.maxWindSpeed!
-            ? (windDir != null && isOffshoreWind(windDir, location)
-                ? AppColors.conditionEpic
-                : AppColors.conditionFair)
-            : AppColors.conditionPoor)
-        : null;
-
     // Condition color
     final condColor = _scoreToConditionColor(score);
 
     // Atmospheric gradient — subtle condition-colored wash
     final bgColor = isDark ? AppColorsDark.bgPrimary : AppColors.bgPrimary;
-    final gradientColor = condColor.withValues(alpha: isDark ? 0.04 : 0.03);
+    final gradientColor = condColor.withValues(alpha: isDark ? 0.03 : 0.02);
 
     return DecoratedBox(
       decoration: BoxDecoration(
         gradient: RadialGradient(
-          center: const Alignment(0, -0.6),
-          radius: 1.2,
+          center: const Alignment(0, -0.4),
+          radius: 0.8,
           colors: [gradientColor, bgColor],
         ),
       ),
@@ -297,17 +265,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             onTap: widget.onNavigateToForecast,
           ),
 
-          // Stale badge
-          if (data.isStale || (dataAge != null && dataAge >= 15))
-            Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.s3),
-              child: StaleBadge(
-                ageMinutes: dataAge,
-                isStale: data.isStale,
-                onRefresh: () => ref.invalidate(conditionsProvider),
-              ),
-            ),
-
           // Discovery hint — contextual tip on first visit
           DiscoveryHint(
             id: 'dashboard_scrub',
@@ -328,16 +285,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               final isActive = scrubIdx != null &&
                   scrubIdx >= 0 &&
                   scrubIdx < data.hourly.length;
-              final hData = isActive ? data.hourly[scrubIdx!] : currentHour;
-              final hScore = computeMatchScore(hData, prefs, location,
+              final hData = isActive ? data.hourly[scrubIdx] : currentHour;
+              final hBreakdown = computeMatchScoreBreakdown(
+                  hData, prefs, location,
                   tideRange: tideRange);
+              final hScore = hBreakdown.finalScore;
               final hScoreInt = (hScore * 100).round();
               final hCondLabel = getConditionLabel(hScore);
               final hCondColor = _scoreToConditionColor(hScore);
-              final hGeneralScore = prefs.hasCustomWeights
-                  ? computeMatchScore(hData, prefs, location,
-                      tideRange: tideRange, weightOverrides: const {})
-                  : null;
+
+              // Factor summaries for breakdown UI
+              final hFactors = buildFactorSummaries(hBreakdown);
 
               // Wind for scrubbed hour
               final hWindDir = hData?.windDirection;
@@ -350,19 +308,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           ? 'Onshore'
                           : 'Cross-shore')
                   : '';
-              final hTideLabel = isActive
-                  ? (hData!.tideHeight != null
-                      ? (hData.tideHeight! > (current.tideHeight ?? 0)
-                          ? 'Rising'
-                          : 'Falling')
-                      : 'Tide')
-                  : tideLabel;
-
               // Verdict for scrubbed hour
               final hVerdict = isActive
                   ? _buildScrubVerdict(hScoreInt, hWindQuality.toLowerCase(), hData!)
                   : verdict;
-              final hTrend = isActive ? '' : trend;
 
               // Board rec for scrubbed hour
               final hBoardRec = boards.isNotEmpty
@@ -377,55 +326,69 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     )
                   : null;
 
-              // Dot colors for scrubbed hour
-              final hWaveDot = _prefDotColor(
-                hData?.waveHeight,
-                prefs.minWaveHeight,
-                prefs.maxWaveHeight,
-              );
-              final hWindDot =
-                  hData?.windSpeed != null && prefs.maxWindSpeed != null
-                      ? (hData!.windSpeed! <= prefs.maxWindSpeed!
-                          ? (hWindDir != null &&
-                                  isOffshoreWind(hWindDir, location)
-                              ? AppColors.conditionEpic
-                              : AppColors.conditionFair)
-                          : AppColors.conditionPoor)
-                      : null;
+              // Factor references for chips
+              final waveFactor = hFactors.where((f) => f.name == 'Waves').firstOrNull;
+              final windFactor = hFactors.where((f) => f.name == 'Wind').firstOrNull;
+
+              // Forecast accuracy for breakdown sheet
+              final sessions = ref.read(sessionsProvider);
+              final accuracy = computeForecastAccuracy(sessions);
+
+              void openBreakdown() {
+                final now = DateTime.now();
+                if (_lastSheetOpen != null &&
+                    now.difference(_lastSheetOpen!).inMilliseconds < 500) {
+                  return;
+                }
+                _lastSheetOpen = now;
+                AppHaptics.tap();
+                showScoreBreakdown(
+                  context,
+                  breakdown: hBreakdown,
+                  factors: hFactors,
+                  isDark: isDark,
+                  onAskTheCall: _openTheCall,
+                  scrubNotifier: _scrubNotifier,
+                  hourlyData: data.hourly,
+                  currentHour: currentHour,
+                  prefs: prefs,
+                  location: location,
+                  tideRange: tideRange,
+                  accuracy: accuracy,
+                );
+              }
 
               return Column(
                 children: [
-                  // Decision card
-                  AnimatedContainer(
-                    duration: AppDurations.base,
-                    curve: Curves.easeOut,
-                    child: _DecisionCard(
-                      verdict: hVerdict,
-                      scoreInt: hScoreInt,
-                      condLabel: hCondLabel,
-                      condColor: hCondColor,
-                      trend: hTrend,
-                      bestWindow: isActive ? null : bestWindow,
-                      bestWindowRange: isActive ? '' : bestWindowRange,
-                      boardRec: hBoardRec,
-                      generalScore: hGeneralScore,
-                      isDark: isDark,
-                      scrubTime: isActive ? _formatScrubTime(hData!) : null,
-                    ),
+                  // ─── HERO BLOCK ───
+                  _HeroBlock(
+                    score: hScore,
+                    scoreInt: hScoreInt,
+                    condLabel: hCondLabel,
+                    condColor: hCondColor,
+                    verdict: hVerdict,
+                    bestWindow: isActive ? null : bestWindow,
+                    bestWindowRange: isActive ? '' : bestWindowRange,
+                    boardRec: hBoardRec,
+                    forecastNarrative: isActive ? null : displaySummary,
+                    scrubTime: isActive ? _formatScrubTime(hData!) : null,
+                    activeCaps: hBreakdown.activeCaps,
+                    isDark: isDark,
+                    onScoreTap: openBreakdown,
                   ),
                   const SizedBox(height: AppSpacing.s3),
-                  // Reason chips
-                  _ReasonChips(
-                    waveHeight: hData?.waveHeight,
-                    wavePeriod: hData?.wavePeriod ?? hData?.swellPeriod,
-                    windSpeed: hData?.windSpeed,
-                    windQuality: hWindQuality,
-                    windDirLabel: hWindDirLabel,
-                    tideLabel: hTideLabel,
-                    tideHeight: hData?.tideHeight,
-                    waveDot: hWaveDot,
-                    windDot: hWindDot,
-                    isDark: isDark,
+                  // ─── REASON CHIPS ───
+                  GestureDetector(
+                    onTap: openBreakdown,
+                    child: _ReasonChips(
+                      surfFactor: waveFactor,
+                      windFactor: windFactor,
+                      waveHeight: hData?.waveHeight,
+                      wavePeriod: hData?.wavePeriod ?? hData?.swellPeriod,
+                      windSpeed: hData?.windSpeed,
+                      windDirLabel: hWindDirLabel,
+                      isDark: isDark,
+                    ),
                   ),
                 ],
               );
@@ -448,85 +411,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
           const SizedBox(height: AppSpacing.s4),
 
-          // ─── FORECAST SUMMARY ───
-          if (ruleBasedSummary.isNotEmpty)
-            _ForecastSummaryBlock(
-              ruleBasedSummary: ruleBasedSummary,
-              llmState: llmState,
-              confidence: currentHour != null
-                  ? computeConfidence(data.hourly, currentHour)
-                  : null,
-              isDark: isDark,
-            ),
-
-          // ─── EXPECTED VS POTENTIAL ───
-          Builder(builder: (context) {
-            final evp = computeExpectedVsPotential(data.hourly, prefs,
-                location,
-                tideRange: tideRange);
-            if (evp == null) return const SizedBox.shrink();
-            return Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.s4),
-              child:
-                  _ExpectedVsPotentialCard(evp: evp, isDark: isDark),
-            );
-          }),
-
-          // ─── UNIFIED CONDITIONS CARD ───
-          _SpringLift(
-            child: _UnifiedConditionsCard(
-              waveHeight: current.waveHeight,
-              waveDir: current.waveDirection,
-              wavePeriod: current.wavePeriod,
-              windSpeed: current.windSpeed,
-              windDirLabel: windDirLabel,
-              windQuality: windQuality,
-              tideHeight: current.tideHeight,
-              tideLabel: tideLabel,
-              waterTemp: current.waterTemp,
-              waveDot: waveDot,
-              windDot: windDot,
-              isDark: isDark,
-            ),
+          // ─── COMPACT CTA ───
+          _AskTheCallCta(
+            isDark: isDark,
+            onTap: _openTheCall,
           ),
-          const SizedBox(height: AppSpacing.s3),
-
-          // ─── WHY THIS SCORE ───
-          _SpringLift(
-            child: _WhyThisScoreCard(
-              waveHeight: current.waveHeight,
-              wavePeriod: current.wavePeriod,
-              windSpeed: current.windSpeed,
-              windQuality: windQuality,
-              tideLabel: tideLabel,
-              prefs: prefs,
-              location: location,
-              bestWindowRange: bestWindowRange,
-              isDark: isDark,
-            ),
-          ),
-
-          // ─── BOARD CALL ───
-          if (boardRec != null)
-            _SpringLift(
-              child: _BoardCallCard(
-                boardRec: boardRec!,
-                isDark: isDark,
-              ),
-            ),
-
-          const SizedBox(height: AppSpacing.s4),
-
-          // Forecast accuracy
-          Builder(builder: (context) {
-            final sessions = ref.watch(sessionsProvider);
-            final accuracy = computeForecastAccuracy(sessions);
-            if (accuracy == null) return const SizedBox.shrink();
-            return _ForecastAccuracyBadge(accuracy: accuracy);
-          }),
-
-          // The Call — interactive AI Q&A
-          const TheCallCard(),
 
           const SizedBox(height: AppSpacing.s8),
         ],
@@ -634,6 +523,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   // ─── Helpers ───
 
+  void _openTheCall() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      backgroundColor: isDark ? AppColorsDark.bgSecondary : AppColors.bgSecondary,
+      builder: (_) => SizedBox(
+        height: MediaQuery.of(context).size.height * 0.7,
+        child: const TheCallCard(),
+      ),
+    );
+  }
+
   String _formatBestWindowRange(TopWindow? window) {
     if (window == null) return '';
     final startDt = DateTime.parse(window.startTime);
@@ -698,30 +604,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     return 'Give it a miss';
   }
 
-  String _computeTrend(List<HourlyData> hourly, UserPrefs prefs,
-      Location location, TideRange? tideRange) {
-    final now = DateTime.now();
-    final upcoming = <double>[];
-    double? currentScore;
-    for (final h in hourly) {
-      final t = DateTime.parse(h.time);
-      if (t.isBefore(now.subtract(const Duration(minutes: 30)))) continue;
-      final s =
-          computeMatchScore(h, prefs, location, tideRange: tideRange);
-      if (currentScore == null) {
-        currentScore = s;
-        continue;
-      }
-      upcoming.add(s);
-      if (upcoming.length >= 3) break;
-    }
-    if (currentScore == null || upcoming.isEmpty) return '\u2192';
-    final avgUpcoming = upcoming.reduce((a, b) => a + b) / upcoming.length;
-    final delta = ((avgUpcoming - currentScore) * 100).round();
-    if (delta >= 5) return '\u2191';
-    if (delta <= -5) return '\u2193';
-    return '\u2192';
-  }
 }
 
 // ─── Static helpers ───
@@ -733,285 +615,222 @@ Color _scoreToConditionColor(double score) {
   return AppColors.conditionPoor;
 }
 
-Color? _prefDotColor(double? value, double? min, double? max) {
-  if (value == null || min == null || max == null) return null;
-  if (value >= min && value <= max) return AppColors.conditionEpic;
-  final dist = value < min ? min - value : value - max;
-  if (dist < max * 0.3) return AppColors.conditionFair;
-  return AppColors.conditionPoor;
-}
-
 // =============================================================================
-// HERO: Decision Card
+// HERO BLOCK — Text-led: verdict dominant, mini ScoreRing top-right
 // =============================================================================
 
-class _DecisionCard extends StatelessWidget {
-  final String verdict;
+class _HeroBlock extends StatelessWidget {
+  final double score;
   final int scoreInt;
   final ConditionLabel condLabel;
   final Color condColor;
-  final String trend;
+  final String verdict;
   final TopWindow? bestWindow;
   final String bestWindowRange;
   final BoardRecommendation? boardRec;
-  final double? generalScore;
-  final bool isDark;
+  final String? forecastNarrative;
   final String? scrubTime;
+  final List<HardCap> activeCaps;
+  final bool isDark;
+  final VoidCallback? onScoreTap;
 
-  const _DecisionCard({
-    required this.verdict,
+  const _HeroBlock({
+    required this.score,
     required this.scoreInt,
     required this.condLabel,
     required this.condColor,
-    required this.trend,
-    required this.bestWindow,
+    required this.verdict,
     required this.bestWindowRange,
-    required this.boardRec,
-    required this.generalScore,
-    required this.isDark,
+    this.bestWindow,
+    this.boardRec,
+    this.forecastNarrative,
     this.scrubTime,
+    this.activeCaps = const [],
+    required this.isDark,
+    this.onScoreTap,
   });
 
   String get _semanticLabel {
-    final parts = <String>['The Call. $verdict. ${condLabel.label} now.'];
+    final parts = <String>['Score $scoreInt. $verdict. ${condLabel.label}.'];
     if (scrubTime != null) parts.insert(0, 'Showing $scrubTime.');
-    if (bestWindowRange.isNotEmpty) {
-      parts.add('Best window ${bestWindow != null ? '' : ''}$bestWindowRange.');
-    }
+    if (bestWindowRange.isNotEmpty) parts.add('Best window $bestWindowRange.');
     if (boardRec != null) {
-      parts.add('Bring your ${boardRec!.board.name.isNotEmpty ? boardRec!.board.name : boardRec!.board.type}.');
+      parts.add('Board: ${boardRec!.board.name.isNotEmpty ? boardRec!.board.name : boardRec!.board.type}.');
     }
-    parts.add('Score $scoreInt.');
     return parts.join(' ');
   }
 
   @override
   Widget build(BuildContext context) {
     final bg = isDark ? AppColorsDark.bgSecondary : AppColors.bgSecondary;
-    final textColor =
-        isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
-    final subColor =
-        isDark ? AppColorsDark.textSecondary : AppColors.textSecondary;
+    final textColor = isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
+    final subColor = isDark ? AppColorsDark.textSecondary : AppColors.textSecondary;
 
-    // Best window day label
-    String? bestWindowDay;
-    if (bestWindow != null) {
+    // Best window day + wave label
+    String? bestWindowLine;
+    if (bestWindow != null && bestWindowRange.isNotEmpty) {
       final windowDate = DateTime.parse(bestWindow!.startTime);
       final now = DateTime.now();
-      final today =
-          DateTime(now.year, now.month, now.day);
-      final windowDay =
-          DateTime(windowDate.year, windowDate.month, windowDate.day);
+      final today = DateTime(now.year, now.month, now.day);
+      final windowDay = DateTime(windowDate.year, windowDate.month, windowDate.day);
+      String dayLabel;
       if (windowDay == today) {
-        bestWindowDay = 'Today';
+        dayLabel = 'Today';
       } else if (windowDay == today.add(const Duration(days: 1))) {
-        bestWindowDay = 'Tomorrow';
+        dayLabel = 'Tomorrow';
       } else {
         const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-        bestWindowDay = days[windowDate.weekday - 1];
+        dayLabel = days[windowDate.weekday - 1];
       }
+      final wavePart = bestWindow!.waveHeight != null
+          ? ' \u00b7 ${formatWaveHeight(bestWindow!.waveHeight)}ft'
+          : '';
+      bestWindowLine = '$dayLabel $bestWindowRange$wavePart';
     }
+
+    final boardName = boardRec != null
+        ? (boardRec!.board.name.isNotEmpty ? boardRec!.board.name : boardRec!.board.type)
+        : null;
+    final boardLine = boardName != null
+        ? '$boardName${boardRec!.reason.isNotEmpty ? ' \u2014 ${boardRec!.reason}' : ''}'
+        : null;
 
     return Semantics(
       label: _semanticLabel,
       child: Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.s5),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(AppRadius.xl),
-        border: Border.all(
-          color: condColor.withValues(alpha: 0.15),
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.s5,
+          vertical: AppSpacing.s4,
         ),
-        boxShadow: [
-          // Hero tier: elevated with condition-colored shadow
-          BoxShadow(
-            offset: const Offset(0, 4),
-            blurRadius: 20,
-            color: condColor.withValues(alpha: isDark ? 0.15 : 0.10),
-          ),
-          const BoxShadow(
-            offset: Offset(0, 1),
-            blurRadius: 4,
-            color: Color(0x0A000000),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Scrub time indicator
-          if (scrubTime != null) ...[
-            Row(
-              children: [
-                Icon(Icons.access_time, size: 12, color: condColor),
-                const SizedBox(width: 4),
-                Text(
-                  scrubTime!,
-                  style: TextStyle(
-                    fontSize: AppTypography.textXs,
-                    fontWeight: AppTypography.weightSemibold,
-                    color: condColor,
-                    letterSpacing: 0.3,
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          boxShadow: AppShadows.sm,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Scrub time pill
+            if (scrubTime != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.s2),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: condColor.withValues(alpha: 0.10),
+                    borderRadius: BorderRadius.circular(AppRadius.full),
                   ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.access_time, size: 12, color: condColor),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Previewing $scrubTime',
+                        style: TextStyle(
+                          fontSize: AppTypography.textXs,
+                          fontWeight: AppTypography.weightSemibold,
+                          color: condColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            // Main row: verdict + details left, mini ScoreRing right
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Left: text content
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Verdict — DOMINANT
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 150),
+                        child: Text(
+                          verdict,
+                          key: ValueKey(verdict),
+                          style: TextStyle(
+                            fontSize: AppTypography.textHero,
+                            fontWeight: AppTypography.weightBold,
+                            color: textColor,
+                            height: 1.15,
+                          ),
+                        ),
+                      ),
+                      // Best window line
+                      if (bestWindowLine != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            bestWindowLine,
+                            style: TextStyle(
+                              fontSize: AppTypography.textSm,
+                              color: subColor,
+                            ),
+                          ),
+                        ),
+                      // Board rec
+                      if (boardLine != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            boardLine,
+                            style: TextStyle(
+                              fontSize: AppTypography.textSm,
+                              color: subColor,
+                            ),
+                          ),
+                        ),
+                      // Hard cap warning
+                      if (activeCaps.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            hardCapSummary(activeCaps),
+                            style: TextStyle(
+                              fontSize: AppTypography.textXs,
+                              color: AppColors.conditionPoor,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.s3),
+                // Right: mini ScoreRing
+                GestureDetector(
+                  onTap: onScoreTap,
+                  child: ScoreRing(score: score, size: 48, compact: true),
                 ),
               ],
             ),
-            const SizedBox(height: 4),
-          ],
 
-          // Row: Verdict + Score badge
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Verdict headline — crossfades on scrub
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 150),
-                      switchInCurve: Curves.easeOut,
-                      switchOutCurve: Curves.easeIn,
-                      transitionBuilder: (child, animation) =>
-                          FadeTransition(
-                        opacity: animation,
-                        child: SlideTransition(
-                          position: Tween<Offset>(
-                            begin: const Offset(0, 0.1),
-                            end: Offset.zero,
-                          ).animate(animation),
-                          child: child,
-                        ),
-                      ),
-                      child: Text(
-                        verdict,
-                        key: ValueKey(verdict),
-                        style: TextStyle(
-                          fontSize: AppTypography.text2xl,
-                          fontWeight: AppTypography.weightBold,
-                          color: textColor,
-                          height: 1.1,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    // Condition + trend
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: condColor.withValues(alpha: 0.12),
-                            borderRadius:
-                                BorderRadius.circular(AppRadius.sm),
-                          ),
-                          child: Text(
-                            condLabel.label,
-                            style: TextStyle(
-                              fontSize: AppTypography.textXs,
-                              fontWeight: AppTypography.weightSemibold,
-                              color: condColor,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          trend,
-                          style: TextStyle(
-                            fontSize: AppTypography.textSm,
-                            color: condColor,
-                          ),
-                        ),
-                        if (generalScore != null) ...[
-                          const SizedBox(width: AppSpacing.s2),
-                          Text(
-                            '\u00b7 General: ${(generalScore! * 100).round()}',
-                            style: TextStyle(
-                              fontSize: AppTypography.textXs,
-                              color: isDark
-                                  ? AppColorsDark.textTertiary
-                                  : AppColors.textTertiary,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              // Score badge
-              TweenAnimationBuilder<int>(
-                tween: IntTween(begin: 0, end: scoreInt),
-                duration: const Duration(milliseconds: 800),
-                curve: Curves.easeOut,
-                builder: (context, value, _) => Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: condColor.withValues(alpha: 0.3),
-                      width: 3,
-                    ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      '$value',
-                      style: TextStyle(
-                        fontFamily: AppTypography.fontMono,
-                        fontSize: AppTypography.textLg,
-                        fontWeight: AppTypography.weightBold,
-                        color: condColor,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: AppSpacing.s3),
-
-          // Best window
-          if (bestWindowRange.isNotEmpty) ...[
-            Row(
-              children: [
-                Icon(Icons.schedule, size: 14, color: subColor),
-                const SizedBox(width: 6),
-                Text(
-                  'Best window: ',
-                  style: TextStyle(
-                    fontSize: AppTypography.textSm,
-                    color: subColor,
-                  ),
-                ),
-                Text(
-                  '${bestWindowDay ?? ''} $bestWindowRange',
-                  style: TextStyle(
-                    fontSize: AppTypography.textSm,
-                    fontWeight: AppTypography.weightSemibold,
-                    color: textColor,
-                  ),
-                ),
-                if (bestWindow?.waveHeight != null) ...[
-                  Text(
-                    ' \u00b7 ${formatWaveHeight(bestWindow!.waveHeight)}ft',
+            // Forecast narrative (LLM crossfade, hidden during scrub)
+            if (scrubTime == null && forecastNarrative != null && forecastNarrative!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.s3),
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  child: Text(
+                    forecastNarrative!,
+                    key: ValueKey(forecastNarrative),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: AppTypography.textSm,
                       color: subColor,
                     ),
                   ),
-                ],
-              ],
-            ),
+                ),
+              ),
           ],
-
-          // Board rec moved to standalone card below
-        ],
+        ),
       ),
-    ),
     );
   }
 }
@@ -1045,9 +864,11 @@ class _HourlyScrubStrip extends StatefulWidget {
   State<_HourlyScrubStrip> createState() => _HourlyScrubStripState();
 }
 
-class _HourlyScrubStripState extends State<_HourlyScrubStrip> {
+class _HourlyScrubStripState extends State<_HourlyScrubStrip>
+    with SingleTickerProviderStateMixin {
   int? _activeIdx;
   int? _lastHapticIdx;
+  late AnimationController _lockedBorderController;
 
   // Filter to today's daylight hours (6am–9pm)
   late List<_StripEntry> _entries;
@@ -1055,6 +876,10 @@ class _HourlyScrubStripState extends State<_HourlyScrubStrip> {
   @override
   void initState() {
     super.initState();
+    _lockedBorderController = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
     _buildEntries();
   }
 
@@ -1062,6 +887,12 @@ class _HourlyScrubStripState extends State<_HourlyScrubStrip> {
   void didUpdateWidget(_HourlyScrubStrip old) {
     super.didUpdateWidget(old);
     if (old.hourlyData != widget.hourlyData) _buildEntries();
+  }
+
+  @override
+  void dispose() {
+    _lockedBorderController.dispose();
+    super.dispose();
   }
 
   void _buildEntries() {
@@ -1129,9 +960,24 @@ class _HourlyScrubStripState extends State<_HourlyScrubStrip> {
   }
 
   void _onDragEnd() {
+    // Keep selection persistent — user taps "Now" to reset
+    _lastHapticIdx = null;
+    _lockedBorderController.forward();
+  }
+
+  void _resetToNow() {
+    _lockedBorderController.reverse();
     setState(() => _activeIdx = null);
     widget.scrubNotifier.value = null;
     _lastHapticIdx = null;
+    HapticFeedback.lightImpact();
+  }
+
+  static Color _barColor(double score) {
+    if (score >= 0.8) return AppColors.conditionEpic;
+    if (score >= 0.6) return AppColors.conditionGood;
+    if (score >= 0.4) return AppColors.conditionFair;
+    return AppColors.conditionPoor;
   }
 
   @override
@@ -1145,49 +991,102 @@ class _HourlyScrubStripState extends State<_HourlyScrubStrip> {
         ? AppColorsDark.textTertiary
         : AppColors.textTertiary;
 
+    final isLocked = _activeIdx != null;
+
+    // Locked bar color for bottom border
+    final lockedColor = isLocked && _activeIdx! < _entries.length
+        ? _barColor(_entries[_activeIdx!].score)
+        : AppColors.accent;
+
     return Semantics(
       label: 'Hourly surf conditions. Drag to explore different hours.',
-      child: Container(
-      height: 84,
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        boxShadow: AppShadows.sm,
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return GestureDetector(
-            onHorizontalDragStart: (d) =>
-                _onDragUpdate(DragUpdateDetails(
-                  globalPosition: d.globalPosition,
-                  localPosition: d.localPosition,
-                ), constraints),
-            onHorizontalDragUpdate: (d) =>
-                _onDragUpdate(d, constraints),
-            onHorizontalDragEnd: (_) => _onDragEnd(),
-            onHorizontalDragCancel: _onDragEnd,
-            // Also support tap
-            onTapDown: (d) {
-              _onDragUpdate(DragUpdateDetails(
-                globalPosition: d.globalPosition,
-                localPosition: d.localPosition,
-              ), constraints);
-            },
-            onTapUp: (_) => _onDragEnd(),
-            behavior: HitTestBehavior.opaque,
-            child: CustomPaint(
-              size: Size(constraints.maxWidth, 84),
-              painter: _StripPainter(
-                entries: _entries,
-                activeIdx: _activeIdx,
-                isDark: widget.isDark,
-                subColor: subColor,
+      child: Column(
+        children: [
+          AnimatedBuilder(
+            animation: _lockedBorderController,
+            builder: (context, child) => Container(
+              height: 84,
+              decoration: BoxDecoration(
+                color: bg,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                boxShadow: AppShadows.sm,
+                border: _lockedBorderController.value > 0
+                    ? Border(
+                        bottom: BorderSide(
+                          color: lockedColor.withValues(alpha: 0.6 * _lockedBorderController.value),
+                          width: 2 * _lockedBorderController.value,
+                        ),
+                      )
+                    : null,
+              ),
+              child: child,
+            ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return GestureDetector(
+                  onHorizontalDragStart: (d) =>
+                      _onDragUpdate(DragUpdateDetails(
+                        globalPosition: d.globalPosition,
+                        localPosition: d.localPosition,
+                      ), constraints),
+                  onHorizontalDragUpdate: (d) =>
+                      _onDragUpdate(d, constraints),
+                  onHorizontalDragEnd: (_) => _onDragEnd(),
+                  onHorizontalDragCancel: _onDragEnd,
+                  onTapDown: (d) {
+                    _onDragUpdate(DragUpdateDetails(
+                      globalPosition: d.globalPosition,
+                      localPosition: d.localPosition,
+                    ), constraints);
+                  },
+                  onTapUp: (_) => _onDragEnd(),
+                  behavior: HitTestBehavior.opaque,
+                  child: CustomPaint(
+                    size: Size(constraints.maxWidth, 84),
+                    painter: _StripPainter(
+                      entries: _entries,
+                      activeIdx: _activeIdx,
+                      isDark: widget.isDark,
+                      subColor: subColor,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          // "Now" reset button — visible when a selection is locked
+          if (isLocked)
+            Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.s2),
+              child: GestureDetector(
+                onTap: _resetToNow,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: (widget.isDark ? AppColorsDark.bgTertiary : AppColors.bgTertiary),
+                    borderRadius: BorderRadius.circular(AppRadius.full),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.my_location, size: 12,
+                          color: widget.isDark ? AppColorsDark.textSecondary : AppColors.textSecondary),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Back to now',
+                        style: TextStyle(
+                          fontSize: AppTypography.textXs,
+                          fontWeight: AppTypography.weightMedium,
+                          color: widget.isDark ? AppColorsDark.textSecondary : AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-          );
-        },
+        ],
       ),
-    ),
     );
   }
 }
@@ -1228,11 +1127,12 @@ class _StripPainter extends CustomPainter {
     if (entries.isEmpty) return;
 
     final barWidth = size.width / entries.length;
-    final labelHeight = 16.0;
-    final maxBarHeight = size.height - labelHeight - 8; // bars + padding
-    final barTop = 6.0;
+    const labelHeight = 16.0;
+    final maxBarHeight = size.height - labelHeight - 8;
+    const barTop = 6.0;
+    final textPrimary = isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
 
-    // ── Best window background highlight (sea-glass wash) ──
+    // ── Best window bracket (top bracket instead of background wash) ──
     int? bwStart;
     int? bwEnd;
     for (var i = 0; i < entries.length; i++) {
@@ -1242,41 +1142,67 @@ class _StripPainter extends CustomPainter {
       }
     }
     if (bwStart != null && bwEnd != null) {
-      final bwPaint = Paint()
-        ..color = AppColors.accent.withValues(alpha: 0.10);
-      final bwRect = RRect.fromRectAndRadius(
-        Rect.fromLTWH(
-          bwStart * barWidth,
-          0,
-          (bwEnd - bwStart + 1) * barWidth,
-          size.height,
-        ),
-        const Radius.circular(4),
-      );
-      canvas.drawRRect(bwRect, bwPaint);
+      final bracketPaint = Paint()
+        ..color = AppColors.accent.withValues(alpha: 0.6)
+        ..strokeWidth = 2.0
+        ..style = PaintingStyle.stroke;
+      final bx1 = bwStart * barWidth;
+      final bx2 = (bwEnd + 1) * barWidth;
+      const tickH = 5.0;
+      // Top line
+      canvas.drawLine(Offset(bx1, 1), Offset(bx2, 1), bracketPaint);
+      // Left tick
+      canvas.drawLine(Offset(bx1, 1), Offset(bx1, 1 + tickH), bracketPaint);
+      // Right tick
+      canvas.drawLine(Offset(bx2, 1), Offset(bx2, 1 + tickH), bracketPaint);
     }
 
-    // ── Draw bars ──
+    // ── Day separator ──
+    DateTime? prevDay;
+    for (var i = 0; i < entries.length; i++) {
+      final e = entries[i];
+      if (prevDay != null && e.day != prevDay) {
+        // Draw dashed line at boundary
+        final sx = i * barWidth;
+        final sepPaint = Paint()
+          ..color = subColor.withValues(alpha: 0.4)
+          ..strokeWidth = 1.0;
+        // Simple dashed line
+        for (var dy = barTop; dy < size.height - labelHeight; dy += 6) {
+          canvas.drawLine(
+            Offset(sx, dy),
+            Offset(sx, (dy + 3).clamp(0, size.height - labelHeight)),
+            sepPaint,
+          );
+        }
+        // "Tomorrow" label
+        final tomorrowTp = TextPainter(
+          text: TextSpan(
+            text: 'Tomorrow',
+            style: TextStyle(
+              fontSize: 8,
+              fontWeight: FontWeight.w500,
+              color: subColor.withValues(alpha: 0.6),
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        )..layout();
+        tomorrowTp.paint(canvas,
+            Offset(sx + 2, size.height - labelHeight + 2));
+      }
+      prevDay = e.day;
+    }
+
+    // ── Draw bars with gradient fill ──
     for (var i = 0; i < entries.length; i++) {
       final e = entries[i];
       final x = i * barWidth;
       final barH = maxBarHeight * e.score.clamp(0.05, 1.0);
       final y = barTop + (maxBarHeight - barH);
       final color = _barColor(e.score);
-
-      // Bar with rounded top
       final isActive = activeIdx == i;
-      final barRect = RRect.fromRectAndCorners(
-        Rect.fromLTWH(
-          x + barWidth * 0.15,
-          y,
-          barWidth * 0.7,
-          barH,
-        ),
-        topLeft: const Radius.circular(3),
-        topRight: const Radius.circular(3),
-      );
-      // Active bar springs to full opacity; nearby bars slightly brighter
+
+      // Alpha based on state
       double alpha;
       if (isActive) {
         alpha = 1.0;
@@ -1287,96 +1213,129 @@ class _StripPainter extends CustomPainter {
       } else {
         alpha = 0.45;
       }
-      canvas.drawRRect(barRect, Paint()..color = color.withValues(alpha: alpha));
 
-      // Active bar: wider glow + condition-colored fill (FL-DR-3d)
+      // Gradient bar: condition color at bottom → transparent at top
+      final barRect = Rect.fromLTWH(
+        x + barWidth * 0.15,
+        y,
+        barWidth * 0.7,
+        barH,
+      );
+      final rrect = RRect.fromRectAndCorners(
+        barRect,
+        topLeft: const Radius.circular(3),
+        topRight: const Radius.circular(3),
+      );
+      final gradient = LinearGradient(
+        begin: Alignment.bottomCenter,
+        end: Alignment.topCenter,
+        colors: [
+          color.withValues(alpha: alpha),
+          color.withValues(alpha: alpha * 0.2),
+        ],
+      );
+      canvas.save();
+      canvas.clipRRect(rrect);
+      canvas.drawRect(barRect, Paint()..shader = gradient.createShader(barRect));
+      canvas.restore();
+
+      // Active bar: glow + solid fill + floating score bubble
       if (isActive) {
         // Outer glow
         final glowRect = RRect.fromRectAndCorners(
-          Rect.fromLTWH(
-            x + barWidth * 0.02,
-            y - 4,
-            barWidth * 0.96,
-            barH + 4,
-          ),
+          Rect.fromLTWH(x + barWidth * 0.02, y - 4, barWidth * 0.96, barH + 4),
           topLeft: const Radius.circular(4),
           topRight: const Radius.circular(4),
         );
-        canvas.drawRRect(
-          glowRect,
-          Paint()..color = color.withValues(alpha: 0.18),
-        );
+        canvas.drawRRect(glowRect, Paint()..color = color.withValues(alpha: 0.18));
         // Solid fill on top
         final solidRect = RRect.fromRectAndCorners(
-          Rect.fromLTWH(
-            x + barWidth * 0.08,
-            y - 2,
-            barWidth * 0.84,
-            barH + 2,
-          ),
+          Rect.fromLTWH(x + barWidth * 0.08, y - 2, barWidth * 0.84, barH + 2),
           topLeft: const Radius.circular(3),
           topRight: const Radius.circular(3),
         );
         canvas.drawRRect(solidRect, Paint()..color = color);
 
-        // FL-A11Y-3: Score label above active bar (color not sole cue)
+        // Floating score bubble above bar
         final scoreLabel = '${(e.score * 100).round()}';
         final scoreTp = TextPainter(
           text: TextSpan(
             text: scoreLabel,
-            style: TextStyle(
-              fontSize: 10,
+            style: const TextStyle(
+              fontSize: 11,
               fontWeight: FontWeight.w700,
-              color: isDark ? AppColorsDark.textPrimary : AppColors.textPrimary,
+              color: Color(0xFFFFFFFF),
             ),
           ),
           textDirection: TextDirection.ltr,
         )..layout();
-        final labelY = y - scoreTp.height - 3;
-        scoreTp.paint(canvas,
-            Offset(x + barWidth / 2 - scoreTp.width / 2, labelY.clamp(0.0, barTop)));
+        final bubbleW = scoreTp.width + 8;
+        final bubbleH = scoreTp.height + 4;
+        final bubbleX = x + barWidth / 2 - bubbleW / 2;
+        final bubbleY = (y - bubbleH - 5).clamp(0.0, barTop);
+        // Bubble background
+        final bubbleRRect = RRect.fromRectAndRadius(
+          Rect.fromLTWH(bubbleX, bubbleY, bubbleW, bubbleH),
+          const Radius.circular(4),
+        );
+        canvas.drawRRect(bubbleRRect, Paint()..color = color.withValues(alpha: 0.9));
+        scoreTp.paint(canvas, Offset(bubbleX + 4, bubbleY + 2));
+        // Stem connecting bubble to bar
+        canvas.drawLine(
+          Offset(x + barWidth / 2, bubbleY + bubbleH),
+          Offset(x + barWidth / 2, y),
+          Paint()..color = color.withValues(alpha: 0.5)..strokeWidth = 1,
+        );
       }
 
-      // Hour labels every 3 hours
+      // Hour labels every 3 hours (skip if day separator "Tomorrow" label is there)
       if (e.hour % 3 == 0) {
-        final label = _hourLabel(e.hour);
-        final tp = TextPainter(
-          text: TextSpan(
-            text: label,
-            style: TextStyle(
-              fontSize: 10,
-              fontFamily: AppTypography.fontMono,
-              color: subColor,
+        // Check if this is not at a day boundary (to avoid overlap with "Tomorrow")
+        final atDayBoundary = i > 0 && entries[i - 1].day != e.day;
+        if (!atDayBoundary) {
+          final label = _hourLabel(e.hour);
+          final tp = TextPainter(
+            text: TextSpan(
+              text: label,
+              style: TextStyle(
+                fontSize: 10,
+                fontFamily: AppTypography.fontMono,
+                color: subColor,
+              ),
             ),
-          ),
-          textDirection: TextDirection.ltr,
-        )..layout();
-        tp.paint(canvas,
-            Offset(x + barWidth / 2 - tp.width / 2, size.height - labelHeight));
+            textDirection: TextDirection.ltr,
+          )..layout();
+          tp.paint(canvas,
+              Offset(x + barWidth / 2 - tp.width / 2, size.height - labelHeight));
+        }
       }
     }
 
-    // ── "Now" vertical line (thin, full height) ──
+    // ── "Now" diamond marker ──
     final nowIdx = entries.indexWhere((e) => e.isNow);
     if (nowIdx >= 0 && activeIdx == null) {
       final nx = nowIdx * barWidth + barWidth / 2;
-      final nowPaint = Paint()
-        ..color = (isDark ? AppColorsDark.textPrimary : AppColors.textPrimary)
-            .withValues(alpha: 0.6)
-        ..strokeWidth = 1.0;
-      canvas.drawLine(
-        Offset(nx, barTop),
-        Offset(nx, size.height - labelHeight - 2),
-        nowPaint,
-      );
-      // Small "now" label
+      final e = entries[nowIdx];
+      final barH = maxBarHeight * e.score.clamp(0.05, 1.0);
+      final diamondY = barTop + (maxBarHeight - barH) - 1;
+
+      // Diamond shape at bar top
+      final diamondPath = Path()
+        ..moveTo(nx, diamondY - 6)
+        ..lineTo(nx + 4, diamondY - 3)
+        ..lineTo(nx, diamondY)
+        ..lineTo(nx - 4, diamondY - 3)
+        ..close();
+      canvas.drawPath(diamondPath, Paint()..color = textPrimary);
+
+      // "now" label below diamond
       final nowTp = TextPainter(
         text: TextSpan(
           text: 'now',
           style: TextStyle(
             fontSize: 9,
             fontWeight: FontWeight.w600,
-            color: isDark ? AppColorsDark.textSecondary : AppColors.textSecondary,
+            color: textPrimary.withValues(alpha: 0.7),
           ),
         ),
         textDirection: TextDirection.ltr,
@@ -1389,9 +1348,7 @@ class _StripPainter extends CustomPainter {
     if (activeIdx != null && activeIdx! < entries.length) {
       final x = activeIdx! * barWidth + barWidth / 2;
       final linePaint = Paint()
-        ..color = isDark
-            ? AppColorsDark.textPrimary
-            : AppColors.textPrimary
+        ..color = textPrimary
         ..strokeWidth = 1.5;
       canvas.drawLine(
         Offset(x, 0),
@@ -1421,89 +1378,66 @@ class _StripPainter extends CustomPainter {
 }
 
 // =============================================================================
-// REASON CHIPS
+// REASON CHIPS — 2 data-native chips (waves + wind)
 // =============================================================================
 
 class _ReasonChips extends StatelessWidget {
+  final FactorSummary? surfFactor;
+  final FactorSummary? windFactor;
   final double? waveHeight;
   final double? wavePeriod;
   final double? windSpeed;
-  final String windQuality;
   final String windDirLabel;
-  final String tideLabel;
-  final double? tideHeight;
-  final Color? waveDot;
-  final Color? windDot;
   final bool isDark;
 
   const _ReasonChips({
+    this.surfFactor,
+    this.windFactor,
     required this.waveHeight,
     required this.wavePeriod,
     required this.windSpeed,
-    required this.windQuality,
     required this.windDirLabel,
-    required this.tideLabel,
-    required this.tideHeight,
-    required this.waveDot,
-    required this.windDot,
     required this.isDark,
   });
 
   @override
   Widget build(BuildContext context) {
     final bg = isDark ? AppColorsDark.bgSecondary : AppColors.bgSecondary;
-    final textColor =
-        isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
-    final subColor =
-        isDark ? AppColorsDark.textSecondary : AppColors.textSecondary;
+    final textColor = isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
+
+    // Wave chip value: "4.3ft · 12s"
+    final waveParts = <String>[];
+    if (waveHeight != null) waveParts.add('${formatWaveHeight(waveHeight)}ft');
+    if (wavePeriod != null) waveParts.add('${wavePeriod!.round()}s');
+    final waveValue = waveParts.isNotEmpty ? waveParts.join(' \u00b7 ') : '--';
+
+    // Wind chip value: "10mph SW"
+    final windValue = windSpeed != null
+        ? '${formatWindSpeed(windSpeed)}mph${windDirLabel != '--' ? ' $windDirLabel' : ''}'
+        : '--';
 
     return Row(
       children: [
-        // Swell chip
         Expanded(
           child: _chip(
             bg: bg,
-            dotColor: waveDot,
-            title: waveHeight != null
-                ? '${formatWaveHeight(waveHeight)}ft'
-                : '--',
-            subtitle: wavePeriod != null
-                ? '${wavePeriod!.round()}s period'
-                : 'Swell',
+            dotColor: surfFactor != null ? statusColor(surfFactor!.status, isDark) : null,
+            value: waveValue,
             textColor: textColor,
-            subColor: subColor,
           ),
         ),
         const SizedBox(width: AppSpacing.s2),
-        // Wind chip
         Expanded(
           child: _chip(
             bg: bg,
-            dotColor: windDot,
-            title: windSpeed != null
-                ? '${formatWindSpeed(windSpeed)}mph'
-                : '--',
-            subtitle: windQuality.isNotEmpty
-                ? '$windDirLabel $windQuality'
-                : 'Wind',
+            dotColor: windFactor != null ? statusColor(windFactor!.status, isDark) : null,
+            value: windValue,
             textColor: textColor,
-            subColor: subColor,
           ),
         ),
-        const SizedBox(width: AppSpacing.s2),
-        // Tide chip
-        Expanded(
-          child: _chip(
-            bg: bg,
-            dotColor: null,
-            title: tideHeight != null
-                ? '${formatWaveHeight(tideHeight)}ft'
-                : '--',
-            subtitle: tideLabel,
-            textColor: textColor,
-            subColor: subColor,
-          ),
-        ),
+        const SizedBox(width: AppSpacing.s1),
+        Icon(Icons.chevron_right, size: 14,
+            color: isDark ? AppColorsDark.textTertiary : AppColors.textTertiary),
       ],
     );
   }
@@ -1511,545 +1445,38 @@ class _ReasonChips extends StatelessWidget {
   Widget _chip({
     required Color bg,
     required Color? dotColor,
-    required String title,
-    required String subtitle,
+    required String value,
     required Color textColor,
-    required Color subColor,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.s3,
-        vertical: AppSpacing.s2,
+        horizontal: AppSpacing.s3, vertical: AppSpacing.s2,
       ),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(AppRadius.md),
-        // Chips: no shadow — flat inline elements
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              if (dotColor != null) ...[
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: dotColor,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 4),
-              ],
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontFamily: AppTypography.fontMono,
-                    fontSize: AppTypography.textSm,
-                    fontWeight: AppTypography.weightSemibold,
-                    color: textColor,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: AppTypography.textXs,
-              color: subColor,
+          if (dotColor != null) ...[
+            Container(
+              width: 6, height: 6,
+              decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
             ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// =============================================================================
-// WHY THIS SCORE — deterministic bullet points, no AI
-// =============================================================================
-
-class _WhyThisScoreCard extends StatelessWidget {
-  final double? waveHeight;
-  final double? wavePeriod;
-  final double? windSpeed;
-  final String windQuality;
-  final String tideLabel;
-  final UserPrefs prefs;
-  final Location location;
-  final String bestWindowRange;
-  final bool isDark;
-
-  const _WhyThisScoreCard({
-    required this.waveHeight,
-    required this.wavePeriod,
-    required this.windSpeed,
-    required this.windQuality,
-    required this.tideLabel,
-    required this.prefs,
-    required this.location,
-    required this.bestWindowRange,
-    required this.isDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final bullets = _buildBullets();
-    if (bullets.isEmpty) return const SizedBox.shrink();
-
-    final bg = isDark ? AppColorsDark.bgSecondary : AppColors.bgSecondary;
-    final textColor =
-        isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
-    final subColor =
-        isDark ? AppColorsDark.textSecondary : AppColors.textSecondary;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppSpacing.s4),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: AppShadows.sm,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Why this score',
-            style: TextStyle(
-              fontSize: AppTypography.textSm,
-              fontWeight: AppTypography.weightSemibold,
-              color: textColor,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.s2),
-          ...bullets.map((b) => Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '\u2022 ',
-                      style: TextStyle(
-                        fontSize: AppTypography.textSm,
-                        color: subColor,
-                        height: 1.4,
-                      ),
-                    ),
-                    Expanded(
-                      child: Text(
-                        b,
-                        style: TextStyle(
-                          fontSize: AppTypography.textSm,
-                          color: subColor,
-                          height: 1.4,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              )),
-        ],
-      ),
-    );
-  }
-
-  List<String> _buildBullets() {
-    final bullets = <String>[];
-
-    // Wave assessment
-    if (waveHeight != null) {
-      final minH = prefs.minWaveHeight ?? 2.0;
-      final maxH = prefs.maxWaveHeight ?? 6.0;
-      if (waveHeight! < minH) {
-        bullets.add('Waves are small and underpowered for this spot right now');
-      } else if (waveHeight! > maxH) {
-        bullets.add('Swell is overhead and may be too much for comfortable surfing');
-      } else {
-        final periodNote = wavePeriod != null && wavePeriod! >= 10
-            ? ' with good energy'
-            : wavePeriod != null && wavePeriod! < 7
-                ? ' but short period'
-                : '';
-        bullets.add('Wave size is in your sweet spot$periodNote');
-      }
-    }
-
-    // Wind assessment
-    if (windSpeed != null) {
-      final wq = windQuality.toLowerCase();
-      if (wq == 'offshore') {
-        if (windSpeed! < 8) {
-          bullets.add('Light offshore wind is grooming the faces nicely');
-        } else {
-          bullets.add('Offshore wind is cleaning things up but may hold some waves back');
-        }
-      } else if (wq == 'onshore') {
-        bullets.add('Onshore wind is adding texture and chop');
-      } else if (wq == 'cross-shore') {
-        bullets.add('Cross-shore wind is manageable but not ideal');
-      }
-    }
-
-    // Tide
-    final tl = tideLabel.toLowerCase();
-    if (tl.contains('rising')) {
-      bullets.add('Tide is pushing in — shape may improve as it fills');
-    } else if (tl.contains('falling')) {
-      bullets.add('Tide is dropping — watch for shallow spots');
-    }
-
-    // Best window forward-look
-    if (bestWindowRange.isNotEmpty && bullets.isNotEmpty) {
-      bullets.add('Better shape expected during the $bestWindowRange window');
-    }
-
-    return bullets.take(3).toList();
-  }
-}
-
-// =============================================================================
-// UNIFIED CONDITIONS CARD
-// =============================================================================
-
-// =============================================================================
-// BOARD CALL CARD — surf-native, personal
-// =============================================================================
-
-class _BoardCallCard extends StatelessWidget {
-  final BoardRecommendation boardRec;
-  final bool isDark;
-
-  const _BoardCallCard({
-    required this.boardRec,
-    required this.isDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final bg = isDark ? AppColorsDark.bgSecondary : AppColors.bgSecondary;
-    final textColor =
-        isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
-    final subColor =
-        isDark ? AppColorsDark.textSecondary : AppColors.textSecondary;
-
-    final boardName = boardRec.board.name.isNotEmpty
-        ? boardRec.board.name
-        : boardRec.board.type;
-
-    return Padding(
-      padding: const EdgeInsets.only(top: AppSpacing.s3),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(AppSpacing.s4),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          boxShadow: AppShadows.sm,
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.surfing, size: 20, color: AppColors.accent),
-            const SizedBox(width: AppSpacing.s3),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Board call',
-                    style: TextStyle(
-                      fontSize: AppTypography.textXs,
-                      fontWeight: AppTypography.weightMedium,
-                      color: subColor,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Ride your $boardName',
-                    style: TextStyle(
-                      fontSize: AppTypography.textSm,
-                      fontWeight: AppTypography.weightSemibold,
-                      color: textColor,
-                    ),
-                  ),
-                  if (boardRec.reason.isNotEmpty)
-                    Text(
-                      boardRec.reason,
-                      style: TextStyle(
-                        fontSize: AppTypography.textXs,
-                        color: subColor,
-                        height: 1.3,
-                      ),
-                    ),
-                ],
-              ),
-            ),
+            const SizedBox(width: 5),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _UnifiedConditionsCard extends StatelessWidget {
-  final double? waveHeight;
-  final double? waveDir;
-  final double? wavePeriod;
-  final double? windSpeed;
-  final String windDirLabel;
-  final String windQuality;
-  final double? tideHeight;
-  final String tideLabel;
-  final double? waterTemp;
-  final Color? waveDot;
-  final Color? windDot;
-  final bool isDark;
-
-  const _UnifiedConditionsCard({
-    required this.waveHeight,
-    required this.waveDir,
-    required this.wavePeriod,
-    required this.windSpeed,
-    required this.windDirLabel,
-    required this.windQuality,
-    required this.tideHeight,
-    required this.tideLabel,
-    required this.waterTemp,
-    required this.waveDot,
-    required this.windDot,
-    required this.isDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final bg = isDark ? AppColorsDark.bgSecondary : AppColors.bgSecondary;
-    final textColor =
-        isDark ? AppColorsDark.textPrimary : AppColors.textPrimary;
-    final subColor =
-        isDark ? AppColorsDark.textSecondary : AppColors.textSecondary;
-    final dividerColor = isDark ? AppColorsDark.border : AppColors.border;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.s4,
-        vertical: AppSpacing.s4,
-      ),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: AppShadows.sm,
-      ),
-      child: IntrinsicHeight(
-        child: Row(
-          children: [
-            // Waves column
-            Expanded(
-              child: _column(
-                label: 'Waves',
-                value: waveHeight != null
-                    ? formatWaveHeight(waveHeight)
-                    : '--',
-                unit: 'ft',
-                detail: _waveDetail(),
-                dotColor: waveDot,
-                textColor: textColor,
-                subColor: subColor,
-              ),
-            ),
-            VerticalDivider(
-              width: AppSpacing.s6,
-              thickness: 1,
-              color: dividerColor,
-            ),
-            // Wind column
-            Expanded(
-              child: _column(
-                label: 'Wind',
-                value: windSpeed != null
-                    ? formatWindSpeed(windSpeed)
-                    : '--',
-                unit: 'mph',
-                detail: windQuality.isNotEmpty
-                    ? '$windDirLabel \u00b7 $windQuality'
-                    : windDirLabel,
-                dotColor: windDot,
-                textColor: textColor,
-                subColor: subColor,
-              ),
-            ),
-            VerticalDivider(
-              width: AppSpacing.s6,
-              thickness: 1,
-              color: dividerColor,
-            ),
-            // Tide column
-            Expanded(
-              child: _column(
-                label: 'Tide',
-                value: tideHeight != null
-                    ? formatWaveHeight(tideHeight)
-                    : '--',
-                unit: 'ft',
-                detail: _tideDetail(),
-                dotColor: null,
-                textColor: textColor,
-                subColor: subColor,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _waveDetail() {
-    final parts = <String>[];
-    if (waveDir != null) parts.add(degreesToCardinal(waveDir!));
-    if (wavePeriod != null) parts.add('${wavePeriod!.round()}s');
-    return parts.isNotEmpty ? parts.join(' ') : 'Swell';
-  }
-
-  String _tideDetail() {
-    final parts = <String>[tideLabel];
-    if (waterTemp != null) {
-      parts.add('${formatTemp(waterTemp)}°');
-    }
-    return parts.join(' \u00b7 ');
-  }
-
-  Widget _column({
-    required String label,
-    required String value,
-    required String unit,
-    required String detail,
-    required Color? dotColor,
-    required Color textColor,
-    required Color subColor,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Label with optional dot
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (dotColor != null) ...[
-              Container(
-                width: 6,
-                height: 6,
-                decoration: BoxDecoration(
-                  color: dotColor,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 4),
-            ],
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: AppTypography.textXs,
-                fontWeight: AppTypography.weightMedium,
-                color: subColor,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        // Value + unit
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
-          children: [
-            Text(
+          Expanded(
+            child: Text(
               value,
               style: TextStyle(
                 fontFamily: AppTypography.fontMono,
-                fontSize: AppTypography.textXl,
-                fontWeight: AppTypography.weightBold,
+                fontSize: AppTypography.textSm,
+                fontWeight: AppTypography.weightMedium,
                 color: textColor,
               ),
-            ),
-            const SizedBox(width: 2),
-            Text(
-              unit,
-              style: TextStyle(
-                fontSize: AppTypography.textXs,
-                color: subColor,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 2),
-        // Detail line
-        Text(
-          detail,
-          style: TextStyle(
-            fontSize: AppTypography.textXs,
-            color: subColor,
-          ),
-          textAlign: TextAlign.center,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-      ],
-    );
-  }
-}
-
-// =============================================================================
-// FORECAST SUMMARY (left-aligned, with LLM crossfade)
-// =============================================================================
-
-class _ForecastSummaryBlock extends StatelessWidget {
-  final String ruleBasedSummary;
-  final AiState llmState;
-  final Confidence? confidence;
-  final bool isDark;
-
-  const _ForecastSummaryBlock({
-    required this.ruleBasedSummary,
-    required this.llmState,
-    required this.confidence,
-    required this.isDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final showLlm =
-        llmState.status == AiStatus.loaded && llmState.text != null;
-    final displayText = showLlm ? llmState.text! : ruleBasedSummary;
-    final subColor =
-        isDark ? AppColorsDark.textSecondary : AppColors.textSecondary;
-    final tertiaryColor =
-        isDark ? AppColorsDark.textTertiary : AppColors.textTertiary;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.s4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AnimatedSwitcher(
-            duration: AppDurations.slow,
-            child: Text(
-              displayText,
-              key: ValueKey(displayText),
-              textAlign: TextAlign.left,
-              style: TextStyle(
-                fontSize: AppTypography.textSm,
-                color: subColor,
-                height: 1.5,
-              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-          // Confidence is communicated through the score, not a badge
         ],
       ),
     );
@@ -2057,360 +1484,59 @@ class _ForecastSummaryBlock extends StatelessWidget {
 }
 
 // =============================================================================
-// EXPECTED VS POTENTIAL
+// COMPACT "ASK THE CALL" CTA
 // =============================================================================
 
-class _ExpectedVsPotentialCard extends StatelessWidget {
-  final ExpectedVsPotential evp;
+class _AskTheCallCta extends StatelessWidget {
   final bool isDark;
-  const _ExpectedVsPotentialCard(
-      {required this.evp, required this.isDark});
+  final VoidCallback onTap;
+
+  const _AskTheCallCta({required this.isDark, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final expectedLabel = getConditionLabel(evp.expectedScore);
-    final potentialLabel = getConditionLabel(evp.potentialScore);
-    final bgColor =
-        isDark ? AppColorsDark.bgSecondary : AppColors.bgSecondary;
-    final labelColor =
-        isDark ? AppColorsDark.textTertiary : AppColors.textTertiary;
-    final descColor =
-        isDark ? AppColorsDark.textSecondary : AppColors.textSecondary;
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.s3),
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        boxShadow: AppShadows.sm,
-      ),
-      child: Column(
-        children: [
-          _evpRow('EXPECTED', evp.expectedDescription, expectedLabel,
-              labelColor, descColor),
-          const SizedBox(height: AppSpacing.s1),
-          _evpRow('POTENTIAL', evp.potentialDescription, potentialLabel,
-              labelColor, descColor),
-        ],
-      ),
-    );
-  }
-
-  Widget _evpRow(String label, String desc, ConditionLabel condition,
-      Color labelColor, Color descColor) {
-    return Row(
-      children: [
-        SizedBox(
-          width: 68,
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: AppTypography.textXxs,
-              fontWeight: AppTypography.weightSemibold,
-              color: labelColor,
-              letterSpacing: 0.3,
-            ),
-          ),
-        ),
-        Expanded(
-          child: Text(
-            desc,
-            style: TextStyle(
-              fontSize: AppTypography.textXs,
-              color: descColor,
-            ),
-          ),
-        ),
-        Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          decoration: BoxDecoration(
-            color: Color(int.parse(
-                    condition.color.replaceFirst('#', '0xFF')))
-                .withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(AppRadius.sm),
-          ),
-          child: Text(
-            condition.label,
-            style: TextStyle(
-              fontSize: AppTypography.textXxs,
-              fontWeight: AppTypography.weightSemibold,
-              color: Color(int.parse(
-                  condition.color.replaceFirst('#', '0xFF'))),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// =============================================================================
-// FORECAST ACCURACY
-// =============================================================================
-
-class _ForecastAccuracyBadge extends StatelessWidget {
-  final ForecastAccuracy accuracy;
-  const _ForecastAccuracyBadge({required this.accuracy});
-
-  @override
-  Widget build(BuildContext context) {
+    final accent = AppColors.accent;
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.s3),
-      child: Row(
-        children: [
-          Text(
-            '\u2713',
-            style: TextStyle(
-              fontSize: AppTypography.textXs,
-              fontWeight: AppTypography.weightBold,
-              color: AppColors.accent,
-            ),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.s4, vertical: AppSpacing.s3,
           ),
-          const SizedBox(width: 4),
-          Text(
-            'Matched ${accuracy.matched} of your last ${accuracy.total} sessions (${accuracy.pct}%)',
-            style: TextStyle(
-              fontSize: AppTypography.textXs,
-              fontWeight: AppTypography.weightMedium,
-              color: AppColors.accent,
-            ),
+          decoration: BoxDecoration(
+            color: accent.withValues(alpha: isDark ? 0.12 : 0.08),
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: accent.withValues(alpha: 0.2)),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-// =============================================================================
-// SCORE FEEDBACK
-// =============================================================================
-
-class _ScoreFeedbackWidget extends StatefulWidget {
-  final String locationId;
-  final double score;
-  final HourlyData? currentHour;
-  final bool isDark;
-
-  const _ScoreFeedbackWidget({
-    required this.locationId,
-    required this.score,
-    this.currentHour,
-    required this.isDark,
-  });
-
-  @override
-  State<_ScoreFeedbackWidget> createState() => _ScoreFeedbackWidgetState();
-}
-
-class _ScoreFeedbackWidgetState extends State<_ScoreFeedbackWidget> {
-  static const _hiveBox = 'boardcast_store';
-  static const _feedbackKey = 'score_feedback_given';
-
-  String? _submitted;
-
-  String _dedupKey() {
-    final hour = DateTime.now().toIso8601String().split('T')[0] +
-        'T${DateTime.now().hour.toString().padLeft(2, '0')}';
-    return '${widget.locationId}_$hour';
-  }
-
-  bool _hasGivenFeedback() {
-    try {
-      final box = Hive.box<String>(_hiveBox);
-      final raw = box.get(_feedbackKey);
-      if (raw == null) return false;
-      final given = jsonDecode(raw) as Map<String, dynamic>;
-      return given.containsKey(_dedupKey());
-    } catch (_) {
-      return false;
-    }
-  }
-
-  void _saveFeedback(String feedback) {
-    setState(() => _submitted = feedback);
-    HapticFeedback.lightImpact();
-
-    try {
-      final box = Hive.box<String>(_hiveBox);
-      final raw = box.get(_feedbackKey);
-      final given = raw != null
-          ? (jsonDecode(raw) as Map<String, dynamic>)
-          : <String, dynamic>{};
-      given[_dedupKey()] = feedback;
-      if (given.length > 100) {
-        final keys = given.keys.toList();
-        for (final k in keys.sublist(0, keys.length - 100)) {
-          given.remove(k);
-        }
-      }
-      box.put(_feedbackKey, jsonEncode(given));
-    } catch (_) {}
-
-    final h = widget.currentHour;
-    supabase.from('feedback').insert({
-      'type': 'score_accuracy',
-      'message': jsonEncode({
-        'locationId': widget.locationId,
-        'score': (widget.score * 100).round(),
-        'feedback': feedback,
-        'conditions': {
-          'waveHeight': h?.waveHeight,
-          'windSpeed': h?.windSpeed,
-          'windDirection': h?.windDirection,
-          'swellDirection': h?.swellDirection,
-          'swellPeriod': h?.swellPeriod,
-          'tideHeight': h?.tideHeight,
-        },
-      }),
-    }).then((_) {}, onError: (_) {});
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_hasGivenFeedback() && _submitted == null) {
-      return const SizedBox.shrink();
-    }
-
-    final subColor = widget.isDark
-        ? AppColorsDark.textSecondary
-        : AppColors.textSecondary;
-
-    if (_submitted != null) {
-      return Padding(
-        padding: const EdgeInsets.only(bottom: AppSpacing.s4),
-        child: Text(
-          'Thanks for the feedback!',
-          style: TextStyle(
-            fontSize: AppTypography.textXs,
-            color: subColor,
-          ),
-        ),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.s4),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Score feel right?',
-            style: TextStyle(
-              fontSize: AppTypography.textXs,
-              color: subColor,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Row(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _feedbackButton('Too low', Icons.arrow_downward, subColor),
-              const SizedBox(width: 8),
-              _feedbackButton('Spot on', Icons.check, subColor,
-                  isAccent: true),
-              const SizedBox(width: 8),
-              _feedbackButton('Too high', Icons.arrow_upward, subColor),
+              Text(
+                '\u2728',
+                style: TextStyle(fontSize: AppTypography.textBase),
+              ),
+              const SizedBox(width: AppSpacing.s2),
+              Text(
+                'Ask The Call',
+                style: TextStyle(
+                  fontSize: AppTypography.textSm,
+                  fontWeight: AppTypography.weightSemibold,
+                  color: accent,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(Icons.arrow_forward_ios, size: 12, color: accent),
             ],
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _feedbackButton(String label, IconData icon, Color color,
-      {bool isAccent = false}) {
-    final fg = isAccent ? AppColors.accent : color;
-    return GestureDetector(
-      onTap: () =>
-          _saveFeedback(label.toLowerCase().replaceAll(' ', '_')),
-      child: Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          border: Border.all(
-              color: isAccent
-                  ? AppColors.accent.withValues(alpha: 0.4)
-                  : color.withValues(alpha: 0.2)),
-          borderRadius: BorderRadius.circular(AppRadius.full),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 12, color: fg),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                  fontSize: AppTypography.textXs, color: fg),
-            ),
-          ],
         ),
       ),
     );
   }
 }
 
-// =============================================================================
-// FL-MOTION-3: Spring lift on tap — cards lift 2pt with spring curve
-// =============================================================================
-
-class _SpringLift extends StatefulWidget {
-  final Widget child;
-  final VoidCallback? onTap;
-
-  const _SpringLift({required this.child, this.onTap});
-
-  @override
-  State<_SpringLift> createState() => _SpringLiftState();
-}
-
-class _SpringLiftState extends State<_SpringLift>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  late final Animation<double> _lift;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 200),
-      reverseDuration: const Duration(milliseconds: 300),
-    );
-    _lift = Tween<double>(begin: 0, end: -2).animate(
-      CurvedAnimation(
-        parent: _ctrl,
-        curve: Curves.easeOut,
-        reverseCurve: Curves.elasticOut,
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => _ctrl.forward(),
-      onTapUp: (_) {
-        _ctrl.reverse();
-        widget.onTap?.call();
-      },
-      onTapCancel: () => _ctrl.reverse(),
-      child: AnimatedBuilder(
-        animation: _lift,
-        builder: (context, child) {
-          return Transform.translate(
-            offset: Offset(0, _lift.value),
-            child: child,
-          );
-        },
-        child: widget.child,
-      ),
-    );
-  }
-}
+// Removed: _WhyThisScoreCard, _BoardCallCard, _UnifiedConditionsCard,
+// _ForecastSummaryBlock, _ExpectedVsPotentialCard, _ScoreFeedbackWidget, _SpringLift,
+// _FactorInsight, _ForecastAccuracyBadge
+// — content moved to score_breakdown_sheet.dart

@@ -25,6 +25,7 @@ import '../components/strava_import_modal.dart';
 import '../components/surf_iq_card.dart';
 import '../components/session_history_list.dart';
 import '../components/surf_wrapped.dart';
+import '../logic/units.dart';
 import '../theme/transitions.dart';
 import 'feature_tour_screen.dart';
 
@@ -686,9 +687,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen>
 
   Widget _buildPreferencesSection(BuildContext context, WidgetRef ref,
       prefs, bool isDark, Color textColor, Color subColor) {
-    final waveMin = prefs?.minWaveHeight?.toStringAsFixed(1) ?? '?';
-    final waveMax = prefs?.maxWaveHeight?.toStringAsFixed(1) ?? '?';
-    final windMax = prefs?.maxWindSpeed?.round().toString() ?? '?';
+    final waveMin = formatWaveHeight(prefs?.minWaveHeight);
+    final waveMax = formatWaveHeight(prefs?.maxWaveHeight);
+    final windMax = formatWindSpeed(prefs?.maxWindSpeed);
     final tide = prefs?.preferredTide ?? 'any';
 
     return Container(

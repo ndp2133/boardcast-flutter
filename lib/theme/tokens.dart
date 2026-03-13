@@ -95,6 +95,7 @@ abstract final class AppTypography {
   static const textBase = 16.0;
   static const textLg = 18.0;
   static const textXl = 24.0;
+  static const textHero = 28.0;
   static const text2xl = 32.0;
   static const text3xl = 48.0;
   static const textDisplay = 56.0;
